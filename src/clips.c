@@ -88,7 +88,7 @@ PHP_FUNCTION(clips_console) {
  *
  *  Function clips_exec
  *
- *  This function will close the clips engine
+ *  This function will execute a clips rule file
  *
  *  @version 1.0
  *  @args
@@ -108,6 +108,18 @@ PHP_FUNCTION(clips_exec) {
 	}
 }
 
+/*******************************************************************************
+ *
+ *  Function clips_load
+ *
+ *  This function will load a rules file to the clips
+ *
+ *  @version 1.0
+ *  @args
+ *  	filename: The clips file to load
+ *
+ *******************************************************************************/
+
 PHP_FUNCTION(clips_load) {
 	char* s_filename;
 	int i_filename_len;
@@ -115,14 +127,8 @@ PHP_FUNCTION(clips_load) {
 		RETURN_FALSE;
 	}
 
-	php_printf("Loading rules file %s", s_filename);
-
-	if(!EnvBatchStar(p_clips_env, s_filename)) {
-		php_printf("Oh NO!");
+	if(!EnvLoad(p_clips_env, s_filename)) {
 		RETURN_FALSE;
 	}
 	RETURN_TRUE;
 }
-
-
-
