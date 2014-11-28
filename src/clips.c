@@ -8,6 +8,7 @@ static zend_function_entry clips_functions[] = {
     PHP_FE(clips_console, NULL)
     PHP_FE(clips_exec, NULL)
     PHP_FE(clips_load, NULL)
+    PHP_FE(clips_is_command_complete, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -88,24 +89,38 @@ PHP_FUNCTION(clips_console) {
  *
  *  Function clips_exec
  *
- *  This function will execute a clips rule file
+ *  This function will execute a clips command
  *
  *  @version 1.0
  *  @args
- *  	filename: The clips file to be executed
+ *  	str: The clips command
  *
  *******************************************************************************/
 
 PHP_FUNCTION(clips_exec) {
 	if(p_clips_env) {
-		char* s_filename;
-		int i_filename_len;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_filename, &i_filename_len) == FAILURE) {
+		char* s_str;
+		int i_str_len;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_str, &i_str_len) == FAILURE) {
 			RETURN_FALSE;
 		}
-		EnvBatchStar(p_clips_env, s_filename);
-		RETURN_TRUE;
+		if (CommandLineData(p_clips_env)->BeforeCommandExecutionFunction != NULL) { 
+			if (! (*CommandLineData(p_clips_env)->BeforeCommandExecutionFunction)(p_clips_env))
+			{ RETURN_FALSE; }
+		}
+
+		FlushPPBuffer(p_clips_env);
+		SetPPBufferStatus(p_clips_env,OFF);
+		RouteCommand(p_clips_env,s_str,TRUE);
+		FlushPPBuffer(p_clips_env);
+		SetHaltExecution(p_clips_env,FALSE);
+		SetEvaluationError(p_clips_env,FALSE);
+		FlushCommandString(p_clips_env);
+
+		CleanCurrentGarbageFrame(p_clips_env,NULL);
+		CallPeriodicTasks(p_clips_env);
 	}
+	RETURN_FALSE;
 }
 
 /*******************************************************************************
@@ -121,14 +136,40 @@ PHP_FUNCTION(clips_exec) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_load) {
-	char* s_filename;
-	int i_filename_len;
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_filename, &i_filename_len) == FAILURE) {
-		RETURN_FALSE;
+	if(p_clips_env) {
+		char* s_filename;
+		int i_filename_len;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_filename, &i_filename_len) == FAILURE) {
+			RETURN_FALSE;
+		}
+		EnvBatchStar(p_clips_env, s_filename);
+		RETURN_TRUE;
 	}
+	RETURN_FALSE;
+}
 
-	if(!EnvLoad(p_clips_env, s_filename)) {
+/*******************************************************************************
+ *
+ *  Function clips_is_command_complete
+ *
+ *  This function will test if the command is the complete command string
+ *
+ *  @version 1.0
+ *  @args
+ *  	str: The command string to be tested
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_is_command_complete) {
+	char* s_str;
+	int i_str_len;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_str, &i_str_len) == FAILURE) {
 		RETURN_FALSE;
 	}
-	RETURN_TRUE;
+	if(CompleteCommand(s_str) == 0) {
+		RETURN_FALSE;
+	}
+	else {
+		RETURN_TRUE;
+	}
 }
