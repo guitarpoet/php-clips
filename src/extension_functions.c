@@ -67,18 +67,32 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 		ppzv_params[i] = val;
 	}
 
-	long ret = -1;
-	if (call_user_function(
-			EG(function_table), NULL /* no object */, pzv_function_name,
-			pzv_php_ret_val, i_param_count, ppzv_params TSRMLS_CC
-		) == SUCCESS
-	) {
-		/* do something with retval_ptr here if you like */
-		ret = Z_LVAL_P(pzv_php_ret_val);
+	if (call_user_function( EG(function_table), NULL /* no object */, pzv_function_name, pzv_php_ret_val, i_param_count, ppzv_params TSRMLS_CC) == SUCCESS) {
+		switch(Z_TYPE_P(pzv_php_ret_val)) {
+			case IS_LONG:
+				EnvSetpType(pv_env, pdo_return_val, INTEGER);
+				EnvSetpValue(pv_env, pdo_return_val, EnvAddLong(pv_env, Z_LVAL_P(pzv_php_ret_val)));
+				break;
+			case IS_DOUBLE:
+				EnvSetpType(pv_env, pdo_return_val, FLOAT);
+				EnvSetpValue(pv_env, pdo_return_val, EnvAddDouble(pv_env, Z_DVAL_P(pzv_php_ret_val)));
+				break;
+			case IS_ARRAY:
+				// TODO Make this a multifiled
+				break;
+			case IS_OBJECT:
+				// TODO Make this a fact(with template or not)
+				break;
+			case IS_STRING:
+				EnvSetpType(pv_env, pdo_return_val, STRING);
+				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, Z_STRVAL_P(pzv_php_ret_val)));
+				break;
+		}
+		return;
 	}
 
-	EnvSetpType(pv_env, pdo_return_val, INTEGER);
-	EnvSetpValue(pv_env, pdo_return_val, EnvAddLong(pv_env, ret));
+	EnvSetpType(pv_env, pdo_return_val, STRING);
+	EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, ""));
 	return ;
 	
 }
