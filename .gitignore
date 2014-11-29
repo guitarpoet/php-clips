@@ -32,3 +32,4 @@ tags
 /Makefile
 /acinclude.m4
 /.deps
+*.rules

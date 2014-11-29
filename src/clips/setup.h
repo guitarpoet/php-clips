@@ -460,7 +460,7 @@
 /*************************************************************/
 
 #ifndef ALLOW_ENVIRONMENT_GLOBALS
-#define ALLOW_ENVIRONMENT_GLOBALS 0
+#define ALLOW_ENVIRONMENT_GLOBALS 1
 #endif
 
 /********************************************/

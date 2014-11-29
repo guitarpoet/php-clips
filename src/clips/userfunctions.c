@@ -46,6 +46,7 @@
 /***************************************************************************/
 
 #include "clips.h"
+#include "../extension_functions.h"
 
 void UserFunctions(void);
 void EnvUserFunctions(void *);
@@ -75,10 +76,6 @@ void UserFunctions()
 /*   included in another file.                             */
 /***********************************************************/
 void EnvUserFunctions(
-  void *environment)
-  {
-#if MAC_XCD
-#pragma unused(environment)
-#endif
+  void *environment) {
+	EnvDefineFunction2(environment, "php_call", 'u', PTIEF php_call, "php_call", "1*us"); // Call the php function, the first argument must be string to indicate php's function name, other arguments can be anything
   }
-
