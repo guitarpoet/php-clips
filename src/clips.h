@@ -21,8 +21,4 @@ extern zend_module_entry clips_module_entry;
 
 void* p_clips_env;
 
-#ifdef COMPILE_DL_CLIPS
-ZEND_GET_MODULE(clips)
-#endif
-
 #endif

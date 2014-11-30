@@ -1,8 +1,79 @@
 #include "extension_functions.h"
 
-void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
+void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
+	struct deftemplate* template = (struct deftemplate *) FactDeftemplate(data.value);
+	const char* s_template_name = ValueToString(template->header.name);
+	
+	// The slots for the fact
+	struct templateSlot* pts_slots = template->slotList;
+
+	zend_class_entry* pzce_class = zend_fetch_class(s_template_name, strlen(s_template_name), ZEND_FETCH_CLASS_NO_AUTOLOAD TSRMLS_CC);
+	if(pzce_class) {
+		// We do have the class, let's create a php instance of it
+		if(object_init_ex(pzv_val, pzce_class) == SUCCESS) {
+			// Make the constructor zval
+			zval* pzv_constructor;
+			MAKE_STD_ZVAL(pzv_constructor);
+			ZVAL_STRING(pzv_constructor, "__construct", TRUE);
+
+			// Prepace the return value
+			zval* pzv_ret_val;
+			MAKE_STD_ZVAL(pzv_ret_val);
+
+			// Let's call the construct method first
+			if(call_user_function(EG(function_table), &pzv_val, pzv_constructor, pzv_ret_val, 0, NULL TSRMLS_CC) == SUCCESS) {
+				// The constructor is done, let's setting the properties
+				while(pts_slots) {
+					DATA_OBJECT do_slot_val;
+					FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
+
+					const char* s_property_name = ValueToString(pts_slots->slotName);
+					zval* pzv_property;
+					MAKE_STD_ZVAL(pzv_property);
+
+					// Convert the data object to php variable
+					convert_do2php(p_clips_env, do_slot_val, pzv_property);
+
+					// Put the property to the object
+					zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), pzv_property);
+
+					zval_ptr_dtor(&pzv_property); // Destroy the variable when the setting is done.
+
+					// Move to next
+					pts_slots = pts_slots->next;
+				}
+			}
+
+			// Destroy the temporary zval variables
+			zval_ptr_dtor(&pzv_constructor);
+			zval_ptr_dtor(&pzv_ret_val);
+			return;
+		}
+	}
+	// We don't have the php class, let's make this fact an array
+	array_init(pzv_val);
+
+	while(pts_slots) {
+		DATA_OBJECT do_slot_val;
+		FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
+
+		const char* s_property_name = ValueToString(pts_slots->slotName);
+		zval* pzv_property;
+		MAKE_STD_ZVAL(pzv_property);
+
+		// Convert the data object to php variable
+		convert_do2php(p_clips_env, do_slot_val, pzv_property);
+
+		// Put the property to the object
+		add_assoc_zval(pzv_val, s_property_name, pzv_property);
+
+		// Move to next
+		pts_slots = pts_slots->next;
+	}
+}
+
+void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	struct multifield *pmf_fields;
-	struct deftemplate* template;
 	switch(GetType(data)) {
 		case FLOAT:
 			ZVAL_DOUBLE(pzv_val, DOToDouble(data));
@@ -17,36 +88,14 @@ void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
 			// This is an object, let's try to make is a class, if can't, make it an array
 			break;
 		case FACT_ADDRESS:
-			template = (struct deftemplate *) FactDeftemplate(data.value);
-			const char* s_template_name = ValueToString(template->header.name);
-
-			zend_class_entry* pzce_class = zend_fetch_class(s_template_name, strlen(s_template_name), ZEND_FETCH_CLASS_NO_AUTOLOAD TSRMLS_CC);
-			if(pzce_class) {
-				// We do have the class, let's create a php instance of it
-				if(object_init_ex(pzv_val, pzce_class) == SUCCESS) {
-					// Make the constructor zval
-					zval* pzv_constructor;
-					MAKE_STD_ZVAL(pzv_constructor);
-					ZVAL_STRING(pzv_constructor, "__construct", TRUE);
-
-					// Prepace the return value
-					zval* pzv_ret_val;
-					MAKE_STD_ZVAL(pzv_ret_val);
-
-					// Let's call the construct method first
-					if(call_user_function(EG(function_table), &pzv_val, pzv_constructor, pzv_ret_val, 0, NULL TSRMLS_CC) == SUCCESS) {
-					}
-
-					// Destroy the temporary zval variables
-					zval_ptr_dtor(pzv_constructor);
-					zval_ptr_dtor(pzv_ret_val);
-				}
-			}
-			// We don't have the php class, let's make this fact an array
+			process_fact(p_clips_env, data, pzv_val);
 			break;
 		case STRING:
 		case SYMBOL:
-			ZVAL_STRING(pzv_val, DOToString(data), TRUE);
+			if(strcmp(DOToString(data), "nil"))
+				ZVAL_STRING(pzv_val, DOToString(data), TRUE);
+			else
+				ZVAL_NULL(pzv_val);
 			break;
 		case MULTIFIELD:
 			// Let's convert this to array
@@ -142,7 +191,7 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 		DATA_OBJECT o;
 
 		EnvRtnUnknown(pv_env, 2 + i, &o); // Skipping the first once since it is the function name
-		convert_do2php(o, val);
+		convert_do2php(pv_env, o, val);
 		ppzv_params[i] = val;
 	}
 

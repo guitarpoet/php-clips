@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "src/clips/factmch.h"
 
+#ifdef COMPILE_DL_CLIPS
+ZEND_GET_MODULE(clips)
+#endif
+
 static zend_function_entry clips_functions[] = {
     PHP_FE(clips_init, NULL)
     PHP_FE(clips_close, NULL)
