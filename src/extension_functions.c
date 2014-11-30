@@ -35,8 +35,11 @@ void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
 
 					// Let's call the construct method first
 					if(call_user_function(EG(function_table), &pzv_val, pzv_constructor, pzv_ret_val, 0, NULL TSRMLS_CC) == SUCCESS) {
-						return;
 					}
+
+					// Destroy the temporary zval variables
+					zval_ptr_dtor(pzv_constructor);
+					zval_ptr_dtor(pzv_ret_val);
 				}
 			}
 			// We don't have the php class, let's make this fact an array
