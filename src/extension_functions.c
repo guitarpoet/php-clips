@@ -89,13 +89,13 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	// Process multifields first
 	struct fact * pf_fact = DOToPointer(data);
 
-	struct multifield mf_fields = pf_fact->theProposition;
+	struct multifield* pmf_fields = (struct multifield*) pf_fact->theProposition.theFields[0].value;
 	DATA_OBJECT do_tmp;
 	SetDOBegin(do_tmp, 1);
-	SetDOEnd(do_tmp, pf_fact->theProposition.multifieldLength);
-	do_tmp.value = &pf_fact->theProposition;
+	SetDOEnd(do_tmp, pmf_fields->multifieldLength);
+	do_tmp.value = pmf_fields;
 
-	convert_do2php(p_clips_env, do_tmp, pzv_val);
+	process_multifields(p_clips_env, do_tmp, pzv_val);
 
 	zval* pzv_template_name;
 	MAKE_STD_ZVAL(pzv_template_name);
