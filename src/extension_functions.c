@@ -1,6 +1,7 @@
 #include "extension_functions.h"
 
 void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
+	struct multifield *pmf_fields;
 	switch(GetType(data)) {
 		case FLOAT:
 			ZVAL_DOUBLE(pzv_val, DOToDouble(data));
@@ -23,6 +24,38 @@ void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
 			break;
 		case MULTIFIELD:
 			// Let's convert this to array
+			array_init(pzv_val);
+		   	pmf_fields = (struct multifield *) DOToPointer(data);
+			// Iterate all the values in the multifields, and put them all into the array
+			for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
+				// Initialize the php variable as array item
+				zval* pzv_array_item;
+				MAKE_STD_ZVAL(pzv_array_item);
+				
+				switch(GetMFType(data.value, i)) {
+					case INSTANCE_NAME:
+						// This is an object, let's try to make is a class, if can't, make it an array
+						break;
+					case INSTANCE_ADDRESS:
+						// This is an object, let's try to make is a class, if can't, make it an array
+						break;
+					case FACT_ADDRESS:
+						// This is a fact, let's try to make is a class, if can't, make it an array
+						break;
+					case FLOAT:
+						ZVAL_DOUBLE(pzv_array_item, ValueToDouble(GetMFValue(data.value, i)));
+						break;
+					case INTEGER:
+						ZVAL_LONG(pzv_array_item, ValueToLong(GetMFValue(data.value, i)));
+						break;
+					case STRING:
+					case SYMBOL:
+						ZVAL_STRING(pzv_array_item, ValueToString(GetMFValue(data.value, i)), TRUE);
+						break;
+				}
+				// Add it to the array
+				add_next_index_zval(pzv_val, pzv_array_item);
+			}
 			break;
 	}
 }
