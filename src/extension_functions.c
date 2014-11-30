@@ -1,5 +1,38 @@
 #include "extension_functions.h"
 
+void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
+	// Iterate all the values in the multifields, and put them all into the array
+	for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
+		// Initialize the php variable as array item
+		zval* pzv_array_item;
+		MAKE_STD_ZVAL(pzv_array_item);
+		
+		switch(GetMFType(data.value, i)) {
+			case INSTANCE_NAME:
+				// This is an object, let's try to make is a class, if can't, make it an array
+				break;
+			case INSTANCE_ADDRESS:
+				// This is an object, let's try to make is a class, if can't, make it an array
+				break;
+			case FACT_ADDRESS:
+				// This is a fact, let's try to make is a class, if can't, make it an array
+				break;
+			case FLOAT:
+				ZVAL_DOUBLE(pzv_array_item, ValueToDouble(GetMFValue(data.value, i)));
+				break;
+			case INTEGER:
+				ZVAL_LONG(pzv_array_item, ValueToLong(GetMFValue(data.value, i)));
+				break;
+			case STRING:
+			case SYMBOL:
+				ZVAL_STRING(pzv_array_item, ValueToString(GetMFValue(data.value, i)), TRUE);
+				break;
+		}
+		// Add it to the array
+		add_next_index_zval(pzv_val, pzv_array_item);
+	}
+}
+
 void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	struct deftemplate* template = (struct deftemplate *) FactDeftemplate(data.value);
 	const char* s_template_name = ValueToString(template->header.name);
@@ -53,6 +86,24 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	// We don't have the php class, let's make this fact an array
 	array_init(pzv_val);
 
+	// Process multifields first
+	struct fact * pf_fact = DOToPointer(data);
+
+	struct multifield mf_fields = pf_fact->theProposition;
+	DATA_OBJECT do_tmp;
+	SetDOBegin(do_tmp, 1);
+	SetDOEnd(do_tmp, pf_fact->theProposition.multifieldLength);
+	do_tmp.value = &pf_fact->theProposition;
+
+	convert_do2php(p_clips_env, do_tmp, pzv_val);
+
+	zval* pzv_template_name;
+	MAKE_STD_ZVAL(pzv_template_name);
+	ZVAL_STRING(pzv_template_name, s_template_name, TRUE);
+
+	// Put the property to the object
+	add_assoc_zval(pzv_val, "template", pzv_template_name);
+
 	while(pts_slots) {
 		DATA_OBJECT do_slot_val;
 		FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
@@ -100,37 +151,7 @@ void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 		case MULTIFIELD:
 			// Let's convert this to array
 			array_init(pzv_val);
-		   	pmf_fields = (struct multifield *) DOToPointer(data);
-			// Iterate all the values in the multifields, and put them all into the array
-			for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
-				// Initialize the php variable as array item
-				zval* pzv_array_item;
-				MAKE_STD_ZVAL(pzv_array_item);
-				
-				switch(GetMFType(data.value, i)) {
-					case INSTANCE_NAME:
-						// This is an object, let's try to make is a class, if can't, make it an array
-						break;
-					case INSTANCE_ADDRESS:
-						// This is an object, let's try to make is a class, if can't, make it an array
-						break;
-					case FACT_ADDRESS:
-						// This is a fact, let's try to make is a class, if can't, make it an array
-						break;
-					case FLOAT:
-						ZVAL_DOUBLE(pzv_array_item, ValueToDouble(GetMFValue(data.value, i)));
-						break;
-					case INTEGER:
-						ZVAL_LONG(pzv_array_item, ValueToLong(GetMFValue(data.value, i)));
-						break;
-					case STRING:
-					case SYMBOL:
-						ZVAL_STRING(pzv_array_item, ValueToString(GetMFValue(data.value, i)), TRUE);
-						break;
-				}
-				// Add it to the array
-				add_next_index_zval(pzv_val, pzv_array_item);
-			}
+			process_multifields(p_clips_env, data, pzv_val);
 			break;
 	}
 }
