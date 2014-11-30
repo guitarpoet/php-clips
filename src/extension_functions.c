@@ -2,6 +2,7 @@
 
 void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
 	struct multifield *pmf_fields;
+	struct deftemplate* template;
 	switch(GetType(data)) {
 		case FLOAT:
 			ZVAL_DOUBLE(pzv_val, DOToDouble(data));
@@ -16,7 +17,29 @@ void convert_do2php(DATA_OBJECT data, zval* pzv_val) {
 			// This is an object, let's try to make is a class, if can't, make it an array
 			break;
 		case FACT_ADDRESS:
-			// This is a fact, let's try to make is a class, if can't, make it an array
+			template = (struct deftemplate *) FactDeftemplate(data.value);
+			const char* s_template_name = ValueToString(template->header.name);
+
+			zend_class_entry* pzce_class = zend_fetch_class(s_template_name, strlen(s_template_name), ZEND_FETCH_CLASS_NO_AUTOLOAD TSRMLS_CC);
+			if(pzce_class) {
+				// We do have the class, let's create a php instance of it
+				if(object_init_ex(pzv_val, pzce_class) == SUCCESS) {
+					// Make the constructor zval
+					zval* pzv_constructor;
+					MAKE_STD_ZVAL(pzv_constructor);
+					ZVAL_STRING(pzv_constructor, "__construct", TRUE);
+
+					// Prepace the return value
+					zval* pzv_ret_val;
+					MAKE_STD_ZVAL(pzv_ret_val);
+
+					// Let's call the construct method first
+					if(call_user_function(EG(function_table), &pzv_val, pzv_constructor, pzv_ret_val, 0, NULL TSRMLS_CC) == SUCCESS) {
+						return;
+					}
+				}
+			}
+			// We don't have the php class, let's make this fact an array
 			break;
 		case STRING:
 		case SYMBOL:
