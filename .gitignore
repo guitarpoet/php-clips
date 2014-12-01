@@ -33,3 +33,4 @@ tags
 /acinclude.m4
 /.deps
 *.rules
+/test_run

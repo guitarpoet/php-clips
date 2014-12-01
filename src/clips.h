@@ -22,6 +22,4 @@ extern zend_module_entry clips_module_entry;
 #define phpext_clips_ptr &clips_module_entry
 #define UNSPECIFIED -1L
 
-void* p_clips_env;
-
 #endif

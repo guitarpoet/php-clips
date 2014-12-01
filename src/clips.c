@@ -41,13 +41,20 @@ zend_module_entry clips_module_entry = {
  *
  *  @version 1.0
  *  @args
- *  	None
+ *  	context: The context for the php clips execution
  *
  *******************************************************************************/
 
+void* p_clips_env = NULL; // The global clips environment
+zval* pzv_context = NULL; // The global php clips context
+
 PHP_FUNCTION(clips_init) {
-	p_clips_env = CreateEnvironment();
-	RETURN_TRUE;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_context) == SUCCESS) {
+		p_clips_env = CreateEnvironment();
+		RETURN_TRUE;
+	}
+	zend_error(E_ERROR, "No context setup for php clips!!!");
 }
 
 /*******************************************************************************

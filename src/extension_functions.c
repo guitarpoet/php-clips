@@ -1,11 +1,44 @@
 #include "extension_functions.h"
 
 void process_instance_name(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
+	process_data_object_instance(pv_env, DOToString(data), pzv_val);
+}
+
+void process_data_object_instance(void* pv_env, const char* s_instance_name, zval* pzv_val) {
+	zval** ppzv_instance;
+	if(zend_hash_exists(Z_ARRVAL_P(pzv_context), s_instance_name, strlen(s_instance_name)) == SUCCESS) {
+		// We have the key TODO Using zend_hash_quick_find to make this faster
+		
+		HashTable* ht = Z_ARRVAL_P(pzv_context);
+		HashPosition position;
+		zval **data = NULL;
+
+		// Iterating all the key and values in the context
+		for (zend_hash_internal_pointer_reset_ex(ht, &position);
+			 zend_hash_get_current_data_ex(ht, (void**) &data, &position) == SUCCESS;
+			 zend_hash_move_forward_ex(ht, &position)) {
+			 
+			 char *key = NULL;
+			 uint  klen;
+			 ulong index;
+
+			 if (zend_hash_get_current_key_ex(ht, &key, &klen, &index, 0, &position) == HASH_KEY_IS_STRING) {
+				 if(strcmp(key, s_instance_name) == 0) {
+					 // We have the object
+					 *pzv_val = **data;
+					 return;
+				 }
+			 } 
+		}
+	}
+	else {
+		zend_error(E_WARNING, "The object %s is not found in the clips context\n", s_instance_name);
+	}
+	ZVAL_NULL(pzv_val);
 }
 
 void process_instance_address(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
-	const char* s_instance_name = EnvGetInstanceName(pv_env, DOToPointer(data));
-	printf("The instance name is %s", s_instance_name);
+	process_data_object_instance(pv_env, EnvGetInstanceName(pv_env, DOToPointer(data)), pzv_val);
 }
 
 /**
@@ -20,11 +53,9 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 		
 		switch(GetMFType(data.value, i)) {
 			case INSTANCE_NAME:
-				// This is an object, let's try to make is a class, if can't, make it an array
 				process_instance_name(pv_env, data, pzv_array_item);
 				break;
 			case INSTANCE_ADDRESS:
-				// This is an object, let's try to make is a class, if can't, make it an array
 				process_instance_address(pv_env, data, pzv_array_item);
 				break;
 			case FACT_ADDRESS:
@@ -152,11 +183,11 @@ void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 			ZVAL_LONG(pzv_val, DOToLong(data));
 			break;
 		case INSTANCE_NAME:
-			// This is an object, let's try to make is a class, if can't, make it an array
+			// This is an object, we'll direct link it into php's object variable
 			process_instance_name(p_clips_env, data, pzv_val);
 			break;
 		case INSTANCE_ADDRESS:
-			// This is an object, let's try to make is a class, if can't, make it an array
+			// This is an object, we'll direct link it into php's object variable
 			process_instance_address(p_clips_env, data, pzv_val);
 			break;
 		case FACT_ADDRESS:
@@ -253,7 +284,7 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 				EnvSetpValue(pv_env, pdo_return_val, EnvAddDouble(pv_env, Z_DVAL_P(pzv_php_ret_val)));
 				break;
 			case IS_ARRAY:
-				// TODO Make this a multifiled
+				// TODO Make this a fact
 				break;
 			case IS_OBJECT:
 				// TODO Make this a fact(with template or not)
