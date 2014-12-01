@@ -14,6 +14,7 @@ PHP_FUNCTION(clips_console);
 PHP_FUNCTION(clips_load);
 PHP_FUNCTION(clips_exec);
 PHP_FUNCTION(clips_is_command_complete);
+PHP_FUNCTION(clips_query_facts);
 
 extern zend_module_entry clips_module_entry;
 #define phpext_clips_ptr &clips_module_entry

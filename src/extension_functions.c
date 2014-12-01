@@ -1,5 +1,16 @@
 #include "extension_functions.h"
 
+void process_instance_name(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
+}
+
+void process_instance_address(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
+	const char* s_instance_name = EnvGetInstanceName(pv_env, DOToPointer(data));
+	printf("The instance name is %s", s_instance_name);
+}
+
+/**
+ * Process the multifields, turn them into an php array
+ */
 void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	// Iterate all the values in the multifields, and put them all into the array
 	for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
@@ -10,12 +21,14 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 		switch(GetMFType(data.value, i)) {
 			case INSTANCE_NAME:
 				// This is an object, let's try to make is a class, if can't, make it an array
+				process_instance_name(pv_env, data, pzv_array_item);
 				break;
 			case INSTANCE_ADDRESS:
 				// This is an object, let's try to make is a class, if can't, make it an array
+				process_instance_address(pv_env, data, pzv_array_item);
 				break;
 			case FACT_ADDRESS:
-				// This is a fact, let's try to make is a class, if can't, make it an array
+				process_fact(pv_env, data, pzv_array_item);
 				break;
 			case FLOAT:
 				ZVAL_DOUBLE(pzv_array_item, ValueToDouble(GetMFValue(data.value, i)));
@@ -33,6 +46,9 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	}
 }
 
+/**
+ * Process the fact, try class first, if no class is exists use array instead
+ */
 void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	struct deftemplate* template = (struct deftemplate *) FactDeftemplate(data.value);
 	const char* s_template_name = ValueToString(template->header.name);
@@ -101,9 +117,10 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	MAKE_STD_ZVAL(pzv_template_name);
 	ZVAL_STRING(pzv_template_name, s_template_name, TRUE);
 
-	// Put the property to the object
+	// Then put the template name to the object
 	add_assoc_zval(pzv_val, "template", pzv_template_name);
 
+	// At last, let's adding the template slots
 	while(pts_slots) {
 		DATA_OBJECT do_slot_val;
 		FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
@@ -134,9 +151,11 @@ void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 			break;
 		case INSTANCE_NAME:
 			// This is an object, let's try to make is a class, if can't, make it an array
+			process_instance_name(p_clips_env, data, pzv_val);
 			break;
 		case INSTANCE_ADDRESS:
 			// This is an object, let's try to make is a class, if can't, make it an array
+			process_instance_address(p_clips_env, data, pzv_val);
 			break;
 		case FACT_ADDRESS:
 			process_fact(p_clips_env, data, pzv_val);

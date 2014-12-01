@@ -13,6 +13,7 @@ static zend_function_entry clips_functions[] = {
     PHP_FE(clips_exec, NULL)
     PHP_FE(clips_load, NULL)
     PHP_FE(clips_is_command_complete, NULL)
+	PHP_FE(clips_query_facts, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -176,4 +177,19 @@ PHP_FUNCTION(clips_is_command_complete) {
 	else {
 		RETURN_TRUE;
 	}
+}
+
+/*******************************************************************************
+ *
+ *  Function clips_list_all_facts
+ *
+ *  This function will list all the facts in the clips environment
+ *
+ *  @version 1.0
+ *  @args
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_query_facts) {
+	RETURN_FALSE;
 }
