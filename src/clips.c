@@ -1,6 +1,4 @@
 #include "clips.h"
-#include <stdio.h>
-#include "src/clips/factmch.h"
 
 #ifdef COMPILE_DL_CLIPS
 ZEND_GET_MODULE(clips)
@@ -191,5 +189,8 @@ PHP_FUNCTION(clips_is_command_complete) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_query_facts) {
-	RETURN_FALSE;
+	zval* pzv_facts;
+	MAKE_STD_ZVAL(pzv_facts);
+	array_init(pzv_facts);
+	RETURN_ZVAL(pzv_facts, TRUE, NULL);
 }

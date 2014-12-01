@@ -103,15 +103,18 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	array_init(pzv_val);
 
 	// Process multifields first
-	struct fact * pf_fact = DOToPointer(data);
+	if(!pts_slots) {
+		struct fact * pf_fact = DOToPointer(data);
 
-	struct multifield* pmf_fields = (struct multifield*) pf_fact->theProposition.theFields[0].value;
-	DATA_OBJECT do_tmp;
-	SetDOBegin(do_tmp, 1);
-	SetDOEnd(do_tmp, pmf_fields->multifieldLength);
-	do_tmp.value = pmf_fields;
+		struct multifield* pmf_fields = (struct multifield*) pf_fact->theProposition.theFields[0].value;
+		DATA_OBJECT do_tmp;
+		SetDOBegin(do_tmp, 1);
+		SetDOEnd(do_tmp, pmf_fields->multifieldLength);
+		do_tmp.value = pmf_fields;
 
-	process_multifields(p_clips_env, do_tmp, pzv_val);
+		process_multifields(p_clips_env, do_tmp, pzv_val);
+
+	}
 
 	zval* pzv_template_name;
 	MAKE_STD_ZVAL(pzv_template_name);
@@ -119,7 +122,6 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
 	// Then put the template name to the object
 	add_assoc_zval(pzv_val, "template", pzv_template_name);
-
 	// At last, let's adding the template slots
 	while(pts_slots) {
 		DATA_OBJECT do_slot_val;

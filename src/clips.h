@@ -4,6 +4,7 @@
 #define PHP_CLIPS_EXTNAME "clips"
 
 #include "../config.h"
+#include <stdio.h>
 #include "php.h"
 #include "php_ini.h"
 #include "clips/clips.h"
