@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "php.h"
 #include "php_ini.h"
+#include "utils.h"
 #include "clips/clips.h"
 
 PHP_FUNCTION(clips_init);

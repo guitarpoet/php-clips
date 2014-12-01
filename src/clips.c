@@ -185,6 +185,8 @@ PHP_FUNCTION(clips_is_command_complete) {
  *
  *  @version 1.0
  *  @args
+ *  	template_name: The fact's template name, if not set, will return all the
+ *  	facts
  *
  *******************************************************************************/
 
@@ -192,5 +194,35 @@ PHP_FUNCTION(clips_query_facts) {
 	zval* pzv_facts;
 	MAKE_STD_ZVAL(pzv_facts);
 	array_init(pzv_facts);
+	char* s_template_name = NULL;
+	int i_template_name_len = 0;
+	if(ZEND_NUM_ARGS()) {
+		// We do have args
+		zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_template_name, &i_template_name_len);
+	}
+
+	struct fact * pf_fact;
+	// Let's iterate all the facts
+	for (pf_fact = (struct fact *) EnvGetNextFact(p_clips_env, NULL);
+			pf_fact != NULL;
+			pf_fact = (struct fact *) EnvGetNextFact(p_clips_env, pf_fact)) {
+		if(pf_fact) {
+			struct deftemplate* pt_template = (struct deftemplate *) FactDeftemplate(pf_fact);
+			if(strcmp("initial-fact", ValueToString(pt_template->header.name)) == 0 || // Skipping the initial-fact
+				(s_template_name && strcmp(s_template_name, ValueToString(pt_template->header.name)) != 0)) {
+				// We don't need to get this fact
+				continue;
+			}
+
+			zval* pzv_array_item;
+			MAKE_STD_ZVAL(pzv_array_item);
+			DATA_OBJECT do_tmp;
+			do_tmp.type = FACT_ADDRESS;
+			do_tmp.value = pf_fact;
+			process_fact(p_clips_env, do_tmp, pzv_array_item);
+
+			add_next_index_zval(pzv_facts, pzv_array_item);
+		}
+	}
 	RETURN_ZVAL(pzv_facts, TRUE, NULL);
 }
