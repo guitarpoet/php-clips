@@ -120,6 +120,8 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 		}
 		// Add it to the array
 		add_next_index_zval(pzv_val, pzv_array_item);
+
+		zval_ptr_dtor(&pzv_array_item);
 	}
 }
 
@@ -216,7 +218,11 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
 		// Move to next
 		pts_slots = pts_slots->next;
+
+		zval_ptr_dtor(&pzv_property);
 	}
+
+	zval_ptr_dtor(&pzv_template_name);
 }
 
 void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
@@ -406,7 +412,11 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	for(int i = 0; i < i_argc; i++) {
 		if(Z_REFCOUNT_P(ppzv_params[i]) == 0) // Destroy the parameter if no one is referencing it
 			zval_ptr_dtor(&ppzv_params[i]);
+		else
+			efree(ppzv_params[i]);
 	}
+
+	efree(ppzv_params);
 	// Destroy the php return variable
 	zval_ptr_dtor(&pzv_php_ret_val);
 	// Destroy the php function name variable
