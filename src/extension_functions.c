@@ -4,6 +4,30 @@ void process_instance_name(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	php_hash_get(pzv_context, DOToString(data), pzv_val);
 }
 
+bool php_hash_exists(zval* pzv_array, const char* s_key) {
+	HashTable* ht = Z_ARRVAL_P(pzv_array);
+	HashPosition position;
+	zval **data = NULL;
+
+	// Iterating all the key and values in the context
+	for (zend_hash_internal_pointer_reset_ex(ht, &position);
+		 zend_hash_get_current_data_ex(ht, (void**) &data, &position) == SUCCESS;
+		 zend_hash_move_forward_ex(ht, &position)) {
+		 
+		 char *key = NULL;
+		 uint  klen;
+		 ulong index;
+
+		 if (zend_hash_get_current_key_ex(ht, &key, &klen, &index, 0, &position) == HASH_KEY_IS_STRING) {
+			 if(strcmp(key, s_key) == 0) {
+				 // We have the key
+				 return TRUE;
+			 }
+		 } 
+	}
+	return FALSE;
+}
+
 void php_array_get(zval* pzv_array, int i_index, zval* pzv_ret) {
 	HashTable* ht = Z_ARRVAL_P(pzv_array);
 	HashPosition position;
@@ -29,9 +53,8 @@ void php_array_get(zval* pzv_array, int i_index, zval* pzv_ret) {
 }
 
 void php_hash_get(zval* pzv_array, const char* s_key, zval* pzv_ret) {
-	if(zend_hash_exists(Z_ARRVAL_P(pzv_array), s_key, strlen(s_key)) == SUCCESS) {
+	if(php_hash_exists(pzv_array, s_key)) {
 		// We have the key TODO Using zend_hash_quick_find to make this faster
-		
 		HashTable* ht = Z_ARRVAL_P(pzv_array);
 		HashPosition position;
 		zval **data = NULL;
@@ -276,6 +299,50 @@ void convert_php_array2multifield(void* pv_env, zval* pzv_array, DATA_OBJECT_PTR
 }
 
 /**
+ * Call the php's object's method. Same as php call, but only try to call the method within the php object
+ * that locates in the clips context
+ */
+void php_method(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
+	// Test the argument count is larger than 1
+	if(EnvArgCountCheck(pv_env, "php_method", AT_LEAST, 2) == -1) {
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
+		return ;
+	}
+
+	// Test if the first argument is instance name(object name in the context)
+	DATA_OBJECT do_php_object_name;
+	const char* s_object_name;
+	EnvRtnUnknown(pv_env, 1, &do_php_object_name);
+	switch(GetType(do_php_object_name)) {
+	case INSTANCE_NAME:
+		s_object_name = DOToString(do_php_object_name);
+		break;
+	case INSTANCE_ADDRESS:
+		s_object_name = EnvGetInstanceName(pv_env, DOToPointer(do_php_object_name));
+		break;
+	default:
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
+		return ;
+	}
+
+	printf("The object name is %s\n", s_object_name);
+	DATA_OBJECT do_php_method;
+
+	if(php_hash_exists(pzv_context, s_object_name)) {
+		printf("The key %s is exists", s_object_name);
+		zval* pzv_obj;
+		php_hash_get(pzv_context, s_object_name, pzv_obj);
+	}
+	else {
+		char s_message[256];
+		sprintf(s_message, "named %s in the clips context.", s_object_name);
+		CantFindItemErrorMessage(pv_env, "PHP_OBJECT", s_message);
+	}
+}
+
+/**
  * Call the PHP's function. The first argument must be string. Follow these rules to convert type to PHP:
  * FLOAT => float
  * INTEGER => int
@@ -288,8 +355,8 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 
 	// Test the argument count is larger than 1
 	if(EnvArgCountCheck(pv_env, "php_call", AT_LEAST, 1) == -1) {
-		EnvSetpType(pv_env, pdo_return_val, STRING);
-		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, ""));
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
 		return ;
 	}
 
@@ -297,8 +364,8 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 	// Test if the first argument is string(function name)
 	DATA_OBJECT do_php_function;
 	if(!EnvArgTypeCheck(pv_env, "php_call", 1, STRING, &do_php_function)) {
-		EnvSetpType(pv_env, pdo_return_val, STRING);
-		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, ""));
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
 		return ;
 	}
 
@@ -321,7 +388,7 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 	// Initialize the return php value
 	MAKE_STD_ZVAL(pzv_php_ret_val);
 
-	// Setup theinput parameters
+	// Setup the input parameters
 	for(int i = 0; i < c; i++) {
 		// Initialize the php value
 		zval* val;

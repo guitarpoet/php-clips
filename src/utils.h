@@ -10,6 +10,7 @@ extern void* p_clips_env;
 extern zval* pzv_context;
 
 void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val);
+bool php_hash_exists(zval* pzv_array, const char* s_key);
 void php_hash_get(zval* pzv_array, const char* key, zval* pzv_ret);
 void php_array_get(zval* pzv_array, int i_index, zval* pzv_ret);
 void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val);

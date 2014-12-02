@@ -233,3 +233,35 @@ PHP_FUNCTION(clips_query_facts) {
 	}
 	RETURN_ZVAL(pzv_facts, TRUE, NULL);
 }
+
+/*******************************************************************************
+ *
+ *  Function clips_tempate_exists
+ *
+ *  This function will check if the template exists in the clips environment
+ *
+ *  @version 1.0
+ *  @args
+ *  	template_name: The template name to check
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_tempate_exists) {
+	RETURN_FALSE
+}
+
+/*******************************************************************************
+ *
+ *  Function clips_instance_exists
+ *
+ *  This function will check if the instance name exists in the clips environment
+ *
+ *  @version 1.0
+ *  @args
+ *  	instance_name: The instance name to check
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_instance_exists) {
+	RETURN_FALSE
+}
