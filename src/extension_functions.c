@@ -9,6 +9,7 @@ bool php_hash_exists(zval* pzv_array, const char* s_key) {
 	HashPosition position;
 	zval **data = NULL;
 
+	bool found = FALSE;
 	// Iterating all the key and values in the context
 	for (zend_hash_internal_pointer_reset_ex(ht, &position);
 		 zend_hash_get_current_data_ex(ht, (void**) &data, &position) == SUCCESS;
@@ -21,11 +22,11 @@ bool php_hash_exists(zval* pzv_array, const char* s_key) {
 		 if (zend_hash_get_current_key_ex(ht, &key, &klen, &index, 0, &position) == HASH_KEY_IS_STRING) {
 			 if(strcmp(key, s_key) == 0) {
 				 // We have the key
-				 return TRUE;
+				 found = TRUE;
 			 }
 		 } 
 	}
-	return FALSE;
+	return found;
 }
 
 void php_array_get(zval* pzv_array, int i_index, zval* pzv_ret) {
@@ -46,7 +47,6 @@ void php_array_get(zval* pzv_array, int i_index, zval* pzv_ret) {
 			 if(index == i_index) {
 				 // We have the object
 				 *pzv_ret = **data;
-				 return;
 			 }
 		 } 
 	}
@@ -94,7 +94,7 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	// Iterate all the values in the multifields, and put them all into the array
 	for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
 		// Initialize the php variable as array item
-		zval* pzv_array_item;
+		zval* pzv_array_item = NULL;
 		MAKE_STD_ZVAL(pzv_array_item);
 		
 		switch(GetMFType(data.value, i)) {
@@ -138,12 +138,12 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 		// We do have the class, let's create a php instance of it
 		if(object_init_ex(pzv_val, pzce_class) == SUCCESS) {
 			// Make the constructor zval
-			zval* pzv_constructor;
+			zval* pzv_constructor = NULL;
 			MAKE_STD_ZVAL(pzv_constructor);
 			ZVAL_STRING(pzv_constructor, "__construct", TRUE);
 
 			// Prepace the return value
-			zval* pzv_ret_val;
+			zval* pzv_ret_val = NULL;
 			MAKE_STD_ZVAL(pzv_ret_val);
 
 			// Let's call the construct method first
@@ -154,7 +154,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 					FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
 
 					const char* s_property_name = ValueToString(pts_slots->slotName);
-					zval* pzv_property;
+					zval* pzv_property = NULL;
 					MAKE_STD_ZVAL(pzv_property);
 
 					// Convert the data object to php variable
@@ -193,7 +193,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
 	}
 
-	zval* pzv_template_name;
+	zval* pzv_template_name = NULL;
 	MAKE_STD_ZVAL(pzv_template_name);
 	ZVAL_STRING(pzv_template_name, s_template_name, TRUE);
 
@@ -205,7 +205,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 		FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
 
 		const char* s_property_name = ValueToString(pts_slots->slotName);
-		zval* pzv_property;
+		zval* pzv_property = NULL;
 		MAKE_STD_ZVAL(pzv_property);
 
 		// Convert the data object to php variable
@@ -310,7 +310,15 @@ void php_method(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 		return ;
 	}
 
-	// Test if the first argument is instance name(object name in the context)
+	// The method argument must be string
+	DATA_OBJECT do_php_method;
+	if(!EnvArgTypeCheck(pv_env, "php_method", 2, STRING, &do_php_method)) {
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
+		return ;
+	}
+
+	// Test if the first argument is instance name or the instance address (object name in the context)
 	DATA_OBJECT do_php_object_name;
 	const char* s_object_name;
 	EnvRtnUnknown(pv_env, 1, &do_php_object_name);
@@ -327,13 +335,11 @@ void php_method(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 		return ;
 	}
 
-	printf("The object name is %s\n", s_object_name);
-	DATA_OBJECT do_php_method;
-
 	if(php_hash_exists(pzv_context, s_object_name)) {
-		printf("The key %s is exists", s_object_name);
 		zval* pzv_obj;
+		MAKE_STD_ZVAL(pzv_obj);
 		php_hash_get(pzv_context, s_object_name, pzv_obj);
+		call_php_function(&pzv_obj, DOToString(do_php_method), pdo_return_val, pv_env, 3, EnvRtnArgCount(pv_env) - 2);
 	}
 	else {
 		char s_message[256];
@@ -342,74 +348,37 @@ void php_method(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 	}
 }
 
-/**
- * Call the PHP's function. The first argument must be string. Follow these rules to convert type to PHP:
- * FLOAT => float
- * INTEGER => int
- * SYMBOL => string
- * STRING => string
- * MULTIFIELD => array of string | PHP class if the field is a template
- * FACT_ADDRESS => int
- */
-void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
-
-	// Test the argument count is larger than 1
-	if(EnvArgCountCheck(pv_env, "php_call", AT_LEAST, 1) == -1) {
-		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
-		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
-		return ;
-	}
-
-
-	// Test if the first argument is string(function name)
-	DATA_OBJECT do_php_function;
-	if(!EnvArgTypeCheck(pv_env, "php_call", 1, STRING, &do_php_function)) {
-		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
-		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
-		return ;
-	}
-
-	// Read the function name
-	const char* str_php_function = DOToString(do_php_function);
-
+void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PTR pdo_return_val, void* pv_env, int i_begin, int i_argc) {
 	// Copy the function name to php variable
-	zval* pzv_function_name;
+	zval* pzv_function_name = NULL;
 	MAKE_STD_ZVAL(pzv_function_name);
-	ZVAL_STRING(pzv_function_name, str_php_function, 1);
+	ZVAL_STRING(pzv_function_name, s_php_method, TRUE);
 
-	// Get the parameters count
-	int c = EnvRtnArgCount(pv_env) - 1;
-	zend_uint i_param_count = c;
+	zend_uint i_param_count = i_argc;
 
 	// Initialize the paramter array
-	zval** ppzv_params = (zval**) emalloc(c * sizeof(zval*));
-	zval *pzv_php_ret_val;
+	zval** ppzv_params = (zval**) emalloc(i_argc * sizeof(zval*));
+	zval *pzv_php_ret_val = NULL;
 
 	// Initialize the return php value
 	MAKE_STD_ZVAL(pzv_php_ret_val);
 
 	// Setup the input parameters
-	for(int i = 0; i < c; i++) {
+	for(int i = 0; i < i_argc; i++) {
 		// Initialize the php value
-		zval* val;
+		zval* val = NULL;
 		MAKE_STD_ZVAL(val);
 
 		// Getting the Data Object
 		DATA_OBJECT o;
 
-		EnvRtnUnknown(pv_env, 2 + i, &o); // Skipping the first once since it is the function name
+		EnvRtnUnknown(pv_env, i_begin + i, &o); // Skipping the first once since it is the function name
 		convert_do2php(pv_env, o, val);
 		ppzv_params[i] = val;
 	}
 
-	// Setup the default return value
-	EnvSetpType(pv_env, pdo_return_val, STRING);
-	EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, ""));
-
-	const char* s_name = CLIPS_PHP_CONTEXT_RETURN;
-
 	// Call the functions
-	if (call_user_function(EG(function_table), NULL /* no object */, pzv_function_name, pzv_php_ret_val, i_param_count, ppzv_params TSRMLS_CC) == SUCCESS) {
+	if (call_user_function(EG(function_table), ppzv_obj, pzv_function_name, pzv_php_ret_val, i_param_count, ppzv_params TSRMLS_CC) == SUCCESS) {
 		switch(Z_TYPE_P(pzv_php_ret_val)) {
 			case IS_LONG:
 				EnvSetpType(pv_env, pdo_return_val, INTEGER);
@@ -425,8 +394,6 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 				break;
 			case IS_OBJECT:
 				// If the return value is an object, will assume this is only a reference
-				EnvSetpType(pv_env, pdo_return_val, STRING);
-				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, s_name));
 				break;
 			case IS_STRING:
 				EnvSetpType(pv_env, pdo_return_val, STRING);
@@ -436,7 +403,7 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 	}
 
 	// Destroy all the php parameter variables
-	for(int i = 0; i < c; i++) {
+	for(int i = 0; i < i_argc; i++) {
 		if(Z_REFCOUNT_P(ppzv_params[i]) == 0) // Destroy the parameter if no one is referencing it
 			zval_ptr_dtor(&ppzv_params[i]);
 	}
@@ -444,4 +411,33 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 	zval_ptr_dtor(&pzv_php_ret_val);
 	// Destroy the php function name variable
 	zval_ptr_dtor(&pzv_function_name);
+}
+
+/**
+ * Call the PHP's function. The first argument must be string. Follow these rules to convert type to PHP:
+ * FLOAT => float
+ * INTEGER => int
+ * SYMBOL => string
+ * STRING => string
+ * MULTIFIELD => array of string | PHP class if the field is a template
+ * FACT_ADDRESS => int
+ */
+
+void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
+	// Test the argument count is larger than 1
+	if(EnvArgCountCheck(pv_env, "php_call", AT_LEAST, 1) == -1) {
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
+		return ;
+	}
+
+	// Test if the first argument is string(function name)
+	DATA_OBJECT do_php_function;
+	if(!EnvArgTypeCheck(pv_env, "php_call", 1, STRING, &do_php_function)) {
+		EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+		EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
+		return ;
+	}
+
+	call_php_function(NULL, DOToString(do_php_function), pdo_return_val, pv_env, 2, EnvRtnArgCount(pv_env) - 1);
 }
