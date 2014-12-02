@@ -1,15 +1,38 @@
 #include "extension_functions.h"
 
 void process_instance_name(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
-	process_data_object_instance(pv_env, DOToString(data), pzv_val);
+	php_hash_get(pzv_context, DOToString(data), pzv_val);
 }
 
-void process_data_object_instance(void* pv_env, const char* s_instance_name, zval* pzv_val) {
-	zval** ppzv_instance;
-	if(zend_hash_exists(Z_ARRVAL_P(pzv_context), s_instance_name, strlen(s_instance_name)) == SUCCESS) {
+void php_array_get(zval* pzv_array, int i_index, zval* pzv_ret) {
+	HashTable* ht = Z_ARRVAL_P(pzv_array);
+	HashPosition position;
+	zval **data = NULL;
+
+	// Iterating all the key and values in the context
+	for (zend_hash_internal_pointer_reset_ex(ht, &position);
+		 zend_hash_get_current_data_ex(ht, (void**) &data, &position) == SUCCESS;
+		 zend_hash_move_forward_ex(ht, &position)) {
+		 
+		 char *key = NULL;
+		 uint  klen;
+		 ulong index;
+
+		 if (zend_hash_get_current_key_ex(ht, &key, &klen, &index, 0, &position) == HASH_KEY_IS_LONG) {
+			 if(index == i_index) {
+				 // We have the object
+				 *pzv_ret = **data;
+				 return;
+			 }
+		 } 
+	}
+}
+
+void php_hash_get(zval* pzv_array, const char* s_key, zval* pzv_ret) {
+	if(zend_hash_exists(Z_ARRVAL_P(pzv_array), s_key, strlen(s_key)) == SUCCESS) {
 		// We have the key TODO Using zend_hash_quick_find to make this faster
 		
-		HashTable* ht = Z_ARRVAL_P(pzv_context);
+		HashTable* ht = Z_ARRVAL_P(pzv_array);
 		HashPosition position;
 		zval **data = NULL;
 
@@ -23,22 +46,22 @@ void process_data_object_instance(void* pv_env, const char* s_instance_name, zva
 			 ulong index;
 
 			 if (zend_hash_get_current_key_ex(ht, &key, &klen, &index, 0, &position) == HASH_KEY_IS_STRING) {
-				 if(strcmp(key, s_instance_name) == 0) {
+				 if(strcmp(key, s_key) == 0) {
 					 // We have the object
-					 *pzv_val = **data;
+					 *pzv_ret = **data;
 					 return;
 				 }
 			 } 
 		}
 	}
 	else {
-		zend_error(E_WARNING, "The object %s is not found in the clips context\n", s_instance_name);
+		zend_error(E_WARNING, "The key %s is not found in the php array\n", s_key);
 	}
-	ZVAL_NULL(pzv_val);
+	ZVAL_NULL(pzv_ret);
 }
 
 void process_instance_address(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
-	process_data_object_instance(pv_env, EnvGetInstanceName(pv_env, DOToPointer(data)), pzv_val);
+	php_hash_get(pzv_context, EnvGetInstanceName(pv_env, DOToPointer(data)), pzv_val);
 }
 
 /**
@@ -208,6 +231,50 @@ void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	}
 }
 
+void convert_php_array2multifield(void* pv_env, zval* pzv_array, DATA_OBJECT_PTR pdo_val) {
+	EnvSetpType(pv_env, pdo_val, MULTIFIELD);
+	// Create the multifield first
+	long size = zend_hash_num_elements(Z_ARRVAL_P(pzv_array));
+	struct multifields* pmf_fields = EnvCreateMultifield(pv_env, size);
+	SetpDOBegin(pdo_val, 1);
+	SetpDOEnd(pdo_val, size);
+
+	// Iterating all the key and values in the array
+	HashTable* ht = Z_ARRVAL_P(pzv_array);
+	HashPosition position;
+	zval **data = NULL;
+
+	int i = 1;
+	for (zend_hash_internal_pointer_reset_ex(ht, &position);
+		 zend_hash_get_current_data_ex(ht, (void**) &data, &position) == SUCCESS;
+		 zend_hash_move_forward_ex(ht, &position)) {
+		
+		switch(Z_TYPE_P(*data)) {
+		case IS_NULL:
+		case IS_ARRAY:
+		case IS_OBJECT:
+			// We don't support for array or object in the multifields, treat them as nil
+			EnvSetMFType(pv_env, pmf_fields, i, SYMBOL);
+			EnvSetMFValue(pv_env, pmf_fields, i, EnvAddSymbol(pv_env, "nil"));
+			break;
+		case IS_LONG:
+			EnvSetMFType(pv_env, pmf_fields, i, INTEGER);
+			EnvSetMFValue(pv_env, pmf_fields, i, EnvAddLong(pv_env, Z_LVAL_P(*data)));
+			break;
+		case IS_DOUBLE:
+			EnvSetMFType(pv_env, pmf_fields, i, FLOAT);
+			EnvSetMFValue(pv_env, pmf_fields, i, EnvAddLong(pv_env, Z_DVAL_P(*data)));
+			break;
+		case IS_STRING:
+			EnvSetMFType(pv_env, pmf_fields, i, STRING);
+			EnvSetMFValue(pv_env, pmf_fields, i, EnvAddSymbol(pv_env, Z_STRVAL_P(*data)));
+			break;
+		}
+		i++;
+	}
+	SetpValue(pdo_val, pmf_fields);
+}
+
 /**
  * Call the PHP's function. The first argument must be string. Follow these rules to convert type to PHP:
  * FLOAT => float
@@ -272,8 +339,10 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 	EnvSetpType(pv_env, pdo_return_val, STRING);
 	EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, ""));
 
+	const char* s_name = CLIPS_PHP_CONTEXT_RETURN;
+
 	// Call the functions
-	if (call_user_function( EG(function_table), NULL /* no object */, pzv_function_name, pzv_php_ret_val, i_param_count, ppzv_params TSRMLS_CC) == SUCCESS) {
+	if (call_user_function(EG(function_table), NULL /* no object */, pzv_function_name, pzv_php_ret_val, i_param_count, ppzv_params TSRMLS_CC) == SUCCESS) {
 		switch(Z_TYPE_P(pzv_php_ret_val)) {
 			case IS_LONG:
 				EnvSetpType(pv_env, pdo_return_val, INTEGER);
@@ -284,10 +353,13 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 				EnvSetpValue(pv_env, pdo_return_val, EnvAddDouble(pv_env, Z_DVAL_P(pzv_php_ret_val)));
 				break;
 			case IS_ARRAY:
-				// TODO Make this a fact
+				// If this is an array, let's make a multifield with it, and we only support for normal value(NULL, INTEGER, FLOAT, STRING) here
+				convert_php_array2multifield(pv_env, pzv_php_ret_val, pdo_return_val);
 				break;
 			case IS_OBJECT:
-				// TODO Make this a fact(with template or not)
+				// If the return value is an object, will assume this is only a reference
+				EnvSetpType(pv_env, pdo_return_val, STRING);
+				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, s_name));
 				break;
 			case IS_STRING:
 				EnvSetpType(pv_env, pdo_return_val, STRING);
@@ -298,7 +370,8 @@ void php_call(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 
 	// Destroy all the php parameter variables
 	for(int i = 0; i < c; i++) {
-		zval_ptr_dtor(&ppzv_params[i]);
+		if(Z_REFCOUNT_P(ppzv_params[i]) == 0) // Destroy the parameter if no one is referencing it
+			zval_ptr_dtor(&ppzv_params[i]);
 	}
 	// Destroy the php return variable
 	zval_ptr_dtor(&pzv_php_ret_val);

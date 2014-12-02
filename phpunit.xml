@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpunit>
+	<testsuites>
+		<testsuite name="TestSuite">
+			<directory>tests</directory>
+		</testsuite>
+	</testsuites>
+	<php>
+		<const name="PHPUNIT_TEST" value="1" />
+		<const name="PHPUNIT_CHARSET" value="UTF-8" />
+		<server name="REMOTE_ADDR" value="192.168.1.100" />
+		<server name="HTTP_HOST" value="localhost" />
+	</php>
+	<filter>
+		<whitelist>
+			<directory suffix=".php">application/tests/</directory>
+        </whitelist>
+	</filter>
+</phpunit>
