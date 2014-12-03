@@ -120,8 +120,6 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 		}
 		// Add it to the array
 		add_next_index_zval(pzv_val, pzv_array_item);
-
-		zval_ptr_dtor(&pzv_array_item);
 	}
 }
 
@@ -177,6 +175,8 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 			zval_ptr_dtor(&pzv_ret_val);
 			return;
 		}
+		ZVAL_NULL(pzv_val);
+		return;
 	}
 	// We don't have the php class, let's make this fact an array
 	array_init(pzv_val);
@@ -195,12 +195,8 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
 	}
 
-	zval* pzv_template_name = NULL;
-	MAKE_STD_ZVAL(pzv_template_name);
-	ZVAL_STRING(pzv_template_name, s_template_name, TRUE);
-
 	// Then put the template name to the object
-	add_assoc_zval(pzv_val, "template", pzv_template_name);
+	add_assoc_string(pzv_val, "template", (char*) s_template_name, TRUE);
 	// At last, let's adding the template slots
 	while(pts_slots) {
 		DATA_OBJECT do_slot_val;
@@ -218,11 +214,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
 		// Move to next
 		pts_slots = pts_slots->next;
-
-		zval_ptr_dtor(&pzv_property);
 	}
-
-	zval_ptr_dtor(&pzv_template_name);
 }
 
 void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
@@ -346,6 +338,7 @@ void php_method(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 		MAKE_STD_ZVAL(pzv_obj);
 		php_hash_get(pzv_context, s_object_name, pzv_obj);
 		call_php_function(&pzv_obj, DOToString(do_php_method), pdo_return_val, pv_env, 3, EnvRtnArgCount(pv_env) - 2);
+		zval_ptr_dtor(&pzv_obj);
 	}
 	else {
 		char s_message[256];
@@ -369,6 +362,8 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	// Initialize the return php value
 	MAKE_STD_ZVAL(pzv_php_ret_val);
 
+	int* i_types = (int*) emalloc(i_argc * sizeof(int));
+
 	// Setup the input parameters
 	for(int i = 0; i < i_argc; i++) {
 		// Initialize the php value
@@ -380,6 +375,7 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 
 		EnvRtnUnknown(pv_env, i_begin + i, &o); // Skipping the first once since it is the function name
 		convert_do2php(pv_env, o, val);
+		i_types[i] = GetType(o);
 		ppzv_params[i] = val;
 	}
 
@@ -410,12 +406,15 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 
 	// Destroy all the php parameter variables
 	for(int i = 0; i < i_argc; i++) {
-		if(Z_REFCOUNT_P(ppzv_params[i]) == 0) // Destroy the parameter if no one is referencing it
-			zval_ptr_dtor(&ppzv_params[i]);
-		else
+		if(i_types[i] == INSTANCE_NAME
+			|| i_types[i] == INSTANCE_ADDRESS) {
 			efree(ppzv_params[i]);
+		}
+		else
+			zval_ptr_dtor(&ppzv_params[i]);
 	}
 
+	efree(i_types);
 	efree(ppzv_params);
 	// Destroy the php return variable
 	zval_ptr_dtor(&pzv_php_ret_val);
