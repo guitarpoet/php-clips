@@ -48,11 +48,27 @@ class Clips {
 				array('USER', 'OBJECT'), false, array()));
 	}
 
+	private function translate($var) {
+		switch(gettype($var)) {
+		case 'string':
+			return '"'.$var.'"';
+		case 'array':
+		case 'object':
+			// For array and object, let's make them multiple values
+			$ret = array();
+			foreach($var as $key => $value) {
+				$ret []= $this->translate($value);
+			}
+			return implode(' ', $ret);
+		}
+		return $var;
+	}
+
 	public function defineSlot($name, $type = 'slot', $default = null, $constraints = array()) {
 		$slot = array();
 		$slot []= '('.$type; // Add the slot define
 		$slot []= $name;
-		if($default) {
+		if($default !== null) {
 			$slot []= '(default '.$default.')';
 		}
 
@@ -109,6 +125,10 @@ class Clips {
 		$this->command('(reset)');
 	}
 
+	public function clear() {
+		$this->command('(clear)');
+	}
+
 	public function facts() {
 		$this->command('(facts)');
 	}
@@ -117,7 +137,6 @@ class Clips {
 		$this->command('(run)');
 	}
 
-
 	public function __get($key) {
 		if(isset(Clips::$context[$key])) {
 			return Clips::$context[$key];
@@ -125,8 +144,25 @@ class Clips {
 		return $this->$key;
 	}
 
+	public function defineInstance($name, $class = 'PHP_OBJECT', $args = array()) {
+		$ret = array();
+		$ret []= '(make-instance';
+		$ret []= $name;
+		$ret []= 'of';
+		$ret []= $class;
+		foreach($args as $key => $value) {
+			$ret []= '('.$key;
+			$ret []= $value;
+			$ret []= ')';
+		}
+		return implode(' ', $ret).')';
+	}
+
 	public function __set($key, $value) {
 		Clips::$context[$key] = $value;
+		if(!$this->instanceExists($key)) {
+			$this->command($this->defineInstance($key));
+		}
 	}
 
 	/**
@@ -163,6 +199,38 @@ class Clips {
 		if($template)
 			return clips_template_exists($template);
 		return false;
+	}
+
+	public function assertFact($data) {
+		$ret = array();
+		if(is_array($data))  {
+			if(!isset($data['template'])) { // This is a static fact
+				$name = array_shift($data);
+				$ret []= '('.$name;
+				foreach($data as $d) {
+					$ret []= $this->translate($d);
+				}
+			}
+			else {
+				return $this->assertFact((object) $data);
+			}
+		}
+		else {
+			$obj = $data;
+			$name = get_class($obj);
+			if(isset($obj->template)) {
+				$name = $obj->template;
+			}
+
+			$ret []= '('.$name;
+			foreach($obj as $key => $value) {
+				if($key == 'template') // Skip template
+					continue;
+				$ret []= '('.$key;
+				$ret []= $this->translate($value).')';
+			}
+		}
+		return implode(' ', $ret).')';
 	}
 
 	/**
