@@ -13,7 +13,7 @@
 	</php>
 	<filter>
 		<whitelist>
-			<directory suffix=".php">application/tests/</directory>
+			<directory suffix=".php">tests/</directory>
         </whitelist>
 	</filter>
 </phpunit>
