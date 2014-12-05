@@ -14,6 +14,7 @@ static zend_function_entry clips_functions[] = {
 	PHP_FE(clips_query_facts, NULL)
 	PHP_FE(clips_template_exists, NULL)
 	PHP_FE(clips_instance_exists, NULL)
+	PHP_FE(clips_class_exists, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -286,6 +287,32 @@ PHP_FUNCTION(clips_instance_exists) {
 		// Let's get the instance name
 		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_instance_name, &i_instance_name_len) == SUCCESS) {
 			if(EnvFindInstance(p_clips_env, NULL, s_instance_name, TRUE)) {
+				RETURN_TRUE;
+			}
+		}
+	}
+	RETURN_FALSE;
+}
+
+
+/*******************************************************************************
+ *
+ *  Function clips_class_exists
+ *
+ *  This function will check if the class is defined in the clips environment
+ *
+ *  @version 1.0
+ *  @args
+ *  	class_name: The class name
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_class_exists) {
+	if(p_clips_env) {
+		char* s_class_name = NULL;
+		int i_class_name_len = 0;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_class_name, &i_class_name_len) == SUCCESS) {
+			if(EnvFindDefclass(p_clips_env, s_class_name)) {
 				RETURN_TRUE;
 			}
 		}

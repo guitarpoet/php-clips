@@ -62,6 +62,12 @@ class Clips {
 		return false;
 	}
 
+	public function classExists($class) {
+		if($class)
+			return clips_class_exists($class);
+		return false;
+	}
+
 	public function templateExists($template) {
 		if($template)
 			return clips_template_exists($template);
