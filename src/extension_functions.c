@@ -422,9 +422,6 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	zval_ptr_dtor(&pzv_function_name);
 }
 
-void php_property(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
-}
-
 /**
  * Call the PHP's function. The first argument must be string. Follow these rules to convert type to PHP:
  * FLOAT => float

@@ -12,6 +12,8 @@ static zend_function_entry clips_functions[] = {
     PHP_FE(clips_load, NULL)
     PHP_FE(clips_is_command_complete, NULL)
 	PHP_FE(clips_query_facts, NULL)
+	PHP_FE(clips_template_exists, NULL)
+	PHP_FE(clips_instance_exists, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -236,7 +238,7 @@ PHP_FUNCTION(clips_query_facts) {
 
 /*******************************************************************************
  *
- *  Function clips_tempate_exists
+ *  Function clips_template_exists
  *
  *  This function will check if the template exists in the clips environment
  *
@@ -246,8 +248,23 @@ PHP_FUNCTION(clips_query_facts) {
  *
  *******************************************************************************/
 
-PHP_FUNCTION(clips_tempate_exists) {
-	RETURN_FALSE
+PHP_FUNCTION(clips_template_exists) {
+	if(p_clips_env) {
+		char* s_template_name = NULL;
+		int i_template_name_len = 0;
+		// Let's get the template name
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_template_name, &i_template_name_len) == SUCCESS) {
+			struct deftemplate * pt_template;
+			for (pt_template = (struct deftemplate *) EnvGetNextDeftemplate(p_clips_env, NULL);
+					pt_template != NULL;
+					pt_template = EnvGetNextDeftemplate(p_clips_env, pt_template)) {
+				if(strcmp(s_template_name, ValueToString(pt_template->header.name)) == 0) {
+					RETURN_TRUE;
+				}
+			}
+		}
+	}
+	RETURN_FALSE;
 }
 
 /*******************************************************************************
@@ -263,5 +280,15 @@ PHP_FUNCTION(clips_tempate_exists) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_instance_exists) {
-	RETURN_FALSE
+	if(p_clips_env) {
+		char* s_instance_name = NULL;
+		int i_instance_name_len = 0;
+		// Let's get the instance name
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_instance_name, &i_instance_name_len) == SUCCESS) {
+			if(EnvFindInstance(p_clips_env, NULL, s_instance_name, TRUE)) {
+				RETURN_TRUE;
+			}
+		}
+	}
+	RETURN_FALSE;
 }

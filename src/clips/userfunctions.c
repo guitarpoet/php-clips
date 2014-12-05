@@ -78,6 +78,5 @@ void UserFunctions()
 void EnvUserFunctions(
   void *environment) {
 	EnvDefineFunction2(environment, "php_call", 'u', PTIEF php_call, "php_call", "1*us"); // Call the php function, the first argument must be string to indicate php's function name, other arguments can be anything
-	EnvDefineFunction2(environment, "php_property", 'u', PTIEF php_property, "php_property", "2*uus"); // Acess the php object(or array)'s property, the first argument can be fact_address, instance_name or instance_address
 	EnvDefineFunction2(environment, "php_method", 'u', PTIEF php_method, "php_method", "2*uus"); // Call the php method the first argument must be instance name to indicate the object locates in the clips context, the second argument must be string to be the function name, other arguments can be anything 
 }

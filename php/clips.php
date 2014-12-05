@@ -1,4 +1,15 @@
 <?php
+
+function clips_get_property($obj, $property) {
+	if(is_array($obj) && isset($obj[$property])) {
+		return $obj[$property];
+	}
+
+	if(is_object($obj) && isset($obj->$property)) {
+		return $obj->$property;
+	}
+	return null;
+}
 /**
  *  The clips extension engine and execution context
  */
@@ -7,22 +18,24 @@ class Clips {
 	/**
 	 * The clips execution context
 	 */
-	private $context;
+	private static $context;
 
-	private function __construct() {
-		$this->context = array();
-		clips_init($this->context);
+	public function __construct() {
+		if(!Clips::$context) {
+			Clips::$context = array();
+			clips_init(Clips::$context);
+		}
 	}
 
 	public function __get($key) {
-		if(isset($this->context[$key])) {
-			return $this->context[$key];
+		if(isset(Clips::$context[$key])) {
+			return Clips::$context[$key];
 		}
 		return $this->$key;
 	}
 
 	public function __set($key, $value) {
-		$this->context[$key] = $value;
+		Clips::$context[$key] = $value;
 	}
 
 	/**
@@ -41,6 +54,18 @@ class Clips {
 				$line .= readline('... ');
 			}
 		}
+	}
+
+	public function instanceExists($name) {
+		if($name)
+			return clips_instance_exists($name);
+		return false;
+	}
+
+	public function templateExists($template) {
+		if($template)
+			return clips_template_exists($template);
+		return false;
 	}
 
 	/**
@@ -73,16 +98,5 @@ class Clips {
 		else {
 			trigger_error('The file '.$file.' is not found.');
 		}
-	}
-
-	/**
-	 * Get the clips instance
-	 */
-	public static function GetInstance() {
-		static $instance = null;
-		if(null === $instance) {
-			$instance = new Clips();
-		}
-		return $instance;
 	}
 }
