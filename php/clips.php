@@ -64,10 +64,14 @@ class Clips {
 		return $var;
 	}
 
+	public function template($class) {
+		$this->command($this->defineTemplate($class));
+	}
+
 	public function defineTemplate($class) {
 		if(is_string($class) && class_exists($class)) {
 			$ret = array();
-			$ret []= '('.$class;
+			$ret []= '(deftemplate '.$class;
 			foreach(get_class_vars($class) as $slot => $v) {
 				$ret []= '(slot '.$slot.')';
 			}
@@ -213,7 +217,25 @@ class Clips {
 		return false;
 	}
 
-	public function assertFact($data) {
+	public function assertFacts($name, $data) {
+		$ret = array();
+		foreach($data as $fact) {
+			$ret []= '(assert '.$this->defineFact($fact).')';
+		}
+		return implode("\n", $ret);
+	}
+
+
+	public function defineFacts($name, $data) {
+		$ret = array();
+		$ret []= '(deffacts '.$name;
+		foreach($data as $fact) {
+			$ret []= $this->defineFact($fact);
+		}
+		return implode(' ', $ret).')';
+	}
+
+	public function defineFact($data) {
 		$ret = array();
 		if(is_array($data))  {
 			if(!isset($data['template'])) { // This is a static fact
@@ -224,7 +246,7 @@ class Clips {
 				}
 			}
 			else {
-				return $this->assertFact((object) $data);
+				return $this->defineFact((object) $data);
 			}
 		}
 		else {

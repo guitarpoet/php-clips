@@ -12,13 +12,19 @@ class Dummy {
 
 }
 
-
 class ClipsTest extends PHPUnit_Framework_TestCase {
 	public function setUp() {
 		$this->clips = new Clips();
 	}
 
 	public function tearDown() {
+	}
+
+	public function testDefineFacts() {
+		echo $this->clips->defineFacts('test_facts', array(new Dummy(),
+			array('a', 'b', 'c')))."\n";
+		echo $this->clips->assertFacts('test_facts', array(new Dummy(),
+			array('a', 'b', 'c')))."\n";
 	}
 
 	public function testAddTemplate() {
@@ -50,10 +56,10 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		echo "\n";
 	}
 
-	public function testAssertFact() {
-		echo $this->clips->assertFact(array('a', 'b', 'c'))."\n";
-		echo $this->clips->assertFact(new Dummy())."\n";
-		echo $this->clips->assertFact(array('template'=>'test_template', 'a' => 1, 'b' => array(1, 2, 3)))."\n";
+	public function testDefineFact() {
+		echo $this->clips->defineFact(array('a', 'b', 'c'))."\n";
+		echo $this->clips->defineFact(new Dummy())."\n";
+		echo $this->clips->defineFact(array('template'=>'test_template', 'a' => 1, 'b' => array(1, 2, 3)))."\n";
 	}
 
 	public function testDefineInstance() {
