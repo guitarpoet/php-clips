@@ -338,7 +338,8 @@ void php_method(void* pv_env, DATA_OBJECT_PTR pdo_return_val) {
 		MAKE_STD_ZVAL(pzv_obj);
 		php_hash_get(pzv_context, s_object_name, pzv_obj);
 		call_php_function(&pzv_obj, DOToString(do_php_method), pdo_return_val, pv_env, 3, EnvRtnArgCount(pv_env) - 2);
-		zval_ptr_dtor(&pzv_obj);
+		FREE_ZVAL(pzv_obj);
+		//zval_ptr_dtor(&pzv_obj);
 	}
 	else {
 		char s_message[256];
