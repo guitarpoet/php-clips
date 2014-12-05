@@ -64,6 +64,18 @@ class Clips {
 		return $var;
 	}
 
+	public function defineTemplate($class) {
+		if(is_string($class) && class_exists($class)) {
+			$ret = array();
+			$ret []= '('.$class;
+			foreach(get_class_vars($class) as $slot => $v) {
+				$ret []= '(slot '.$slot.')';
+			}
+			return implode(' ', $ret).')';
+		}
+		return null;
+	}
+
 	public function defineSlot($name, $type = 'slot', $default = null, $constraints = array()) {
 		$slot = array();
 		$slot []= '('.$type; // Add the slot define
