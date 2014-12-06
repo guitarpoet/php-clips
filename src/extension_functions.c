@@ -161,7 +161,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 					convert_do2php(p_clips_env, do_slot_val, pzv_property);
 
 					// Put the property to the object
-					zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), pzv_property);
+					zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), pzv_property TSRMLS_CC);
 
 					zval_ptr_dtor(&pzv_property); // Destroy the variable when the setting is done.
 
