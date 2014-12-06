@@ -386,6 +386,14 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 				EnvSetpType(pv_env, pdo_return_val, INTEGER);
 				EnvSetpValue(pv_env, pdo_return_val, EnvAddLong(pv_env, Z_LVAL_P(pzv_php_ret_val)));
 				break;
+			case IS_BOOL:
+				EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+				if(Z_BVAL_P(pzv_php_ret_val)) {
+					EnvSetpValue(pv_env, pdo_return_val, EnvTrueSymbol(pv_env));
+				}
+				else
+					EnvSetpValue(pv_env, pdo_return_val, EnvFalseSymbol(pv_env));
+				break;
 			case IS_DOUBLE:
 				EnvSetpType(pv_env, pdo_return_val, FLOAT);
 				EnvSetpValue(pv_env, pdo_return_val, EnvAddDouble(pv_env, Z_DVAL_P(pzv_php_ret_val)));
