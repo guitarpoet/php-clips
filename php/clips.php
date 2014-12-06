@@ -9,6 +9,10 @@ if(!function_exists('get_default')) {
 	}
 }
 
+function clips_str_match($str, $pattern) {
+	return !!preg_match('/'.$pattern.'/', $str);
+}
+
 function clips_get_property($obj, $property) {
 	if(is_array($obj) && isset($obj[$property])) {
 		return $obj[$property];
@@ -33,9 +37,13 @@ class Clips {
 		if(!Clips::$context) {
 			Clips::$context = array();
 			clips_init(Clips::$context);
-			$this->defineClasses();
-			$this->defineMethods();
+			$this->_init_base_support();
 		}
+	}
+
+	private function _init_base_support() {
+		$this->defineClasses();
+		$this->defineMethods();
 	}
 
 	private function defineMethods() {
@@ -142,6 +150,10 @@ class Clips {
 	}
 
 	public function clear() {
+		foreach(Clips::$context as $key => $value) {
+			unset(Clips::$context[$key]);
+		}
+		$this->_init_base_support();
 		$this->command('(clear)');
 	}
 
@@ -185,16 +197,15 @@ class Clips {
 	 * Start the clips in console mode
 	 */
 	public function console() {
-		$line = readline('pclips$ ');
-		$line .= "\n";
+		$line = readline('pclips$ ')."\n";
 		while(true) {
 			if(clips_is_command_complete($line)) {
 				$this->command($line);
 				readline_add_history($line);
-				$line = readline('pclips$ ');
+				$line = readline('pclips$ ')."\n";
 			}
 			else {
-				$line .= readline('... ');
+				$line .= readline('... ')."\n";
 			}
 		}
 	}
@@ -232,7 +243,7 @@ class Clips {
 		foreach($data as $fact) {
 			$ret []= $this->defineFact($fact);
 		}
-		return implode(' ', $ret).')';
+		$this->command(implode(' ', $ret).')');
 	}
 
 	public function defineFact($data) {
@@ -258,13 +269,17 @@ class Clips {
 
 			$ret []= '('.$name;
 			foreach($obj as $key => $value) {
-				if($key == 'template') // Skip template
+				if($key == 'template' || $value === null) // Skip template
 					continue;
 				$ret []= '('.$key;
 				$ret []= $this->translate($value).')';
 			}
 		}
 		return implode(' ', $ret).')';
+	}
+
+	public function agenda() {
+		$this->command('(agenda)');
 	}
 
 	/**
@@ -278,6 +293,20 @@ class Clips {
 			return;
 		}
 		clips_exec($command."\n"); // Add \n automaticly
+	}
+
+	public function queryFacts($name = null) {
+		if(!$name)
+			return clips_query_facts();
+		return clips_query_facts($name);
+	}
+
+	public function lib($file) {
+		if(file_exists($file)) {
+			$this->command(file_get_contents($file));
+			return true;
+		}
+		return false;
 	}
 
 	/**
