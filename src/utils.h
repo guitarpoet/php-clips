@@ -2,6 +2,7 @@
 #define PHP_CLIPS_UTILS
 
 #include <php.h>
+#include <stdbool.h>
 #include "clips/clips.h"
 
 #define CLIPS_PHP_CONTEXT_RETURN "php_return"
