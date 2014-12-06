@@ -12,12 +12,17 @@ class Dummy {
 
 }
 
+
 class ClipsTest extends PHPUnit_Framework_TestCase {
 	public function setUp() {
 		$this->clips = new Clips();
 	}
 
 	public function tearDown() {
+	}
+
+	public function testAddTemplate() {
+		echo $this->clips->defineTemplate('Dummy')."\n";
 	}
 
 	public function testContextAcess() {
