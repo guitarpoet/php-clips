@@ -81,7 +81,10 @@ class Clips {
 			$ret = array();
 			$ret []= '(deftemplate '.$class;
 			foreach(get_class_vars($class) as $slot => $v) {
-				$ret []= '(slot '.$slot.')';
+				if(preg_match('/s$/', $slot))
+					$ret []= '(multislot '.$slot.')';
+				else
+					$ret []= '(slot '.$slot.')';
 			}
 			return implode(' ', $ret).')';
 		}
@@ -233,7 +236,7 @@ class Clips {
 		foreach($data as $fact) {
 			$ret []= '(assert '.$this->defineFact($fact).')';
 		}
-		return implode("\n", $ret);
+		return $this->command(implode("\n", $ret));
 	}
 
 
@@ -307,6 +310,10 @@ class Clips {
 			return true;
 		}
 		return false;
+	}
+
+	public function templates() {
+		$this->command('(list-deftemplates)');
 	}
 
 	/**
