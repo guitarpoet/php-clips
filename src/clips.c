@@ -50,6 +50,7 @@ zend_module_entry clips_module_entry = {
 
 void* p_clips_env = NULL; // The global clips environment
 zval* pzv_context = NULL; // The global php clips context
+zval* pzv_facts = NULL;
 
 PHP_FUNCTION(clips_init) {
 
@@ -75,6 +76,9 @@ PHP_FUNCTION(clips_init) {
 PHP_FUNCTION(clips_close) {
    	DestroyEnvironment(p_clips_env);
 	p_clips_env = NULL;
+	if(pzv_facts) {
+		zval_ptr_dtor(&pzv_facts);
+	}
 	RETURN_TRUE;
 }
 
@@ -201,7 +205,10 @@ PHP_FUNCTION(clips_is_command_complete) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_query_facts) {
-	zval* pzv_facts;
+	if(pzv_facts) {
+		zval_ptr_dtor(&pzv_facts);
+	}
+
 	MAKE_STD_ZVAL(pzv_facts);
 	array_init(pzv_facts);
 	char* s_template_name = NULL;
