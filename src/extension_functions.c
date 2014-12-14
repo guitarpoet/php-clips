@@ -148,26 +148,27 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
 			// Let's call the construct method first
 			if(call_user_function(EG(function_table), &pzv_val, pzv_constructor, pzv_ret_val, 0, NULL TSRMLS_CC) == SUCCESS) {
-				// The constructor is done, let's setting the properties
-				while(pts_slots) {
-					DATA_OBJECT do_slot_val;
-					FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
+				// TODO: What to do if the object didn't have the constructor?
+			}
+			// The constructor is done, let's setting the properties
+			while(pts_slots) {
+				DATA_OBJECT do_slot_val;
+				FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
 
-					const char* s_property_name = ValueToString(pts_slots->slotName);
-					zval* pzv_property = NULL;
-					MAKE_STD_ZVAL(pzv_property);
+				const char* s_property_name = ValueToString(pts_slots->slotName);
+				zval* pzv_property = NULL;
+				MAKE_STD_ZVAL(pzv_property);
 
-					// Convert the data object to php variable
-					convert_do2php(p_clips_env, do_slot_val, pzv_property);
+				// Convert the data object to php variable
+				convert_do2php(p_clips_env, do_slot_val, pzv_property);
 
-					// Put the property to the object
-					zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), pzv_property TSRMLS_CC);
+				// Put the property to the object
+				zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), pzv_property TSRMLS_CC);
 
-					zval_ptr_dtor(&pzv_property); // Destroy the variable when the setting is done.
+				zval_ptr_dtor(&pzv_property); // Destroy the variable when the setting is done.
 
-					// Move to next
-					pts_slots = pts_slots->next;
-				}
+				// Move to next
+				pts_slots = pts_slots->next;
 			}
 
 			// Destroy the temporary zval variables
