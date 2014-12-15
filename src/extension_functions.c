@@ -240,10 +240,22 @@ void convert_do2php(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 			break;
 		case STRING:
 		case SYMBOL:
-			if(strcmp(DOToString(data), "nil"))
-				ZVAL_STRING(pzv_val, DOToString(data), TRUE);
-			else
+			if(strcmp(DOToString(data), "nil") == 0) {
 				ZVAL_NULL(pzv_val);
+				return;
+			}
+
+			if(strcmp(DOToString(data), "TRUE") == 0) {
+				ZVAL_TRUE(pzv_val);
+				return;
+			}
+
+			if(strcmp(DOToString(data), "FALSE") == 0) {
+				ZVAL_FALSE(pzv_val);
+				return;
+			}
+
+			ZVAL_STRING(pzv_val, DOToString(data), TRUE);
 			break;
 		case MULTIFIELD:
 			// Let's convert this to array
