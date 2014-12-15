@@ -139,5 +139,6 @@
 
 #endif
 
+#include <php.h>
 
 
