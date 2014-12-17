@@ -422,6 +422,10 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 				EnvSetpType(pv_env, pdo_return_val, STRING);
 				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, Z_STRVAL_P(pzv_php_ret_val)));
 				break;
+			case IS_NULL:
+				EnvSetpType(pv_env, pdo_return_val, SYMBOL);
+				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, "nil"));
+				break;
 			default:
 				EnvSetpType(pv_env, pdo_return_val, SYMBOL);
 				EnvSetpValue(pv_env, pdo_return_val, EnvFalseSymbol(pv_env));
