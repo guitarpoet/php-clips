@@ -197,7 +197,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	}
 
 	// Then put the template name to the object
-	add_assoc_string(pzv_val, "template", (char*) s_template_name, TRUE);
+	add_assoc_string(pzv_val, "__template__", (char*) s_template_name, TRUE);
 	// At last, let's adding the template slots
 	while(pts_slots) {
 		DATA_OBJECT do_slot_val;
