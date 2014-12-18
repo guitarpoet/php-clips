@@ -136,6 +136,7 @@ PHP_FUNCTION(clips_exec) {
 
 		CleanCurrentGarbageFrame(p_clips_env,NULL);
 		CallPeriodicTasks(p_clips_env);
+		RETURN_TRUE;
 	}
 	RETURN_FALSE;
 }
