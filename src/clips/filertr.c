@@ -125,7 +125,7 @@ globle FILE *FindFptr(
    else if (strcmp(logicalName,WDISPLAY) == 0)
      { return(stdout); }
    else if (strcmp(logicalName,WERROR) == 0)
-     { return(stdout); }
+     { return(stderr); }
    else if (strcmp(logicalName,WWARNING) == 0)
      { return(stdout); }
 
