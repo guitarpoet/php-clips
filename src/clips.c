@@ -50,7 +50,6 @@ zend_module_entry clips_module_entry = {
 
 void* p_clips_env = NULL; // The global clips environment
 zval* pzv_context = NULL; // The global php clips context
-zval* pzv_facts = NULL;
 
 PHP_FUNCTION(clips_init) {
 
@@ -76,9 +75,6 @@ PHP_FUNCTION(clips_init) {
 PHP_FUNCTION(clips_close) {
    	DestroyEnvironment(p_clips_env);
 	p_clips_env = NULL;
-	if(pzv_facts) {
-		zval_ptr_dtor(&pzv_facts);
-	}
 	RETURN_TRUE;
 }
 
@@ -206,17 +202,23 @@ PHP_FUNCTION(clips_is_command_complete) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_query_facts) {
-	if(pzv_facts) {
-		zval_ptr_dtor(&pzv_facts);
-	}
-
-	MAKE_STD_ZVAL(pzv_facts);
-	array_init(pzv_facts);
 	char* s_template_name = NULL;
 	int i_template_name_len = 0;
-	if(ZEND_NUM_ARGS()) {
-		// We do have args
-		zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_template_name, &i_template_name_len);
+	zval* pzv_facts;
+
+	if(ZEND_NUM_ARGS() == 0) // If didn't get the args, just return false;
+		RETURN_FALSE;
+
+	if(ZEND_NUM_ARGS() == 1) { // If only one argument is there, it must be the array
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_facts) != SUCCESS) {
+			RETURN_FALSE;
+		}
+	}
+
+	if(ZEND_NUM_ARGS() == 2) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "as", &pzv_facts, &s_template_name, &i_template_name_len) != SUCCESS) {
+			RETURN_FALSE;
+		}
 	}
 
 	struct fact * pf_fact;

@@ -1,13 +1,4 @@
-<?php
-if(!function_exists('get_default')) {
-	function get_default($arr, $key, $default = null) {
-		if(isset($arr)) {
-			$a = (array) $arr;
-			return isset($a[$key])? $a[$key]: $default;
-		}
-		return null;
-	}
-}
+<?php defined("BASEPATH") or exit("No direct script access allowed");
 
 function clips_str_match($str, $pattern) {
 	return !!preg_match('/'.$pattern.'/', $str);
@@ -37,17 +28,21 @@ class Clips {
 		if(!Clips::$context) {
 			Clips::$context = array();
 			clips_init(Clips::$context);
-			$this->_init_base_support();
 		}
+		$this->clear();
 	}
 
 	private function _init_base_support() {
 		$this->defineClasses();
 		$this->defineMethods();
+		if(function_exists('get_instance')) {
+			$this->ci = get_instance(); // Add the ci object to the context, if function get_instance is exists
+		}
+		$path = dirname(__FILE__).'/rules/clips.rules'; // Load the default functions
 	}
 
 	private function defineMethods() {
-		$this->command('(defmethod php_property ((?obj INSTANCE-NAME INSTANCE-ADDRESS) (?property STRING)) (php_call "clips_get_property" ?obj ?property))'); // Define the php_property function
+		$this->command('(deffunction ci_load (?file) (php_call "clips_load_rule" ?file))'); // Define the ci_load function
 	}
 
 	private function defineClasses() {
@@ -57,9 +52,14 @@ class Clips {
 	}
 
 	private function translate($var) {
+		if($var === null)
+			return 'nil';
+
 		switch(gettype($var)) {
 		case 'string':
 			return '"'.$var.'"';
+		case 'boolean':
+			return $var? 'TRUE' : 'FALSE';
 		case 'array':
 		case 'object':
 			// For array and object, let's make them multiple values
@@ -73,7 +73,15 @@ class Clips {
 	}
 
 	public function template($class) {
-		$this->command($this->defineTemplate($class));
+		if(is_array($class)) {
+			foreach($class as $c) {
+				$this->template($c);
+			}
+			return true;
+		}
+		if(!$this->templateExists($class)) {
+			$this->command($this->defineTemplate($class));
+		}
 	}
 
 	public function defineTemplate($class) {
@@ -85,8 +93,7 @@ class Clips {
 					$ret []= '(multislot '.$slot.')';
 				else
 					$ret []= '(slot '.$slot.')';
-			}
-			return implode(' ', $ret).')';
+			} return implode(' ', $ret).')';
 		}
 		return null;
 	}
@@ -156,8 +163,8 @@ class Clips {
 		foreach(Clips::$context as $key => $value) {
 			unset(Clips::$context[$key]);
 		}
-		$this->_init_base_support();
 		$this->command('(clear)');
+		$this->_init_base_support();
 	}
 
 	public function facts() {
@@ -231,12 +238,14 @@ class Clips {
 		return false;
 	}
 
-	public function assertFacts($name, $data) {
-		$ret = array();
+	public function assertFacts($data) {
 		foreach($data as $fact) {
-			$ret []= '(assert '.$this->defineFact($fact).')';
+			if(is_object($fact)) { // Add the class as template for the object
+				$this->template(get_class($fact));
+			}
+			$this->command('(assert '.$this->defineFact($fact).')');
 		}
-		return $this->command(implode("\n", $ret));
+		return true;
 	}
 
 
@@ -252,7 +261,7 @@ class Clips {
 	public function defineFact($data) {
 		$ret = array();
 		if(is_array($data))  {
-			if(!isset($data['template'])) { // This is a static fact
+			if(!isset($data['__template__'])) { // This is a static fact
 				$name = array_shift($data);
 				$ret []= '('.$name;
 				foreach($data as $d) {
@@ -266,13 +275,13 @@ class Clips {
 		else {
 			$obj = $data;
 			$name = get_class($obj);
-			if(isset($obj->template)) {
-				$name = $obj->template;
+			if(isset($obj->__template__)) {
+				$name = $obj->__template__;
 			}
 
 			$ret []= '('.$name;
 			foreach($obj as $key => $value) {
-				if($key == 'template' || $value === null) // Skip template
+				if(strpos($key, '_') === 0) // Skip _ variables
 					continue;
 				$ret []= '('.$key;
 				$ret []= $this->translate($value).')';
@@ -299,9 +308,17 @@ class Clips {
 	}
 
 	public function queryFacts($name = null) {
+		$arr = array();
 		if(!$name)
-			return clips_query_facts();
-		return clips_query_facts($name);
+			return clips_query_facts($arr);
+		return clips_query_facts($arr, $name);
+	}
+
+	public function queryOneFact($name = null) {
+		$ret = $this->queryFacts($name);
+		if(count($ret))
+			return $ret[0];
+		return null;
 	}
 
 	public function lib($file) {
@@ -314,6 +331,23 @@ class Clips {
 
 	public function templates() {
 		$this->command('(list-deftemplates)');
+	}
+
+	public function ci_load($file) {
+		if(is_array($file)) {
+			foreach($file as $f) {
+				$this->ci_load($f);
+			}
+		}
+		else {
+			foreach(array(APPPATH, 'pinet/') as $p) {
+				$path = FCPATH.$p.'config/rules/'.$file;
+				if(file_exists($path)) {
+					$this->load($path);
+					break;
+				}
+			}
+		}
 	}
 
 	/**
