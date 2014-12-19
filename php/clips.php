@@ -1,5 +1,18 @@
 <?php defined("BASEPATH") or exit("No direct script access allowed");
 
+if(!class_exists('Annotation'))
+	require_once(dirname(__FILE__).'/lib/addendum/annotations.php');
+
+class TestAnno extends Annotation {}
+
+class ClipsSymbol extends Annotation {
+	public $value;
+	// This annotation means this property of class is a symbol
+	public function __construct($value = '') {
+		$this->value = $value;
+	}
+} 
+
 if(!function_exists('get_default')) {
 	function get_default($arr, $key, $default = '') {
 		if(is_object($arr))
@@ -69,11 +82,14 @@ class Clips {
 
 		switch(gettype($var)) {
 		case 'string':
-			return '"'.addslashes($var).'"';
+			return '"'.addslashes($var).'"'; // Quote the string
 		case 'boolean':
 			return $var? 'TRUE' : 'FALSE';
 		case 'array':
 		case 'object':
+			if(is_object($var) && get_class($var) == 'ClipsSymbol') {
+				return $var->value;
+			}
 			// For array and object, let's make them multiple values
 			$ret = array();
 			foreach($var as $key => $value) {
@@ -128,6 +144,8 @@ class Clips {
 		else {
 			$obj = $data;
 			$name = get_class($obj);
+			$reflection = new ReflectionAnnotatedClass($name);
+			
 			if(isset($obj->__template__)) {
 				$name = $obj->__template__;
 			}
@@ -137,6 +155,11 @@ class Clips {
 				if(strpos($key, '_') === 0) // Skip _ variables
 					continue;
 				$ret []= '('.$key;
+				if($reflection->hasProperty($key)) {
+					if($reflection->getProperty($key)->hasAnnotation('ClipsSymbol')) {
+						$value = new ClipsSymbol($value);
+					}
+				}
 				$ret []= $this->translate($value).')';
 			}
 		}

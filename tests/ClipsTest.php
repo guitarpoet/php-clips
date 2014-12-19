@@ -2,6 +2,16 @@
 define('BASEPATH', 1);
 require_once(dirname(__FILE__).'/../php/clips.php');
 
+class User {
+	/** @ClipsSymbol */
+	public $name;
+
+	public $age;
+
+	public function test() {
+	}
+}
+
 class Dummy {
 	public $hello;
 	public $world;
@@ -9,7 +19,6 @@ class Dummy {
 		$this->hello = 1;
 		$this->world = '2';
 	}
-
 }
 
 class ClipsTest extends PHPUnit_Framework_TestCase {
@@ -125,6 +134,20 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 	public function testContextAcess() {
 		$this->assertNotNull($this->clips);
 		$this->clips->hello = "world";
+	}
+
+	public function testSymbolInArray() {
+		$clips = $this->clips;
+		$clips->assertFacts(array('hello', new ClipsSymbol('world')));
+		$clips->facts();
+	}
+
+	public function testSymbolInClass() {
+		$clips = $this->clips;
+		$u = new User();
+		$u->name = 'Jack';
+		$clips->assertFacts($u);
+		$clips->facts();
 	}
 
 	public function testDefineSlot() {
