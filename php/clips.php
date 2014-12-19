@@ -3,7 +3,7 @@
 if(!class_exists('Annotation'))
 	require_once(dirname(__FILE__).'/lib/addendum/annotations.php');
 
-class TestAnno extends Annotation {}
+class ClipsMulti extends Annotation {}
 
 class ClipsSymbol extends Annotation {
 	public $value;
@@ -185,10 +185,16 @@ class Clips {
 	 */
 	public function defineTemplate($class) {
 		if(is_string($class) && class_exists($class)) {
+			$reflection = new ReflectionAnnotatedClass($class);
+			
 			$ret = array();
 			$ret []= '(deftemplate '.$class;
 			foreach(get_class_vars($class) as $slot => $v) {
-				$ret []= '(slot '.$slot.')';
+				if($reflection->getProperty($slot)->hasAnnotation('ClipsMulti')) {
+					$ret []= '(multislot '.$slot.')';
+				}
+				else
+					$ret []= '(slot '.$slot.')';
 			} return implode(' ', $ret).')';
 		}
 		return false;

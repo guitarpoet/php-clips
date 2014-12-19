@@ -8,6 +8,11 @@ class User {
 
 	public $age;
 
+	/** 
+	 * @ClipsMulti
+	 */
+	public $friends;
+
 	public function test() {
 	}
 }
@@ -146,6 +151,7 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		$clips = $this->clips;
 		$u = new User();
 		$u->name = 'Jack';
+		$u->friends = array('Jane', 'Lena');
 		$clips->assertFacts($u);
 		$clips->facts();
 	}
