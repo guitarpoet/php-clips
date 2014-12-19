@@ -1,5 +1,5 @@
 <?php
-
+define('BASEPATH', 1);
 require_once(dirname(__FILE__).'/../php/clips.php');
 
 class Dummy {
@@ -13,22 +13,113 @@ class Dummy {
 }
 
 class ClipsTest extends PHPUnit_Framework_TestCase {
-	public function setUp() {
+
+    public function setUp() {
+        $mute = (getenv('MUTE_PHPUNIT'));
+        $ref = new ReflectionClass($this);
+        $func = $this->getName();
+        if(!$mute && $func != 'testStub')
+            echo "\n----------".$ref->name." | ".$func."----------\n";
 		$this->clips = new Clips();
-	}
+    }
 
 	public function tearDown() {
+        $ref = new ReflectionClass($this);
+        $func = $this->getName();
+        $mute = (getenv('MUTE_PHPUNIT'));
+        if(!$mute && $func != 'testStub')
+            echo "\n==========".$ref->name." | ".$func."==========\n";
+        if (ob_get_length() == 0 ) {
+            ob_start();
+		}
+    }
+	
+	public function testAssertFactsUsingOneObject() {
+		$clips = $this->clips;
+		$d = new Dummy();
+		$clips->assertFacts($d);
+		$facts = $clips->queryFacts('Dummy');
+		$this->assertEquals(count($facts), 1);
+		$fact = $facts[0];
+		$this->assertEquals($fact->hello, $d->hello);
 	}
 
-	public function testDefineFacts() {
-		echo $this->clips->defineFacts('test_facts', array(new Dummy(),
-			array('a', 'b', 'c')))."\n";
-		echo $this->clips->assertFacts('test_facts', array(new Dummy(),
-			array('a', 'b', 'c')))."\n";
+	public function testAssertFactsUsingObjectVarArgs() {
+		$clips = $this->clips;
+		$d = new Dummy();
+		$d2 = new Dummy();
+		$d2->hello = 2;
+		$clips->assertFacts($d, $d2);
+		$facts = $clips->queryFacts('Dummy');
+		$this->assertEquals(count($facts), 2);
+		$fact = $facts[0];
+		$this->assertEquals($fact->hello, $d->hello);
+		$fact = $facts[1];
+		$this->assertEquals($fact->hello, $d2->hello);
 	}
 
-	public function testAddTemplate() {
-		echo $this->clips->defineTemplate('Dummy')."\n";
+	public function testAssertFactsUsingObjectArrayArgs() {
+		$clips = $this->clips;
+		$d = new Dummy();
+		$d2 = new Dummy();
+		$d2->hello = 2;
+		$clips->assertFacts(array($d, $d2));
+		$facts = $clips->queryFacts('Dummy');
+		$this->assertEquals(count($facts), 2);
+		$fact = $facts[0];
+		$this->assertEquals($fact->hello, $d->hello);
+		$fact = $facts[1];
+		$this->assertEquals($fact->hello, $d2->hello);
+	}
+
+	public function testAssertFactsUsingArrayArgs() {
+		$clips = $this->clips;
+		$clips->assertFacts(array('hello', 'world'));
+		$facts = $clips->queryFacts('hello');
+		$this->assertEquals(count($facts), 1);
+		$fact = $facts[0];
+		$this->assertEquals($fact['__template__'], 'hello');
+		$this->assertEquals($fact[0], 'world');
+	}
+
+	public function testAssertFactsUsingVarArrayArgs() {
+		$clips = $this->clips;
+		$clips->assertFacts(array('hello', 'world'), array('hello', 'jack'));
+		$facts = $clips->queryFacts('hello');
+		$this->assertEquals(count($facts), 2);
+		$fact = $facts[0];
+		$this->assertEquals($fact['__template__'], 'hello');
+	}
+
+	public function testAssertFactsUsingTemplateStringArrayArgs() {
+		$clips = $this->clips;
+		$d = array('__template__'=>'Dummy', 'hello' => 1);
+		$clips->template('Dummy');
+		$clips->assertFacts(
+			$d, array('hello', 'jack'));
+		$facts = $clips->queryFacts();
+		$this->assertEquals(count($facts), 2);
+		$fact = $facts[0];
+		$this->assertEquals($d['hello'], $fact->hello);
+	}
+
+	public function testAssertFactsWithJson() {
+		$clips = $this->clips;
+		$dummy = new Dummy();
+		$dummy->hello = json_encode($dummy);
+		$clips->assertFacts($dummy);
+		$facts = $clips->queryFacts('Dummy');
+		$this->assertEquals(count($facts), 1);
+		$clips->facts();
+	}
+
+	public function testAssertFactsUsingArrayArrayArgs() {
+		$clips = $this->clips;
+		$clips->assertFacts(array(array('hello', 'world'), array('hello', 'jack')));
+		$facts = $clips->queryFacts('hello');
+		$this->assertEquals(count($facts), 2);
+		$fact = $facts[0];
+		$this->assertEquals($fact['__template__'], 'hello');
 	}
 
 	public function testContextAcess() {
@@ -54,16 +145,6 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 				)
 		));
 		echo "\n";
-	}
-
-	public function testDefineFact() {
-		echo $this->clips->defineFact(array('a', 'b', 'c'))."\n";
-		echo $this->clips->defineFact(new Dummy())."\n";
-		echo $this->clips->defineFact(array('template'=>'test_template', 'a' => 1, 'b' => array(1, 2, 3)))."\n";
-	}
-
-	public function testDefineInstance() {
-		echo $this->clips->defineInstance('hello')."\n";
 	}
 
 	public function testDefineClass() {
