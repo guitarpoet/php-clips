@@ -20,8 +20,10 @@ PHP_FUNCTION(clips_query_facts);
 PHP_FUNCTION(clips_template_exists);
 PHP_FUNCTION(clips_class_exists);
 PHP_FUNCTION(clips_instance_exists);
+PHP_MSHUTDOWN_FUNCTION(clips);
 
 extern zend_module_entry clips_module_entry;
+extern FILE * pf_stdout;
 #define phpext_clips_ptr &clips_module_entry
 #define UNSPECIFIED -1L
 

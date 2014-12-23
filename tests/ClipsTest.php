@@ -156,6 +156,11 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		$clips->facts();
 	}
 
+	public function testTemplateExists() {
+		$this->clips->assertFacts(new Dummy());
+		$this->assertTrue($this->clips->templateExists('Dummy'));
+	}
+
 	public function testDefineSlot() {
 		echo $this->clips->defineSlot('hello', 'slot', '1',
 			array(

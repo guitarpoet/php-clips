@@ -54,6 +54,7 @@
 #include "sysdep.h"
 
 #include "filertr.h"
+#include <php.h>
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
@@ -68,6 +69,11 @@
 /***************************************************************/
 /* InitializeFileRouter: Initializes file input/output router. */
 /***************************************************************/
+
+php_stream *ps_out = NULL;
+php_stream_context *psc_out=NULL;
+FILE * fp = NULL;                  
+
 globle void InitializeFileRouter(
   void *theEnv)
   {
@@ -76,6 +82,11 @@ globle void InitializeFileRouter(
    EnvAddRouter(theEnv,"fileio",0,FindFile,
              PrintFile,GetcFile,
              UngetcFile,ExitFile);
+	ps_out = php_stream_open_wrapper_ex("php://output", "wb", 0, NULL, psc_out); // Open the stdout
+
+   if (php_stream_cast(ps_out, PHP_STREAM_AS_STDIO, (void*)&fp, REPORT_ERRORS) != SUCCESS) { 
+	   fp = NULL;
+   }
   }
 
 /*****************************************/
@@ -88,6 +99,7 @@ static void DeallocateFileRouterData(
    struct fileRouter *tmpPtr, *nextPtr;
 
    tmpPtr = FileRouterData(theEnv)->ListOfFileRouters;
+   php_stream_close(ps_out);
    while (tmpPtr != NULL)
      {
       nextPtr = tmpPtr->next;
@@ -102,6 +114,7 @@ static void DeallocateFileRouterData(
 /* FindFptr: Returns a pointer to a file */
 /*   stream for a given logical name.    */
 /*****************************************/
+
 globle FILE *FindFptr(
   void *theEnv,
   const char *logicalName)
@@ -111,6 +124,25 @@ globle FILE *FindFptr(
    /*========================================================*/
    /* Check to see if standard input or output is requested. */
    /*========================================================*/
+
+	if(fp) {
+	   if (strcmp(logicalName,"stdout") == 0)
+		 { return(fp); }
+	   else if (strcmp(logicalName,"stdin") == 0)
+		 { return(stdin);  }
+	   else if (strcmp(logicalName,WTRACE) == 0)
+		 { return(fp); }
+	   else if (strcmp(logicalName,WDIALOG) == 0)
+		 { return(fp); }
+	   else if (strcmp(logicalName,WPROMPT) == 0)
+		 { return(fp); }
+	   else if (strcmp(logicalName,WDISPLAY) == 0)
+		 { return(fp); }
+	   else if (strcmp(logicalName,WERROR) == 0)
+		 { return(fp); }
+	   else if (strcmp(logicalName,WWARNING) == 0)
+		 { return(fp); }
+   } 
 
    if (strcmp(logicalName,"stdout") == 0)
      { return(stdout); }

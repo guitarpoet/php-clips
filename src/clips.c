@@ -24,8 +24,8 @@ zend_module_entry clips_module_entry = {
 #endif
     PHP_CLIPS_EXTNAME,
     clips_functions,
-    NULL,
-    NULL,
+    NULL, // No initialize functions
+    PHP_MSHUTDOWN(clips),
     NULL,
     NULL,
     NULL,
@@ -73,10 +73,20 @@ PHP_FUNCTION(clips_init) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_close) {
-   	DestroyEnvironment(p_clips_env);
-	p_clips_env = NULL;
+	if(p_clips_env) {
+		DestroyEnvironment(p_clips_env);
+		p_clips_env = NULL;
+	}
 	RETURN_TRUE;
 }
+
+PHP_MSHUTDOWN_FUNCTION(clips) {
+	if(p_clips_env) {
+		DestroyEnvironment(p_clips_env);
+		p_clips_env = NULL;
+	}
+	return SUCCESS;
+}   
 
 /*******************************************************************************
  *
