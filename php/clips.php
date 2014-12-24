@@ -1,4 +1,4 @@
-<?php defined("BASEPATH") or exit("No direct script access allowed");
+<?php in_array(__FILE__, get_included_files()) or exit("No direct sript access allowed");
 
 if(!class_exists('Annotation'))
 	require_once(dirname(__FILE__).'/lib/addendum/annotations.php');
@@ -66,7 +66,7 @@ class Clips {
 
 	private function defineMethods() {
 		if(function_exists('clips_load_rule')) { // If in CI, let's add ci_load function.
-			$this->command('(deffunction ci_load (?file) (php_call "clips_load_rule" ?file))'); // Define the ci_load function
+			$this->command('(deffunction ci_load ($?file) (php_call "clips_load_rule" $?file))'); // Define the ci_load function
 		}
 	}
 
@@ -144,6 +144,7 @@ class Clips {
 		else {
 			$obj = $data;
 			$name = get_class($obj);
+
 			$reflection = new ReflectionAnnotatedClass($name);
 			
 			if(isset($obj->__template__)) {
@@ -195,7 +196,8 @@ class Clips {
 				}
 				else
 					$ret []= '(slot '.$slot.')';
-			} return implode(' ', $ret).')';
+			} 
+			return implode(' ', $ret).')';
 		}
 		return false;
 	}
@@ -435,6 +437,13 @@ class Clips {
 		if(count($ret))
 			return $ret[0];
 		return null;
+	}
+
+	public function ci_load($rule) {
+		if(function_exists('clips_load_rule')) {
+			return clips_load_rule($rule);
+		}
+		return false;
 	}
 
 	/**
