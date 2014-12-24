@@ -1,4 +1,5 @@
 #include "clips.h"
+#include "environment_list.h"
 
 #ifdef COMPILE_DL_CLIPS
 ZEND_GET_MODULE(clips)
@@ -6,6 +7,9 @@ ZEND_GET_MODULE(clips)
 
 static zend_function_entry clips_functions[] = {
     PHP_FE(clips_init, NULL)
+    PHP_FE(clips_create_env, NULL)
+    PHP_FE(clips_switch_env, NULL)
+    PHP_FE(clips_meta, NULL)
     PHP_FE(clips_close, NULL)
     PHP_FE(clips_console, NULL)
     PHP_FE(clips_exec, NULL)
@@ -36,7 +40,7 @@ zend_module_entry clips_module_entry = {
 };
 
 
-/*******************************************************************************
+/****************************************************************************
  *
  *  Function clips_init
  *
@@ -52,12 +56,102 @@ void* p_clips_env = NULL; // The global clips environment
 zval* pzv_context = NULL; // The global php clips context
 
 PHP_FUNCTION(clips_init) {
-
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_context) == SUCCESS) {
-		p_clips_env = CreateEnvironment();
-		RETURN_TRUE;
+		create_env("MAIN"); // Create the MAIN environment
+		if(switch_env("MAIN")) {
+			RETURN_TRUE;
+		}
 	}
 	zend_error(E_ERROR, "No context setup for php clips!!!");
+	RETURN_FALSE;
+}
+
+/*******************************************************************************
+ *
+ *  Function clips_create_env
+ *
+ *  This function will create a new clips env
+ *
+ *  @version 1.0
+ *  @args
+ *  	name: The name of the env
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_create_env) {
+	if(p_clips_env) { // Only create the env when inited
+		char* s_env_name;
+		int i_str_len;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_env_name, &i_str_len) == FAILURE) {
+			RETURN_FALSE;
+		}
+		create_env(s_env_name);
+		RETURN_TRUE;
+	}
+	RETURN_FALSE;
+}
+
+/*******************************************************************************
+ *
+ *  Function clips_switch_env
+ *
+ *  This function will switch the clips env to that env
+ *
+ *  @version 1.0
+ *  @args
+ *  	name: The name of the env
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_switch_env) {
+	if(p_clips_env) { // Only create the env when inited
+		char* s_env_name;
+		int i_str_len;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_env_name, &i_str_len) == FAILURE) {
+			RETURN_FALSE;
+		}
+		if(switch_env(s_env_name)) {
+			RETURN_TRUE;
+		}
+	}
+	RETURN_FALSE;
+}
+
+/****************************************************************************
+ *
+ *  Function clips_meta
+ *
+ *  This function will return the metadata of the current env 
+ *
+ *  @version 1.0
+ *  @args
+ *  	array: The reference object
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_meta) {
+	zval* pzv_meta = NULL;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_meta) == SUCCESS) {
+		// For the current context
+		EnvironmentListNode node = current_env_list_node();
+		if(node) {
+			add_assoc_string(pzv_meta, "current", node->s_name, TRUE);
+
+			zval* pzv_arr = NULL;
+			MAKE_STD_ZVAL(pzv_arr);
+			array_init(pzv_arr);
+			EnvironmentListNode node = env_list;
+			while(node) {
+				add_next_index_string(pzv_arr, node->s_name, TRUE);
+				node = node->next;
+			}
+			add_assoc_zval(pzv_meta, "envs", pzv_arr);
+		}
+		RETURN_TRUE;
+	}
+	zend_error(E_ERROR, "No refer array setup for clips meta!!!");
+	RETURN_FALSE;
 }
 
 /*******************************************************************************
@@ -73,18 +167,26 @@ PHP_FUNCTION(clips_init) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_close) {
-	if(p_clips_env) {
-		DestroyEnvironment(p_clips_env);
-		p_clips_env = NULL;
-	}
+	destroy_envlist();
+	p_clips_env = NULL;
 	RETURN_TRUE;
 }
 
+/*******************************************************************************
+ *
+ *  Module shutdown function
+ *
+ *  This function will close the clips engine when php exits
+ *
+ *  @version 1.0
+ *  @args
+ *  	None
+ *
+ *******************************************************************************/
+
 PHP_MSHUTDOWN_FUNCTION(clips) {
-	if(p_clips_env) {
-		DestroyEnvironment(p_clips_env);
-		p_clips_env = NULL;
-	}
+	destroy_envlist();
+	p_clips_env = NULL;
 	return SUCCESS;
 }   
 

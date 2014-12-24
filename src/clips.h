@@ -11,6 +11,9 @@
 #include "clips/clips.h"
 
 PHP_FUNCTION(clips_init);
+PHP_FUNCTION(clips_create_env);
+PHP_FUNCTION(clips_switch_env);
+PHP_FUNCTION(clips_meta);
 PHP_FUNCTION(clips_close);
 PHP_FUNCTION(clips_console);
 PHP_FUNCTION(clips_load);

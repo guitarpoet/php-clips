@@ -181,6 +181,10 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		echo "\n";
 	}
 
+	public function testCurrentEnvByDefault() {
+		$this->assertEquals(clips_current_env(), "MAIN");
+	}
+
 	public function testDefineClass() {
 		echo $this->clips->defineClass('PHP_OBJECT', 
 			array('USER', 'OBJECT'), false, array(
