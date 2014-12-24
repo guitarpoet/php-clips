@@ -70,9 +70,8 @@
 /* InitializeFileRouter: Initializes file input/output router. */
 /***************************************************************/
 
-php_stream *ps_out = NULL;
-php_stream_context *psc_out=NULL;
-FILE * fp = NULL;                  
+
+FILE * fp = NULL; // The file pointer to php out
 
 globle void InitializeFileRouter(
   void *theEnv)
@@ -82,6 +81,9 @@ globle void InitializeFileRouter(
    EnvAddRouter(theEnv,"fileio",0,FindFile,
              PrintFile,GetcFile,
              UngetcFile,ExitFile);
+
+	php_stream *ps_out = NULL;
+	php_stream_context *psc_out=NULL;
 	ps_out = php_stream_open_wrapper_ex("php://output", "wb", 0, NULL, psc_out); // Open the stdout
 
    if (php_stream_cast(ps_out, PHP_STREAM_AS_STDIO, (void*)&fp, REPORT_ERRORS) != SUCCESS) { 
@@ -99,7 +101,6 @@ static void DeallocateFileRouterData(
    struct fileRouter *tmpPtr, *nextPtr;
 
    tmpPtr = FileRouterData(theEnv)->ListOfFileRouters;
-   php_stream_close(ps_out);
    while (tmpPtr != NULL)
      {
       nextPtr = tmpPtr->next;
