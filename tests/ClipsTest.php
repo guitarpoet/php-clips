@@ -38,6 +38,7 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
     }
 
 	public function tearDown() {
+		$this->clips->clear();
         $ref = new ReflectionClass($this);
         $func = $this->getName();
         $mute = (getenv('MUTE_PHPUNIT'));
@@ -107,11 +108,13 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 
 	public function testAssertFactsUsingTemplateStringArrayArgs() {
 		$clips = $this->clips;
+		$clips->switchMain();
 		$d = array('__template__'=>'Dummy', 'hello' => 1);
 		$clips->template('Dummy');
 		$clips->assertFacts(
 			$d, array('hello', 'jack'));
 		$facts = $clips->queryFacts();
+		$clips->facts();
 		$this->assertEquals(count($facts), 2);
 		$fact = $facts[0];
 		$this->assertEquals($d['hello'], $fact->hello);
@@ -119,6 +122,7 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 
 	public function testAssertFactsWithJson() {
 		$clips = $this->clips;
+		$clips->switchMain();
 		$dummy = new Dummy();
 		$dummy->hello = json_encode($dummy);
 		$clips->assertFacts($dummy);
@@ -181,8 +185,34 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		echo "\n";
 	}
 
-	public function testCurrentEnvByDefault() {
-		$this->assertEquals(clips_current_env(), "MAIN");
+	public function testEnvExists() {
+		$this->assertTrue($this->clips->isEnvExists('MAIN'));
+	}
+
+	public function testCreateEnv() {
+		$this->clips->createEnv('TEST');
+		$this->assertTrue($this->clips->isEnvExists('TEST'));
+	}
+
+	public function testSwitchEnv() {
+		$this->testCreateEnv();
+		$this->clips->switchEnv('TEST');
+		$meta = $this->clips->getMeta();
+		print_r($meta);
+		$this->assertEquals($meta['current'], "TEST");
+		$this->assertEquals($this->clips->current_env, "TEST");
+	}
+
+	public function testGetMeta() {
+		$this->clips->switchMAIN();
+		$meta = $this->clips->getMeta();
+		$this->assertEquals($meta['current'], "MAIN");
+	}
+
+	public function testClipsLoadRules() {
+		clips_load_rules(array(dirname(__FILE__).'/test.rules'));
+		$facts = $this->clips->queryFacts();
+		$this->assertEquals($facts, array(array('rules', '__template__' => 'hello')));
 	}
 
 	public function testDefineClass() {

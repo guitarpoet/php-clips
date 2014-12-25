@@ -5,6 +5,14 @@ if(!class_exists('Annotation'))
 
 class ClipsMulti extends Annotation {}
 
+function clips_load_rules($rules) {
+	if($rules) {
+		$c = new Clips();
+		return $c->load($rules);
+	}
+	return false;
+}
+
 class ClipsSymbol extends Annotation {
 	public $value;
 	// This annotation means this property of class is a symbol
@@ -47,33 +55,30 @@ class Clips {
 	 */
 	public static $context;
 
-	public function __construct() {
-		if(!Clips::$context) {
+	public $current_env;
+
+	public function __construct($name = 'MAIN') {
+		if(!isset(Clips::$context)) {
 			Clips::$context = array();
 			clips_init(Clips::$context);
+			$this->createEnv('CORE');
+			$this->switchCore();
+			$this->load(dirname(__FILE__).'/rules/core.rules');
+			$this->switchMain();
 		}
-		$this->clear();
+
+		if(!$this->isEnvExists($name))
+			$this->createEnv($name);
+
+		$this->current_env = $name;
 	}
 
 	private function _init_base_support() {
-		$this->defineClasses();
-		$this->defineMethods();
 		if(function_exists('get_instance')) {
 			$this->ci = get_instance(); // Add the ci object to the context, if function get_instance is exists
 		}
 		$path = dirname(__FILE__).'/rules/clips.rules'; // Load the default functions
-	}
-
-	private function defineMethods() {
-		if(function_exists('clips_load_rule')) { // If in CI, let's add ci_load function.
-			$this->command('(deffunction ci_load ($?file) (php_call "clips_load_rule" $?file))'); // Define the ci_load function
-		}
-	}
-
-	private function defineClasses() {
-		if(!$this->classExists('PHP_OBJECT')) // Define the PHP_OBJECT if needed
-			$this->command($this->defineClass('PHP_OBJECT', 
-				array('USER', 'OBJECT'), false, array()));
+		$this->load($path);
 	}
 
 	private function translate($var) {
@@ -98,6 +103,37 @@ class Clips {
 			return implode(' ', $ret);
 		}
 		return $var;
+	}
+
+	public function isEnvExists($name) {
+		$meta = $this->getMeta();
+		return in_array($name, $meta['envs']);
+	}
+
+	public function createEnv($name) {
+		if(!$this->isEnvExists($name))
+			return clips_create_env($name);
+		return false;
+	}
+
+	public function switchEnv($name) {
+		if($this->isEnvExists($name)) {
+			$this->current_env = $name;
+			return clips_switch_env($name);
+		}
+		trigger_error("The env of name $name is not exists!!!");
+		return false;
+	}
+
+	public function getMeta() {
+		$meta = array();
+		clips_meta($meta);
+		return $meta;
+	}
+
+	public function currentEnv() {
+		$meta = $this->getMeta();
+		return $meta['current'];
 	}
 
 	/**
@@ -439,29 +475,52 @@ class Clips {
 		return null;
 	}
 
-	public function ci_load($rule) {
-		if(function_exists('clips_load_rule')) {
-			return clips_load_rule($rule);
-		}
-		return false;
+	public function switchMain() {
+		$this->switchEnv('MAIN');
+	}
+
+	public function switchCore() {
+		$this->switchEnv('CORE');
 	}
 
 	/**
 	 * Load and execute the clips rule file
 	 */
 	public function load($file) {
-		if(is_array($file)) {
-			foreach($file as $f) {
-				$this->load($f);
+		if($this->current_env == 'CORE') { // If is the core, let's load the file directly
+			if(is_array($file)) {
+				foreach($file as $f) {
+					$this->load($f);
+				}
+			}
+			else {
+				if(file_exists($file)) {
+					clips_load($file);
+				}
 			}
 			return;
 		}
 
-		if(file_exists($file)) {
-			clips_load($file);
+		if(!is_array($file)) {
+			$file = array($file);
 		}
-		else {
-			trigger_error('The file '.$file.' is not found.');
+
+		// Getting the args for loading
+		$facts = array();
+		foreach($file as $f) {
+			$facts []= array('load_arg', $f);
+		}
+		$current = $this->currentEnv(); // Store the current env
+
+		// Calculating the loading rules using CORE env
+		$this->switchCore();
+		$this->reset(); // Reset the envrionment for calculate
+		$this->assertFacts($facts); // Added the load args
+		$this->run(); // Let's calculate
+		$commands = $this->queryFacts('command'); // OK, I know what commands to be load
+		$this->switchEnv($current); // Let's switch it back
+		foreach($commands as $command) { // Let's run the commands
+			$this->command($command[0]);
 		}
 	}
 }
