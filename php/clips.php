@@ -3,6 +3,8 @@
 if(!class_exists('Annotation'))
 	require_once(dirname(__FILE__).'/lib/addendum/annotations.php');
 
+define('CLIPS_CORE_ENV', 'CORE');
+
 class ClipsMulti extends Annotation {}
 
 function clips_load_rules($rules) {
@@ -61,7 +63,7 @@ class Clips {
 		if(!isset(Clips::$context)) {
 			Clips::$context = array();
 			clips_init(Clips::$context);
-			$this->createEnv('CORE');
+			$this->createEnv(CLIPS_CORE_ENV);
 			$this->switchCore();
 			$this->load(dirname(__FILE__).'/rules/core.rules');
 			$this->switchMain();
@@ -480,14 +482,14 @@ class Clips {
 	}
 
 	public function switchCore() {
-		$this->switchEnv('CORE');
+		$this->switchEnv(CLIPS_CORE_ENV);
 	}
 
 	/**
 	 * Load and execute the clips rule file
 	 */
 	public function load($file) {
-		if($this->current_env == 'CORE') { // If is the core, let's load the file directly
+		if($this->current_env == CLIPS_CORE_ENV) { // If is the core, let's load the file directly
 			if(is_array($file)) {
 				foreach($file as $f) {
 					$this->load($f);
