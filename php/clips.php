@@ -7,14 +7,6 @@ define('CLIPS_CORE_ENV', 'CORE');
 
 class ClipsMulti extends Annotation {}
 
-function clips_load_rules($rules) {
-	if($rules) {
-		$c = new Clips();
-		return $c->load($rules);
-	}
-	return false;
-}
-
 class ClipsSymbol extends Annotation {
 	public $value;
 	// This annotation means this property of class is a symbol
@@ -22,6 +14,14 @@ class ClipsSymbol extends Annotation {
 		$this->value = $value;
 	}
 } 
+
+function clips_load_rules($rules) {
+	if($rules) {
+		$c = new Clips();
+		return $c->load($rules);
+	}
+	return false;
+}
 
 if(!function_exists('get_default')) {
 	function get_default($arr, $key, $default = '') {
@@ -325,6 +325,46 @@ class Clips {
 		}
 		$this->command('(clear)');
 		$this->_init_base_support();
+	}
+
+	/**
+	 * Print the template's details
+	 */
+	public function printTemplate($name) {
+		if(is_array($name)) {
+			foreach($name as $n) {
+				$this->printTemplate($name);
+			}
+		}
+		else
+			$this->command("(ppdeftemplate $name)");
+	}
+
+	/**
+	 * List the templates in the enviroment
+	 */
+	public function listTemplates() {
+		$this->command('(list-deftemplates)');
+	}
+
+	/**
+	 * List all the rule names in the envrionment
+	 */
+	public function listRules() {
+		$this->command('(list-defrules)');
+	}
+
+	/**
+	 * Print the rule
+	 */
+	public function printRule($name) {
+		if(is_array($name)) {
+			foreach($name as $n) {
+				$this->printRule($n);
+			}
+		}
+		else
+			$this->command('(ppdefrule '.$name.')');
 	}
 
 	/**

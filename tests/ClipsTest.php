@@ -57,6 +57,8 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals(count($facts), 1);
 		$fact = $facts[0];
 		$this->assertEquals($fact->hello, $d->hello);
+		$this->clips->listTemplates();
+		$this->clips->printTemplate('Dummy');
 	}
 
 	public function testAssertFactsUsingObjectVarArgs() {
@@ -207,6 +209,8 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 		$this->clips->switchMAIN();
 		$meta = $this->clips->getMeta();
 		$this->assertEquals($meta['current'], "MAIN");
+		$this->clips->command('(defrule hahahahha (no one) => (printout t "SHIT"))');
+		$this->clips->printRule('hahahahha');
 	}
 
 	public function testClipsLoadRules() {
