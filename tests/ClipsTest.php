@@ -188,7 +188,7 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 	}
 
 	public function testEnvExists() {
-		$this->assertTrue($this->clips->isEnvExists('MAIN'));
+		$this->assertTrue($this->clips->isEnvExists(CLIPS_MAIN_ENV));
 	}
 
 	public function testCreateEnv() {
@@ -206,9 +206,9 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
 	}
 
 	public function testGetMeta() {
-		$this->clips->switchMAIN();
+		$this->clips->switchMain();
 		$meta = $this->clips->getMeta();
-		$this->assertEquals($meta['current'], "MAIN");
+		$this->assertEquals($meta['current'], CLIPS_MAIN_ENV);
 		$this->clips->command('(defrule hahahahha (no one) => (printout t "SHIT"))');
 		$this->clips->printRule('hahahahha');
 	}

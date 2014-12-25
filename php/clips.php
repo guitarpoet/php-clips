@@ -4,6 +4,7 @@ if(!class_exists('Annotation'))
 	require_once(dirname(__FILE__).'/lib/addendum/annotations.php');
 
 define('CLIPS_CORE_ENV', 'CORE');
+define('CLIPS_MAIN_ENV', 'MAIN');
 
 class ClipsMulti extends Annotation {}
 
@@ -59,7 +60,7 @@ class Clips {
 
 	public $current_env;
 
-	public function __construct($name = 'MAIN') {
+	public function __construct($name = CLIPS_MAIN_ENV) {
 		if(!isset(Clips::$context)) {
 			Clips::$context = array();
 			clips_init(Clips::$context);
@@ -518,7 +519,7 @@ class Clips {
 	}
 
 	public function switchMain() {
-		$this->switchEnv('MAIN');
+		$this->switchEnv(CLIPS_MAIN_ENV);
 	}
 
 	public function switchCore() {
