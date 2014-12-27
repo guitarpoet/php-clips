@@ -226,7 +226,8 @@ PHP_FUNCTION(clips_exec) {
 	if(p_clips_env) {
 		char* s_str;
 		int i_str_len;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_str, &i_str_len) == FAILURE) {
+		zend_bool zb_debug = FALSE;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sb", &s_str, &i_str_len, &zb_debug) == FAILURE) {
 			RETURN_FALSE;
 		}
 		if (CommandLineData(p_clips_env)->BeforeCommandExecutionFunction != NULL) { 
@@ -236,7 +237,12 @@ PHP_FUNCTION(clips_exec) {
 
 		FlushPPBuffer(p_clips_env);
 		SetPPBufferStatus(p_clips_env,OFF);
-		RouteCommand(p_clips_env,s_str,TRUE);
+		if(zb_debug) {
+			RouteCommand(p_clips_env,s_str, TRUE);
+		}
+		else {
+			RouteCommand(p_clips_env,s_str, FALSE);
+		}
 		FlushPPBuffer(p_clips_env);
 		SetHaltExecution(p_clips_env,FALSE);
 		SetEvaluationError(p_clips_env,FALSE);
