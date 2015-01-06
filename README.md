@@ -24,9 +24,9 @@ CLIPS is a forward-chaining rule-based programming language written in C that al
 3. CLIPS lacks many useful functions(for example the regex support, can't connect to any datasource), but can get this from PHP
 4. CLIPS is very very fast, here is the result of how fast it should be:
 
-The code to calculate fibo 1000 
+The code to calculate fibo 100 
 
-	(defglobal ?*count* = 1000)
+	(defglobal ?*count* = 100)
 	(defrule fibo
 		?n <- (n ?x ?xv)
 		(n ?y&:(and (= (+ ?x 1) ?y) (<= ?y ?*count*)) ?yv)
@@ -43,8 +43,8 @@ The code to calculate fibo 1000
 
 and the result:
 
-	The fibo of 1000 is 817770325994397771
-	clips run fibo.rules  0.05s user 0.01s system 89% cpu 0.073 total
+	The fibo of 100 is 3736710778780434371
+	pclips fibo.rules  0.03s user 0.01s system 89% cpu 0.046 total
 
 For it'll take about 0.04s to initliaze the PHP and the php-clips extension.
 
@@ -53,8 +53,6 @@ For it'll take about 0.04s to initliaze the PHP and the php-clips extension.
 	Zend Engine v2.6.0, Copyright (c) 1998-2014 Zend Technologies
 		with Xdebug v2.2.6, Copyright (c) 2002-2014, by Derick Rethans
 		php -v  0.02s user 0.01s system 82% cpu 0.030 total
-
-It is nearly impossible to write a scriptable code that concise and so fast for calculating fibonacci n(1000).
 
 ## Features
 
