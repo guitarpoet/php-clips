@@ -1,0 +1,7 @@
+The installation of this plugin is very easy, just like other php extensions:
+
+1. git clone https://github.com/guitarpoet/php-clips.git
+2. cd php-clips
+3. phpize
+4. ./configure
+5. make && make install
