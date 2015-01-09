@@ -378,7 +378,8 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	int* i_types = (int*) emalloc(i_argc * sizeof(int));
 
 	// Setup the input parameters
-	for(int i = 0; i < i_argc; i++) {
+	int i = 0;
+	for(i = 0; i < i_argc; i++) {
 		// Initialize the php value
 		zval* val = NULL;
 		MAKE_STD_ZVAL(val);
@@ -437,7 +438,7 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	}
 
 	// Destroy all the php parameter variables
-	for(int i = 0; i < i_argc; i++) {
+	for(i = 0; i < i_argc; i++) {
 		if(i_types[i] == INSTANCE_NAME
 			|| i_types[i] == INSTANCE_ADDRESS) {
 			efree(ppzv_params[i]);
