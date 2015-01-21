@@ -92,7 +92,8 @@ void process_instance_address(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
  */
 void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	// Iterate all the values in the multifields, and put them all into the array
-	for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
+	int i;
+	for(i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
 		// Initialize the php variable as array item
 		zval* pzv_array_item = NULL;
 		MAKE_STD_ZVAL(pzv_array_item);
