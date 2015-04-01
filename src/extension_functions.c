@@ -303,7 +303,7 @@ void convert_php_array2multifield(void* pv_env, zval* pzv_array, DATA_OBJECT_PTR
 			break;
 		case IS_STRING:
 			EnvSetMFType(pv_env, pmf_fields, i, STRING);
-			EnvSetMFValue(pv_env, pmf_fields, i, EnvAddSymbol(pv_env, Z_STRVAL_P(*data)));
+			EnvSetMFValue(pv_env, pmf_fields, i, EnvAddSymbol(pv_env, strdup(Z_STRVAL_P(*data))));
 			break;
 		}
 		i++;
@@ -423,7 +423,7 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 				break;
 			case IS_STRING:
 				EnvSetpType(pv_env, pdo_return_val, STRING);
-				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, Z_STRVAL_P(pzv_php_ret_val)));
+				EnvSetpValue(pv_env, pdo_return_val, EnvAddSymbol(pv_env, strdup(Z_STRVAL_P(pzv_php_ret_val))));
 				break;
 			case IS_NULL:
 				EnvSetpType(pv_env, pdo_return_val, SYMBOL);
