@@ -1,4 +1,5 @@
 #include "extension_functions.h"
+#include <string.h>
 
 void process_instance_name(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	php_hash_get(pzv_context, DOToString(data), pzv_val);
@@ -92,7 +93,8 @@ void process_instance_address(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
  */
 void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
 	// Iterate all the values in the multifields, and put them all into the array
-	for(long i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
+	int i;
+	for(i = EnvGetDOBegin(pv_env, data); i <= EnvGetDOEnd(pv_env, data); i++) {
 		// Initialize the php variable as array item
 		zval* pzv_array_item = NULL;
 		MAKE_STD_ZVAL(pzv_array_item);
@@ -128,7 +130,7 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
  */
 void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	struct deftemplate* template = (struct deftemplate *) FactDeftemplate(data.value);
-	const char* s_template_name = ValueToString(template->header.name);
+	const char* s_template_name = strdup(ValueToString(template->header.name));
 	
 	// The slots for the fact
 	struct templateSlot* pts_slots = template->slotList;
@@ -153,9 +155,9 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 			// The constructor is done, let's setting the properties
 			while(pts_slots) {
 				DATA_OBJECT do_slot_val;
-				FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
+				FactSlotValue(p_clips_env, data.value, strdup(ValueToString(pts_slots->slotName)), &do_slot_val);
 
-				const char* s_property_name = ValueToString(pts_slots->slotName);
+				const char* s_property_name = strdup(ValueToString(pts_slots->slotName));
 				zval* pzv_property = NULL;
 				MAKE_STD_ZVAL(pzv_property);
 
@@ -201,9 +203,9 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 	// At last, let's adding the template slots
 	while(pts_slots) {
 		DATA_OBJECT do_slot_val;
-		FactSlotValue(p_clips_env, data.value, ValueToString(pts_slots->slotName), &do_slot_val);
+		FactSlotValue(p_clips_env, data.value, strdup(ValueToString(pts_slots->slotName)), &do_slot_val);
 
-		const char* s_property_name = ValueToString(pts_slots->slotName);
+		const char* s_property_name = strdup(ValueToString(pts_slots->slotName));
 		zval* pzv_property = NULL;
 		MAKE_STD_ZVAL(pzv_property);
 
@@ -378,7 +380,8 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	int* i_types = (int*) emalloc(i_argc * sizeof(int));
 
 	// Setup the input parameters
-	for(int i = 0; i < i_argc; i++) {
+	int i = 0;
+	for(i = 0; i < i_argc; i++) {
 		// Initialize the php value
 		zval* val = NULL;
 		MAKE_STD_ZVAL(val);
@@ -437,7 +440,7 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 	}
 
 	// Destroy all the php parameter variables
-	for(int i = 0; i < i_argc; i++) {
+	for(i = 0; i < i_argc; i++) {
 		if(i_types[i] == INSTANCE_NAME
 			|| i_types[i] == INSTANCE_ADDRESS) {
 			efree(ppzv_params[i]);

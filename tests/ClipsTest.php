@@ -35,6 +35,7 @@ class ClipsTest extends PHPUnit_Framework_TestCase {
         if(!$mute && $func != 'testStub')
             echo "\n----------".$ref->name." | ".$func."----------\n";
 		$this->clips = new Clips();
+		$this->clips->clear();
     }
 
 	public function tearDown() {

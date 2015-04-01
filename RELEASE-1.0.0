@@ -1,0 +1,6 @@
+The initial release of php-clips.
+
+1. Fully integrate CLIPS v6.3 into PHP
+2. Can call PHP's function in CLIPS's execution environment
+3. Can translate PHP's array or objects into facts(with templates)
+4. Can access the PHP object as the reference of the CLIPS object

@@ -16,6 +16,10 @@ class ClipsSymbol extends Annotation {
 	}
 } 
 
+function clips_path($path) {
+	return dirname(__FILE__).$path;
+}
+
 function clips_load_rules($rules) {
 	if($rules) {
 		$c = new Clips();
@@ -62,18 +66,28 @@ class Clips {
 
 	public function __construct($name = CLIPS_MAIN_ENV) {
 		if(!isset(Clips::$context)) {
+			// Initialize the context
 			Clips::$context = array();
 			clips_init(Clips::$context);
+
+			// Create the core env
 			$this->createEnv(CLIPS_CORE_ENV);
+
+			// Loading the core rules into core
 			$this->switchCore();
+			$path = dirname(__FILE__).'/rules/clips.rules'; // Load the default functions
+			$this->load($path);
 			$this->load(dirname(__FILE__).'/rules/core.rules');
+
+			// Come back to main again
 			$this->switchMain();
 		}
 
 		if(!$this->isEnvExists($name))
 			$this->createEnv($name);
 
-		$this->current_env = $name;
+		$this->switchEnv($name); // Switch the env to the name
+		$this->_init_base_support();
 	}
 
 	private function _init_base_support() {
@@ -108,6 +122,22 @@ class Clips {
 		return $var;
 	}
 
+	public function runWithEnv($name, $callback, $args = array()) {
+		$env = $this->current_env;
+		if($this->switchEnv($name)) {
+			$ret = false;
+			try {
+				$ret = call_user_func_array($callback, array($this, $args));
+			}
+			catch(Exception $ex) {
+			}
+
+			$this->switchEnv($env);
+			return $ret;
+		}
+		return false;
+	}
+
 	public function isEnvExists($name) {
 		$meta = $this->getMeta();
 		return in_array($name, $meta['envs']);
@@ -119,10 +149,20 @@ class Clips {
 		return false;
 	}
 
+	/**
+	 * Switch the current environment to the environment of that name.
+	 *
+	 * @return
+	 * 		Will return current env's name if switched success, or false if swich failed.
+	 */
 	public function switchEnv($name) {
 		if($this->isEnvExists($name)) {
+			$env = $this->current_env;
 			$this->current_env = $name;
-			return clips_switch_env($name);
+			if(clips_switch_env($name)) {
+				return $env;
+			}
+			return false;
 		}
 		trigger_error("The env of name $name is not exists!!!");
 		return false;
@@ -206,7 +246,7 @@ class Clips {
 		return implode(' ', $ret).')';
 	}
 
-	public function defineInstance($name, $class = 'PHP_OBJECT', $args = array()) {
+	public function defineInstance($name, $class = 'PHP-OBJECT', $args = array()) {
 		$ret = array();
 		$ret []= '(make-instance';
 		$ret []= $name;
@@ -430,7 +470,7 @@ class Clips {
 		$line = readline('pclips$ ')."\n";
 		while(true) {
 			if(clips_is_command_complete($line)) {
-				$this->command($line);
+				$this->command($line, true);
 				readline_add_history($line);
 				$line = readline('pclips$ ')."\n";
 			}
@@ -494,14 +534,14 @@ class Clips {
 	/**
 	 * Execute the clips command
 	 */
-	public function command($command) {
+	public function command($command, $debug = false) {
 		if(is_array($command)) {
 			foreach($command as $c) {
 				$this->command($c);
 			}
 			return;
 		}
-		clips_exec($command."\n"); // Add \n automaticly
+		clips_exec($command."\n", $debug); // Add \n automaticly
 	}
 
 	public function queryFacts($name = null) {
@@ -519,11 +559,11 @@ class Clips {
 	}
 
 	public function switchMain() {
-		$this->switchEnv(CLIPS_MAIN_ENV);
+		return $this->switchEnv(CLIPS_MAIN_ENV);
 	}
 
 	public function switchCore() {
-		$this->switchEnv(CLIPS_CORE_ENV);
+		return $this->switchEnv(CLIPS_CORE_ENV);
 	}
 
 	/**
@@ -556,14 +596,22 @@ class Clips {
 		$current = $this->currentEnv(); // Store the current env
 
 		// Calculating the loading rules using CORE env
-		$this->switchCore();
-		$this->reset(); // Reset the envrionment for calculate
-		$this->assertFacts($facts); // Added the load args
-		$this->run(); // Let's calculate
-		$commands = $this->queryFacts('command'); // OK, I know what commands to be load
-		$this->switchEnv($current); // Let's switch it back
+		$commands = $this->runWithEnv(CLIPS_CORE_ENV, function($clips, $facts) {
+			$clips->reset(); // Reset the envrionment for calculate
+			$clips->assertFacts($facts);
+			$clips->run();
+			return $clips->queryFacts('command');
+		}, $facts);
+
 		foreach($commands as $command) { // Let's run the commands
-			$this->command($command[0]);
+			$str = '';
+			foreach(explode("\n", $command[0]) as $c) {
+				$str .= $c."\n";
+				if(clips_is_command_complete($str)) {
+					$this->command($str);
+					$str = '';
+				}
+			}
 		}
 	}
 }
