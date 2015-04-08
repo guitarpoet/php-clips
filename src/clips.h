@@ -2,6 +2,7 @@
 #define PHP_CLIPS 1
 #define PHP_CLIPS_VERSION "1.0"
 #define PHP_CLIPS_EXTNAME "clips"
+#define PHP_CLIPS_ENGINE_VERSION "6.30"
 
 #include "../config.h"
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include "utils.h"
 #include "clips/clips.h"
 
+PHP_FUNCTION(clips_version);
 PHP_FUNCTION(clips_init);
 PHP_FUNCTION(clips_create_env);
 PHP_FUNCTION(clips_switch_env);

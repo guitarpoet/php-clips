@@ -5,7 +5,16 @@
 ZEND_GET_MODULE(clips)
 #endif
 
+static PHP_MINFO_FUNCTION(clips){
+	php_info_print_table_start();
+	php_info_print_table_row(2, "Revision", PHP_CLIPS_VERSION);
+	php_info_print_table_row(2, "ClipsRevision", PHP_CLIPS_ENGINE_VERSION);
+	php_info_print_table_end();
+	DISPLAY_INI_ENTRIES();
+}
+
 static zend_function_entry clips_functions[] = {
+    PHP_FE(clips_version, NULL)
     PHP_FE(clips_init, NULL)
     PHP_FE(clips_create_env, NULL)
     PHP_FE(clips_switch_env, NULL)
@@ -32,13 +41,12 @@ zend_module_entry clips_module_entry = {
     PHP_MSHUTDOWN(clips),
     NULL,
     NULL,
-    NULL,
+    PHP_MINFO(clips),
 #if ZEND_MODULE_API_NO >= 20010901
     PHP_CLIPS_VERSION,
 #endif
     STANDARD_MODULE_PROPERTIES
 };
-
 
 /****************************************************************************
  *
@@ -64,6 +72,20 @@ PHP_FUNCTION(clips_init) {
 	}
 	zend_error(E_ERROR, "No context setup for php clips!!!");
 	RETURN_FALSE;
+}
+
+/*******************************************************************************
+ *
+ *  Function clips_version
+ *
+ *  This function will show the version of clips
+ *
+ *  @version 1.0
+ *
+ *******************************************************************************/
+
+PHP_FUNCTION(clips_version) {
+	RETURN_STRING(PHP_CLIPS_ENGINE_VERSION, true);
 }
 
 /*******************************************************************************
