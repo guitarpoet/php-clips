@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include "php.h"
 #include "php_ini.h"
+#include "php/ext/standard/info.h"
+
 #include "utils.h"
 #include "clips/clips.h"
 
