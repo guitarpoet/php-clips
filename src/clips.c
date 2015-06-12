@@ -28,6 +28,7 @@ static zend_function_entry clips_functions[] = {
 	PHP_FE(clips_template_exists, NULL)
 	PHP_FE(clips_instance_exists, NULL)
 	PHP_FE(clips_class_exists, NULL)
+	PHP_FE(clips_rules, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -466,6 +467,41 @@ PHP_FUNCTION(clips_class_exists) {
 				RETURN_TRUE;
 			}
 		}
+	}
+	RETURN_FALSE;
+}
+
+/****************************************************************************
+ *
+ *  Function clips_rules
+ *
+ *  This function will list all the defined rules in the environment
+ *
+ *  @version 1.0
+ *  @args
+ *  	array: The reference object
+ *
+ *******************************************************************************/
+
+void clips_count_all_rules(void* env, struct constructHeader* header,void * pv_zval) {
+	zval* pzv_arr = (zval*) pv_zval;
+	if(header->name) {
+		const char* s_name = header->name->contents;
+		if(s_name)
+			add_next_index_string(pzv_arr, s_name, TRUE);
+	}
+}
+
+PHP_FUNCTION(clips_rules) {
+	if(p_clips_env) { // Only create the env when inited
+		zval* pzv_arr = NULL;
+
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_arr) == SUCCESS) {
+			DoForAllConstructs(p_clips_env, clips_count_all_rules, DefruleData(p_clips_env)->DefruleModuleIndex, FALSE, pzv_arr);
+			RETURN_TRUE;
+		}
+
+		zend_error(E_ERROR, "No refer array setup for clips rules!!!");
 	}
 	RETURN_FALSE;
 }
