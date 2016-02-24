@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -30,38 +30,29 @@
 /*************************************************************/
 
 #ifndef _H_genrcexe
+
+#pragma once
+
 #define _H_genrcexe
 
 #if DEFGENERIC_CONSTRUCT
 
-#include "genrcfun.h"
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
+#include "expressn.h"
+#include "genrcfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           GenericDispatch(void *,DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
+   void                           UnboundMethodErr(void *);
+   bool                           IsMethodApplicable(void *,DEFMETHOD *);
 
-#ifdef _GENRCEXE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+   bool                           NextMethodP(void *);
+   void                           NextMethodPCommand(UDFContext *,CLIPSValue *);
 
-   LOCALE void                           GenericDispatch(void *,DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
-   LOCALE void                           UnboundMethodErr(void *);
-   LOCALE intBool                        IsMethodApplicable(void *,DEFMETHOD *);
+   void                           CallNextMethod(UDFContext *,CLIPSValue *);
+   void                           CallSpecificMethod(UDFContext *,CLIPSValue *);
+   void                           OverrideNextMethod(UDFContext *,CLIPSValue *);
 
-   LOCALE int                            NextMethodP(void *);
-   LOCALE void                           CallNextMethod(void *,DATA_OBJECT *);
-   LOCALE void                           CallSpecificMethod(void *,DATA_OBJECT *);
-   LOCALE void                           OverrideNextMethod(void *,DATA_OBJECT *);
-
-   LOCALE void                           GetGenericCurrentArgument(void *,DATA_OBJECT *);
+   void                           GetGenericCurrentArgument(UDFContext *,CLIPSValue *);
 
 #endif /* DEFGENERIC_CONSTRUCT */
 

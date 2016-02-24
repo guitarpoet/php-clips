@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -36,7 +36,6 @@
 #include "conscomp.h"
 #include "envrnmnt.h"
 
-#define _DFFNXCMP_SOURCE_
 #include "dffnxcmp.h"
 
 /* =========================================
@@ -46,7 +45,7 @@
    ***************************************** */
 
 static void ReadyDeffunctionsForCode(void *);
-static int DeffunctionsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+static bool DeffunctionsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
 static void CloseDeffunctionFiles(void *,FILE *,FILE *,int);
 static void DeffunctionModuleToCode(void *,FILE *,struct defmodule *,int,int);
 static void SingleDeffunctionToCode(void *,FILE *,DEFFUNCTION *,int,int,int);
@@ -66,7 +65,7 @@ static void SingleDeffunctionToCode(void *,FILE *,DEFFUNCTION *,int,int,int);
   SIDE EFFECTS : Code generator item initialized
   NOTES        : None
  ***************************************************/
-globle void SetupDeffunctionCompiler(
+void SetupDeffunctionCompiler(
   void *theEnv)
   {
    DeffunctionData(theEnv)->DeffunctionCodeItem = AddCodeGeneratorItem(theEnv,"deffunctions",0,ReadyDeffunctionsForCode,
@@ -88,7 +87,7 @@ globle void SetupDeffunctionCompiler(
   SIDE EFFECTS : Reference printed
   NOTES        : None
  ***************************************************/
-globle void PrintDeffunctionReference(
+void PrintDeffunctionReference(
   void *theEnv,
   FILE *fp,
   DEFFUNCTION *dfPtr,
@@ -116,7 +115,7 @@ globle void PrintDeffunctionReference(
   SIDE EFFECTS : Deffunction module reference printed
   NOTES        : None
  ****************************************************/
-globle void DeffunctionCModuleReference(
+void DeffunctionCModuleReference(
   void *theEnv,
   FILE *theFile,
   int count,
@@ -161,12 +160,12 @@ static void ReadyDeffunctionsForCode(
                  4) The base id for the construct set
                  5) The max number of indices allowed
                     in an array
-  RETURNS      : -1 if no deffunctions, 0 on errors,
+  RETURNS      : 0 on errors,
                   1 if deffunctions written
   SIDE EFFECTS : Code written to files
   NOTES        : None
  *******************************************************/
-static int DeffunctionsToCode(
+static bool DeffunctionsToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -201,12 +200,12 @@ static int DeffunctionsToCode(
       moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "DEFFUNCTION_MODULE",ModulePrefix(DeffunctionData(theEnv)->DeffunctionCodeItem),
-                                    FALSE,NULL);
+                                    false,NULL);
 
       if (moduleFile == NULL)
         {
          CloseDeffunctionFiles(theEnv,moduleFile,deffunctionFile,maxIndices);
-         return(0);
+         return(false);
         }
 
       DeffunctionModuleToCode(theEnv,moduleFile,theModule,imageID,maxIndices);
@@ -220,11 +219,11 @@ static int DeffunctionsToCode(
          deffunctionFile = OpenFileIfNeeded(theEnv,deffunctionFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                             deffunctionArrayVersion,headerFP,
                                             "DEFFUNCTION",ConstructPrefix(DeffunctionData(theEnv)->DeffunctionCodeItem),
-                                            FALSE,NULL);
+                                            false,NULL);
          if (deffunctionFile == NULL)
            {
             CloseDeffunctionFiles(theEnv,moduleFile,deffunctionFile,maxIndices);
-            return(0);
+            return(false);
            }
 
          SingleDeffunctionToCode(theEnv,deffunctionFile,theDeffunction,imageID,
@@ -243,7 +242,7 @@ static int DeffunctionsToCode(
 
    CloseDeffunctionFiles(theEnv,moduleFile,deffunctionFile,maxIndices);
 
-   return(1);
+   return(true);
   }
 
 /***************************************************

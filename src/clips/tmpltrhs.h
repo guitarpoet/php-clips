@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*          DEFTEMPLATE RHS PARSING HEADER FILE        */
    /*******************************************************/
@@ -29,30 +29,16 @@
 
 #ifndef _H_tmpltrhs
 
+#pragma once
+
 #define _H_tmpltrhs
 
-#ifndef _H_scanner
-#include "scanner.h"
-#endif
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_tmpltdef
+#include "scanner.h"
 #include "tmpltdef.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTRHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct expr                   *ParseAssertTemplate(void *,const char *,struct token *,int *,
-                                                             int,int,struct deftemplate *);
+   struct expr                   *ParseAssertTemplate(void *,const char *,struct token *,bool *,
+                                                             int,bool,struct deftemplate *);
 
 #endif /* _H_tmpltrhs */
 

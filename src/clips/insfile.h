@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -37,11 +37,12 @@
 /*************************************************************/
 
 #ifndef _H_insfile
+
+#pragma once
+
 #define _H_insfile
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 
 #define INSTANCE_FILE_DATA 30
 
@@ -64,49 +65,25 @@ struct instanceFileData
 
 #endif /* BLOAD_INSTANCES || BSAVE_INSTANCES */
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INSFILE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupInstanceFileCommands(void *);
-   LOCALE long                           SaveInstancesCommand(void *);
-   LOCALE long                           LoadInstancesCommand(void *);
-   LOCALE long                           RestoreInstancesCommand(void *);
-   LOCALE long                           EnvSaveInstances(void *,const char *,int,EXPRESSION *,intBool);
+   void                           SetupInstanceFileCommands(void *);
+   void                           SaveInstancesCommand(UDFContext *,CLIPSValue *);
+   void                           LoadInstancesCommand(UDFContext *,CLIPSValue *);
+   void                           RestoreInstancesCommand(UDFContext *,CLIPSValue *);
+   long                           EnvSaveInstancesDriver(void *,const char *,int,EXPRESSION *,bool);
+   long                           EnvSaveInstances(void *,const char *,int);
 #if BSAVE_INSTANCES
-   LOCALE long                           BinarySaveInstancesCommand(void *);
-   LOCALE long                           EnvBinarySaveInstances(void *,const char *,int,EXPRESSION *,intBool);
+   void                           BinarySaveInstancesCommand(UDFContext *,CLIPSValue *);
+   long                           EnvBinarySaveInstancesDriver(void *,const char *,int,EXPRESSION *,bool);
+   long                           EnvBinarySaveInstances(void *,const char *,int);
 #endif
 #if BLOAD_INSTANCES
-   LOCALE long                           BinaryLoadInstancesCommand(void *);
-   LOCALE long                           EnvBinaryLoadInstances(void *,const char *);
+   void                           BinaryLoadInstancesCommand(UDFContext *,CLIPSValue *);
+   long                           EnvBinaryLoadInstances(void *,const char *);
 #endif
-   LOCALE long                           EnvLoadInstances(void *,const char *);
-   LOCALE long                           EnvLoadInstancesFromString(void *,const char *,int);
-   LOCALE long                           EnvRestoreInstances(void *,const char *);
-   LOCALE long                           EnvRestoreInstancesFromString(void *,const char *,int);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if BLOAD_INSTANCES
-   LOCALE long                           BinaryLoadInstances(const char *);
-#endif
-#if BSAVE_INSTANCES
-   LOCALE long                           BinarySaveInstances(const char *,int,EXPRESSION *,intBool);
-#endif
-   LOCALE long                           LoadInstances(const char *);
-   LOCALE long                           LoadInstancesFromString(const char *,int);
-   LOCALE long                           RestoreInstances(const char *);
-   LOCALE long                           RestoreInstancesFromString(const char *,int);
-   LOCALE long                           SaveInstances(const char *,int,EXPRESSION *,intBool);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   long                           EnvLoadInstances(void *,const char *);
+   long                           EnvLoadInstancesFromString(void *,const char *,size_t);
+   long                           EnvRestoreInstances(void *,const char *);
+   long                           EnvRestoreInstancesFromString(void *,const char *,size_t);
 
 #endif /* _H_insfile */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            DEFFACTS CONSTRUCTS-TO-C MODULE          */
    /*******************************************************/
@@ -30,14 +30,11 @@
 /*                                                           */
 /*************************************************************/
 
-#define _DFFCTCMP_SOURCE_
-
 #include "setup.h"
 
 #if DEFFACTS_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "conscomp.h"
 #include "dffctdef.h"
@@ -49,7 +46,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   static bool                    ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
    static void                    DeffactsToCode(void *,FILE *,struct deffacts *,
                                                  int,int,int);
    static void                    DeffactsModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
@@ -60,7 +57,7 @@
 /* DeffactsCompilerSetup: Initializes the deffacts construct */
 /*    for use with the constructs-to-c command.              */
 /*************************************************************/
-globle void DeffactsCompilerSetup(
+void DeffactsCompilerSetup(
   void *theEnv)
   {
    DeffactsData(theEnv)->DeffactsCodeItem = 
@@ -83,7 +80,7 @@ static void BeforeDeffactsToCode(
 /* ConstructToCode: Produces deffacts code for a run-time */
 /*   module created using the constructs-to-c function.   */
 /**********************************************************/
-static int ConstructToCode(
+static bool ConstructToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -120,12 +117,12 @@ static int ConstructToCode(
       moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "struct deffactsModule",ModulePrefix(DeffactsData(theEnv)->DeffactsCodeItem),
-                                    FALSE,NULL);
+                                    false,NULL);
 
       if (moduleFile == NULL)
         {
          CloseDeffactsFiles(theEnv,moduleFile,deffactsFile,maxIndices);
-         return(0);
+         return(false);
         }
 
       DeffactsModuleToCode(theEnv,moduleFile,theModule,imageID,maxIndices,moduleCount);
@@ -143,11 +140,11 @@ static int ConstructToCode(
          deffactsFile = OpenFileIfNeeded(theEnv,deffactsFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                          deffactsArrayVersion,headerFP,
                                          "struct deffacts",ConstructPrefix(DeffactsData(theEnv)->DeffactsCodeItem),
-                                         FALSE,NULL);
+                                         false,NULL);
          if (deffactsFile == NULL)
            {
             CloseDeffactsFiles(theEnv,moduleFile,deffactsFile,maxIndices);
-            return(0);
+            return(false);
            }
 
          DeffactsToCode(theEnv,deffactsFile,theDeffacts,imageID,maxIndices,moduleCount);
@@ -162,7 +159,7 @@ static int ConstructToCode(
 
    CloseDeffactsFiles(theEnv,moduleFile,deffactsFile,maxIndices);
 
-   return(1);
+   return(true);
   }
 
 /*********************************************************/
@@ -253,7 +250,7 @@ static void DeffactsToCode(
 /* DeffactsCModuleReference: Writes the C code representation */
 /*   of a reference to a deffacts module data structure.      */
 /**************************************************************/
-globle void DeffactsCModuleReference(
+void DeffactsCModuleReference(
   void *theEnv,
   FILE *theFile,
   int count,

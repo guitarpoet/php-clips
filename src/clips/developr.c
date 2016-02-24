@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                   DEVELOPER MODULE                  */
    /*******************************************************/
@@ -35,12 +35,11 @@
 /*            Replaced deprecated WCLIPS logical name with   */
 /*            WPROMPT.                                       */
 /*                                                           */
+/*      6.40: Crash fix for show-opn.                        */
+/*                                                           */
 /*************************************************************/
 
-#define _DEVELOPR_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
@@ -78,27 +77,27 @@ static void PrintOPNLevel(void *theEnv,OBJECT_PATTERN_NODE *,char *,int);
 /**************************************************/
 /* DeveloperCommands: Sets up developer commands. */
 /**************************************************/
-globle void DeveloperCommands(
+void DeveloperCommands(
   void *theEnv)
   {
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"primitives-info",'v', PTIEF PrimitiveTablesInfo,"PrimitiveTablesInfo","00");
-   EnvDefineFunction2(theEnv,"primitives-usage",'v', PTIEF PrimitiveTablesUsage,"PrimitiveTablesUsage","00");
+   EnvAddUDF(theEnv,"primitives-info","v",  PrimitiveTablesInfo,"PrimitiveTablesInfo",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"primitives-usage","v",  PrimitiveTablesUsage,"PrimitiveTablesUsage",0,0,NULL,NULL);
 
 #if DEFRULE_CONSTRUCT && DEFTEMPLATE_CONSTRUCT
-   EnvDefineFunction2(theEnv,"validate-fact-integrity", 'b', ValidateFactIntegrity, "ValidateFactIntegrity", "00");
+   EnvAddUDF(theEnv,"validate-fact-integrity", "b", ValidateFactIntegrity, "ValidateFactIntegrity", 0,0,NULL,NULL);
 
-   EnvDefineFunction2(theEnv,"show-fpn",'v', PTIEF ShowFactPatternNetwork,"ShowFactPatternNetwork","11w");
-   EnvDefineFunction2(theEnv,"show-fht",'v', PTIEF ShowFactHashTable,"ShowFactHashTable","00");
+   EnvAddUDF(theEnv,"show-fpn","v", ShowFactPatternNetwork,"ShowFactPatternNetwork",1,1,"y",NULL);
+   EnvAddUDF(theEnv,"show-fht","v", ShowFactHashTable,"ShowFactHashTable",0,0,NULL,NULL);
 #endif
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
-   EnvDefineFunction2(theEnv,"show-opn",'v',PTIEF PrintObjectPatternNetwork,
-                   "PrintObjectPatternNetwork","00");
+   EnvAddUDF(theEnv,"show-opn","v", PrintObjectPatternNetwork,
+                   "PrintObjectPatternNetwork",0,0,NULL,NULL);
 #endif
 
 #if OBJECT_SYSTEM
-   EnvDefineFunction2(theEnv,"instance-table-usage",'v', PTIEF InstanceTableUsage,"InstanceTableUsage","00");
+   EnvAddUDF(theEnv,"instance-table-usage","v",  InstanceTableUsage,"InstanceTableUsage",0,0,NULL,NULL);
 #endif
 
 #endif
@@ -108,8 +107,9 @@ globle void DeveloperCommands(
 /* PrimitiveTablesInfo: Prints information about the  */
 /*   symbol, float, integer, and bitmap tables.       */
 /******************************************************/
-globle void PrimitiveTablesInfo(
-  void *theEnv)
+void PrimitiveTablesInfo(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    unsigned long i;
    SYMBOL_HN **symbolArray, *symbolPtr;
@@ -118,8 +118,7 @@ globle void PrimitiveTablesInfo(
    BITMAP_HN **bitMapArray, *bitMapPtr;
    unsigned long int symbolCount = 0, integerCount = 0;
    unsigned long int floatCount = 0, bitMapCount = 0;
-
-   EnvArgCountCheck(theEnv,"primitives-info",EXACTLY,0);
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*====================================*/
    /* Count entries in the symbol table. */
@@ -194,8 +193,9 @@ globle void PrimitiveTablesInfo(
 /* PrimitiveTablesUsage: Prints information about the  */
 /*   symbol, float, integer, and bitmap tables.       */
 /******************************************************/
-globle void PrimitiveTablesUsage(
-  void *theEnv)
+void PrimitiveTablesUsage(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    unsigned long i;
    int symbolCounts[COUNT_SIZE], floatCounts[COUNT_SIZE];
@@ -203,8 +203,7 @@ globle void PrimitiveTablesUsage(
    FLOAT_HN **floatArray, *floatPtr;
    unsigned long int symbolCount, totalSymbolCount = 0;
    unsigned long int floatCount, totalFloatCount = 0;
-
-   EnvArgCountCheck(theEnv,"primitives-usage",EXACTLY,0);
+   Environment *theEnv = UDFContextEnvironment(context);
 
    for (i = 0; i < 21; i++)
      {
@@ -287,8 +286,9 @@ globle void PrimitiveTablesUsage(
 /* ValidateFactIntegrity: Command for checking */
 /*   the facts for atom value integrity.       */
 /***********************************************/
-globle intBool ValidateFactIntegrity(
-  void *theEnv)
+void ValidateFactIntegrity(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    struct fact *theFact;
    struct multifield *theSegment;
@@ -296,16 +296,23 @@ globle intBool ValidateFactIntegrity(
    SYMBOL_HN *theSymbol;
    FLOAT_HN *theFloat;
    INTEGER_HN *theInteger;
+   Environment *theEnv = UDFContextEnvironment(context);
      
-   if (((struct environmentData *) theEnv)->initialized == FALSE)
-     { return TRUE; }
+   if (theEnv->initialized == false)
+     {
+      mCVSetBoolean(returnValue,false);
+      return;
+     }
 
    for (theFact = (struct fact *) EnvGetNextFact(theEnv,NULL);
         theFact != NULL;
         theFact = (struct fact *) EnvGetNextFact(theEnv,theFact))
      {
       if (theFact->factHeader.busyCount <= 0)
-        { return FALSE; }
+        {
+         mCVSetBoolean(returnValue,false);
+         return;
+        }
       
       theSegment = &theFact->theProposition;
       
@@ -317,35 +324,46 @@ globle intBool ValidateFactIntegrity(
            {
             theSymbol = (SYMBOL_HN *) theSegment->theFields[i].value;
             if (theSymbol->count <= 0)
-              { return FALSE; }
+              {
+               mCVSetBoolean(returnValue,false);
+               return;
+              }
            }
 
          if (theSegment->theFields[i].type == INTEGER)
            {
             theInteger = (INTEGER_HN *) theSegment->theFields[i].value;
             if (theInteger->count <= 0)
-              { return FALSE; }
+              {
+               mCVSetBoolean(returnValue,false);
+               return;
+              }
            }
 
          if (theSegment->theFields[i].type == FLOAT)
            {
             theFloat = (FLOAT_HN *) theSegment->theFields[i].value;
             if (theFloat->count <= 0)
-              { return FALSE; }
+              {
+               mCVSetBoolean(returnValue,false);
+               return;
+              }
            }
         }
      }
      
-   return TRUE;
+   mCVSetBoolean(returnValue,true);
   }
   
 /*******************************************************/
 /* ShowFactPatternNetwork: Command for displaying the  */
 /*   fact pattern network for a specified deftemplate. */
 /*******************************************************/
-globle void ShowFactPatternNetwork(
-  void *theEnv)
+void ShowFactPatternNetwork(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
+   void *theEnv = UDFContextEnvironment(context);
    struct factPatternNode *patternPtr;
    struct deftemplate *theDeftemplate;
    const char *theName;
@@ -415,9 +433,11 @@ globle void ShowFactPatternNetwork(
   SIDE EFFECTS : Object pattern network displayed
   NOTES        : None
  ***************************************************/
-globle void PrintObjectPatternNetwork(
-  void *theEnv)
+void PrintObjectPatternNetwork(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
+   Environment *theEnv = UDFContextEnvironment(context);
    char indentbuf[80];
 
    indentbuf[0] = '\0';
@@ -477,7 +497,7 @@ static void PrintOPNLevel(
              }
          if (alphaPtr->slotbmp != NULL)
            {
-            sbmp = (SLOT_BITMAP *) ValueToBitMap(pptr->alphaNode->slotbmp);
+            sbmp = (SLOT_BITMAP *) ValueToBitMap(alphaPtr->slotbmp);
             EnvPrintRouter(theEnv,WDISPLAY," *** Slots:");
             for (i = NAME_ID ; i <= sbmp->maxid ; i++)
               if (TestBitMap(sbmp->map,i))
@@ -520,15 +540,15 @@ static void PrintOPNLevel(
 /* InstanceTableUsage: Prints information about the  */
 /*   instances in the instance hash table.       */
 /******************************************************/
-globle void InstanceTableUsage(
-  void *theEnv)
+void InstanceTableUsage(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    unsigned long i;
    int instanceCounts[COUNT_SIZE];
    INSTANCE_TYPE *ins;
    unsigned long int instanceCount, totalInstanceCount = 0;
-
-   EnvArgCountCheck(theEnv,"instance-table-usage",EXACTLY,0);
+   Environment *theEnv = UDFContextEnvironment(context);
 
    for (i = 0; i < COUNT_SIZE; i++)
      { instanceCounts[i] = 0; }
@@ -637,11 +657,11 @@ static void ValidateRuleBetaMemoriesAction(
 /************************/
 /* ValidateBetaMemories */
 /************************/
-globle void ValidateBetaMemories(
+void ValidateBetaMemories(
   void *theEnv)
   {
   EnvPrintRouter(theEnv,WPROMPT,"ValidateBetaMemories");
-   DoForAllConstructs(theEnv,ValidateRuleBetaMemoriesAction,DefruleData(theEnv)->DefruleModuleIndex,FALSE,NULL); 
+   DoForAllConstructs(theEnv,ValidateRuleBetaMemoriesAction,DefruleData(theEnv)->DefruleModuleIndex,false,NULL);
   }
 
 #endif

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            DEFGLOBAL CONSTRUCTS-TO-C MODULE         */
    /*******************************************************/
@@ -30,25 +30,23 @@
 /*                                                           */
 /*************************************************************/
 
-#define _GLOBLCMP_SOURCE_
-
 #include "setup.h"
 
 #if DEFGLOBAL_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "conscomp.h"
-#include "globldef.h"
 #include "envrnmnt.h"
+#include "globldef.h"
+
 #include "globlcmp.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   static bool                    ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
    static void                    DefglobalToCode(void *,FILE *,struct defglobal *,
                                                  int,int,int);
    static void                    DefglobalModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
@@ -60,7 +58,7 @@
 /* DefglobalCompilerSetup: Initializes the defglobal construct */
 /*    for use with the constructs-to-c command.                */
 /***************************************************************/
-globle void DefglobalCompilerSetup(
+void DefglobalCompilerSetup(
   void *theEnv)
   {
    DefglobalData(theEnv)->DefglobalCodeItem = 
@@ -101,7 +99,7 @@ static void InitDefglobalsCode(
 /* ConstructToCode: Produces defglobal code for a run-time */
 /*   module created using the constructs-to-c function.    */
 /***********************************************************/
-static int ConstructToCode(
+static bool ConstructToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -138,12 +136,12 @@ static int ConstructToCode(
       moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "struct defglobalModule",ModulePrefix(DefglobalData(theEnv)->DefglobalCodeItem),
-                                    FALSE,NULL);
+                                    false,NULL);
 
       if (moduleFile == NULL)
         {
          CloseDefglobalFiles(theEnv,moduleFile,defglobalFile,maxIndices);
-         return(0);
+         return(false);
         }
 
       DefglobalModuleToCode(theEnv,moduleFile,theModule,imageID,maxIndices,moduleCount);
@@ -157,11 +155,11 @@ static int ConstructToCode(
          defglobalFile = OpenFileIfNeeded(theEnv,defglobalFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                          defglobalArrayVersion,headerFP,
                                          "struct defglobal",ConstructPrefix(DefglobalData(theEnv)->DefglobalCodeItem),
-                                         FALSE,NULL);
+                                         false,NULL);
          if (defglobalFile == NULL)
            {
             CloseDefglobalFiles(theEnv,moduleFile,defglobalFile,maxIndices);
-            return(0);
+            return(false);
            }
 
          DefglobalToCode(theEnv,defglobalFile,theDefglobal,imageID,maxIndices,moduleCount);
@@ -176,7 +174,7 @@ static int ConstructToCode(
 
    CloseDefglobalFiles(theEnv,moduleFile,defglobalFile,maxIndices);
 
-   return(1);
+   return(true);
   }
 
 /**********************************************************/
@@ -280,7 +278,7 @@ static void DefglobalToCode(
 /* DefglobalCModuleReference: Writes the C code representation */
 /*   of a reference to a defglobal module data structure.      */
 /***************************************************************/
-globle void DefglobalCModuleReference(
+void DefglobalCModuleReference(
   void *theEnv,
   FILE *theFile,
   int count,
@@ -298,7 +296,7 @@ globle void DefglobalCModuleReference(
 /* DefglobalCConstructReference: Writes the C code representation */
 /*   of a reference to a defglobal data structure.                */
 /******************************************************************/
-globle void DefglobalCConstructReference(
+void DefglobalCConstructReference(
   void *theEnv,
   FILE *theFile,
   void *vTheGlobal,

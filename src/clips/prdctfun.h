@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            PREDICATE FUNCTIONS HEADER FILE          */
    /*******************************************************/
@@ -30,40 +30,32 @@
 
 #ifndef _H_prdctfun
 
+#pragma once
+
 #define _H_prdctfun
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PRDCTFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           PredicateFunctionDefinitions(void *);
-   LOCALE intBool                        EqFunction(void *);
-   LOCALE intBool                        NeqFunction(void *);
-   LOCALE intBool                        StringpFunction(void *);
-   LOCALE intBool                        SymbolpFunction(void *);
-   LOCALE intBool                        LexemepFunction(void *);
-   LOCALE intBool                        NumberpFunction(void *);
-   LOCALE intBool                        FloatpFunction(void *);
-   LOCALE intBool                        IntegerpFunction(void *);
-   LOCALE intBool                        MultifieldpFunction(void *);
-   LOCALE intBool                        PointerpFunction(void *);
-   LOCALE intBool                        NotFunction(void *);
-   LOCALE intBool                        AndFunction(void *);
-   LOCALE intBool                        OrFunction(void *);
-   LOCALE intBool                        LessThanOrEqualFunction(void *);
-   LOCALE intBool                        GreaterThanOrEqualFunction(void *);
-   LOCALE intBool                        LessThanFunction(void *);
-   LOCALE intBool                        GreaterThanFunction(void *);
-   LOCALE intBool                        NumericEqualFunction(void *);
-   LOCALE intBool                        NumericNotEqualFunction(void *);
-   LOCALE intBool                        OddpFunction(void *);
-   LOCALE intBool                        EvenpFunction(void *);
+   void                           PredicateFunctionDefinitions(void *);
+   void                           EqFunction(UDFContext *,CLIPSValue *);
+   void                           NeqFunction(UDFContext *,CLIPSValue *);
+   void                           StringpFunction(UDFContext *,CLIPSValue *);
+   void                           SymbolpFunction(UDFContext *,CLIPSValue *);
+   void                           LexemepFunction(UDFContext *,CLIPSValue *);
+   void                           NumberpFunction(UDFContext *,CLIPSValue *);
+   void                           FloatpFunction(UDFContext *,CLIPSValue *);
+   void                           IntegerpFunction(UDFContext *,CLIPSValue *);
+   void                           MultifieldpFunction(UDFContext *,CLIPSValue *);
+   void                           PointerpFunction(UDFContext *,CLIPSValue *);
+   void                           NotFunction(UDFContext *,CLIPSValue *);
+   void                           AndFunction(UDFContext *,CLIPSValue *);
+   void                           OrFunction(UDFContext *,CLIPSValue *);
+   void                           LessThanOrEqualFunction(UDFContext *,CLIPSValue *);
+   void                           GreaterThanOrEqualFunction(UDFContext *,CLIPSValue *);
+   void                           LessThanFunction(UDFContext *,CLIPSValue *);
+   void                           GreaterThanFunction(UDFContext *,CLIPSValue *);
+   void                           NumericEqualFunction(UDFContext *,CLIPSValue *);
+   void                           NumericNotEqualFunction(UDFContext *,CLIPSValue *);
+   void                           OddpFunction(UDFContext *,CLIPSValue *);
+   void                           EvenpFunction(UDFContext *,CLIPSValue *);
 
 #endif /* _H_prdctfun */
 

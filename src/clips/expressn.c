@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                  EXPRESSION MODULE                  */
    /*******************************************************/
@@ -35,24 +35,21 @@
 /*                                                           */
 /*************************************************************/
 
-#define _EXPRESSN_SOURCE_
-
 #include "setup.h"
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "bload.h"
-#include "memalloc.h"
 #include "envrnmnt.h"
-#include "router.h"
-#include "extnfunc.h"
-#include "exprnops.h"
-#include "prntutil.h"
 #include "evaluatn.h"
+#include "exprnops.h"
+#include "extnfunc.h"
+#include "memalloc.h"
+#include "prntutil.h"
+#include "router.h"
 
 #include "expressn.h"
 
@@ -77,7 +74,7 @@
 /*   pointers used in generating some expressions */
 /*   and the expression hash table.               */
 /**************************************************/
-globle void InitExpressionData(
+void InitExpressionData(
   void *theEnv)
   {
 #if ! RUN_TIME
@@ -145,7 +142,7 @@ static void DeallocateExpressionData(
 /* InitExpressionPointers: Initializes the function */
 /*   pointers used in generating some expressions.  */
 /****************************************************/
-globle void InitExpressionPointers(
+void InitExpressionPointers(
   void *theEnv)
   {
    ExpressionData(theEnv)->PTR_AND = (void *) FindFunction(theEnv,"and");
@@ -166,7 +163,7 @@ globle void InitExpressionPointers(
 /* ExpressionInstall: Increments the busy count of */
 /*   atomic data values found in an expression.    */
 /***************************************************/
-globle void ExpressionInstall(
+void ExpressionInstall(
   void *theEnv,
   struct expr *expression)
   {
@@ -184,7 +181,7 @@ globle void ExpressionInstall(
 /* ExpressionDeinstall: Decrements the busy count of */
 /*   atomic data values found in an expression.      */
 /*****************************************************/
-globle void ExpressionDeinstall(
+void ExpressionDeinstall(
   void *theEnv,
   struct expr *expression)
   {
@@ -207,7 +204,7 @@ globle void ExpressionDeinstall(
 /*   packed expression requires less total memory because it reduces   */
 /*   the overhead required for multiple memory allocations.            */
 /***********************************************************************/
-globle struct expr *PackExpression(
+struct expr *PackExpression(
   void *theEnv,
   struct expr *original)
   {
@@ -268,7 +265,7 @@ static long ListToPacked(
 /* ReturnPackedExpression: Returns a packed expression created */
 /*   using PackExpression to the memory manager.               */
 /***************************************************************/
-globle void ReturnPackedExpression(
+void ReturnPackedExpression(
   void *theEnv,
   struct expr *packPtr)
   {
@@ -285,7 +282,7 @@ globle void ReturnPackedExpression(
 /* ReturnExpression: Returns a multiply linked */
 /*   list of expr data structures.             */
 /***********************************************/
-globle void ReturnExpression(
+void ReturnExpression(
   void *theEnv,
   struct expr *waste)
   {
@@ -385,7 +382,7 @@ static unsigned HashExpression(
                  others, then the use count is
                  merely decremented
  ***************************************************/
-globle void RemoveHashedExpression(
+void RemoveHashedExpression(
   void *theEnv,
   EXPRESSION *theExp)
   {
@@ -424,7 +421,7 @@ globle void RemoveHashedExpression(
                  routine copies, packs and installs
                  the given expression
  *****************************************************/
-globle EXPRESSION *AddHashedExpression(
+EXPRESSION *AddHashedExpression(
   void *theEnv,
   EXPRESSION *theExp)
   {
@@ -462,7 +459,7 @@ globle EXPRESSION *AddHashedExpression(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-globle long HashedExpressionIndex(
+long HashedExpressionIndex(
   void *theEnv,
   EXPRESSION *theExp)
   {

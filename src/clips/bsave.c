@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/22/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                     BSAVE MODULE                    */
    /*******************************************************/
@@ -37,8 +37,6 @@
 /*                                                           */
 /*************************************************************/
 
-#define _BSAVE_SOURCE_
-
 #include "setup.h"
 
 #include "argacces.h"
@@ -71,7 +69,7 @@
 /* InitializeBsaveData: Allocates environment */
 /*    data for the bsave command.             */
 /**********************************************/
-globle void InitializeBsaveData(
+void InitializeBsaveData(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,BSAVE_DATA,sizeof(struct bsaveData),DeallocateBsaveData);
@@ -99,22 +97,28 @@ static void DeallocateBsaveData(
 /* BsaveCommand: H/L access routine   */
 /*   for the bsave command.           */
 /**************************************/
-globle int BsaveCommand(
-  void *theEnv)
+void BsaveCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
 #if (! RUN_TIME) && BLOAD_AND_BSAVE
    const char *fileName;
 
-   if (EnvArgCountCheck(theEnv,"bsave",EXACTLY,1) == -1) return(FALSE);
-   fileName = GetFileName(theEnv,"bsave",1);
+   fileName = GetFileName(context);
    if (fileName != NULL)
-     { if (EnvBsave(theEnv,fileName)) return(TRUE); }
+     {
+      if (EnvBsave(UDFContextEnvironment(context),fileName))
+        {
+         mCVSetBoolean(returnValue,true);
+         return;
+        }
+     }
 #else
 #if MAC_XCD
-#pragma unused(theEnv)
+#pragma unused(context)
 #endif
 #endif
-   return(FALSE);
+   mCVSetBoolean(returnValue,false);
   }
 
 #if BLOAD_AND_BSAVE
@@ -123,7 +127,7 @@ globle int BsaveCommand(
 /* EnvBsave: C access routine */
 /*   for the bsave command.   */
 /******************************/
-globle intBool EnvBsave(
+bool EnvBsave(
   void *theEnv,
   const char *fileName)
   {
@@ -139,7 +143,7 @@ globle intBool EnvBsave(
 
    if (Bloaded(theEnv))
      {
-      PrintErrorID(theEnv,"BSAVE",1,FALSE);
+      PrintErrorID(theEnv,"BSAVE",1,false);
       EnvPrintRouter(theEnv,WERROR,
           "Cannot perform a binary save while a binary load is in effect.\n");
       return(0);
@@ -178,7 +182,7 @@ globle intBool EnvBsave(
    InitAtomicValueNeededFlags(theEnv);
    FindHashedExpressions(theEnv);
    FindNeededItems(theEnv);
-   SetAtomicValueIndices(theEnv,FALSE);
+   SetAtomicValueIndices(theEnv,false);
 
    /*===============================*/
    /* Save the functions and atoms. */
@@ -273,11 +277,11 @@ globle intBool EnvBsave(
 
    RestoreCurrentModule(theEnv);
 
-   /*========================================*/
-   /* Return TRUE to indicate success. */
-   /*========================================*/
+   /*==================================*/
+   /* Return true to indicate success. */
+   /*==================================*/
 
-   return(TRUE);
+   return(true);
   }
 
 /*********************************************/
@@ -401,7 +405,7 @@ static size_t FunctionBinarySize(
 /*   count values when a binary save command is    */
 /*   issued when a binary image is loaded.         */
 /***************************************************/
-globle void SaveBloadCount(
+void SaveBloadCount(
   void *theEnv,
   long cnt)
   {
@@ -427,7 +431,7 @@ globle void SaveBloadCount(
 /*   count values after a binary save command is  */
 /*   completed when a binary image is loaded.     */
 /**************************************************/
-globle void RestoreBloadCount(
+void RestoreBloadCount(
   void *theEnv,
   long *cnt)
   {
@@ -444,7 +448,7 @@ globle void RestoreBloadCount(
 /*   determine which items are needed to save */
 /*   an expression as part of a binary image. */
 /**********************************************/
-globle void MarkNeededItems(
+void MarkNeededItems(
   void *theEnv,
   struct expr *testPtr)
   {
@@ -456,19 +460,19 @@ globle void MarkNeededItems(
          case STRING:
          case GBL_VARIABLE:
          case INSTANCE_NAME:
-            ((SYMBOL_HN *) testPtr->value)->neededSymbol = TRUE;
+            ((SYMBOL_HN *) testPtr->value)->neededSymbol = true;
             break;
 
          case FLOAT:
-            ((FLOAT_HN *) testPtr->value)->neededFloat = TRUE;
+            ((FLOAT_HN *) testPtr->value)->neededFloat = true;
             break;
 
          case INTEGER:
-            ((INTEGER_HN *) testPtr->value)->neededInteger = TRUE;
+            ((INTEGER_HN *) testPtr->value)->neededInteger = true;
             break;
 
          case FCALL:
-            ((struct FunctionDefinition *) testPtr->value)->bsaveIndex = TRUE;
+            ((struct FunctionDefinition *) testPtr->value)->bsaveIndex = 1;
             break;
 
          case RVOID:
@@ -477,7 +481,7 @@ globle void MarkNeededItems(
          default:
            if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type] == NULL) break;
            if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type]->bitMap)
-             { ((BITMAP_HN *) testPtr->value)->neededBitMap = TRUE; }
+             { ((BITMAP_HN *) testPtr->value)->neededBitMap = true; }
            break;
 
         }
@@ -525,7 +529,7 @@ static void WriteBinaryFooter(
 /*   data structures of a construct or other "item" to a  */
 /*   binary file.                                         */
 /**********************************************************/
-globle intBool AddBinaryItem(
+bool AddBinaryItem(
   void *theEnv,
   const char *name,
   int priority,
@@ -564,7 +568,7 @@ globle intBool AddBinaryItem(
      {
       newPtr->next = NULL;
       BsaveData(theEnv)->ListOfBinaryItems = newPtr;
-      return(TRUE);
+      return(true);
      }
 
    /*=========================================*/
@@ -574,7 +578,7 @@ globle intBool AddBinaryItem(
    /*=========================================*/
 
    currentPtr = BsaveData(theEnv)->ListOfBinaryItems;
-   while ((currentPtr != NULL) ? (priority < currentPtr->priority) : FALSE)
+   while ((currentPtr != NULL) ? (priority < currentPtr->priority) : false)
      {
       lastPtr = currentPtr;
       currentPtr = currentPtr->next;
@@ -592,33 +596,14 @@ globle intBool AddBinaryItem(
      }
 
    /*==================================*/
-   /* Return TRUE to indicate the item */
+   /* Return true to indicate the item */
    /* was successfully added.          */
    /*==================================*/
 
-   return(TRUE);
+   return(true);
   }
 
 #endif /* BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if BLOAD_AND_BSAVE
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool Bsave(
-  const char *fileName)
-  {
-   return EnvBsave(GetCurrentEnvironment(),fileName);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
-
-#endif /* BLOAD_AND_BSAVE */
-
 
 
 

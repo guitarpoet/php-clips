@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              DEFFUNCTION HEADER FILE                */
    /*******************************************************/
@@ -44,41 +44,27 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*            Changed find construct functionality so that   */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffnxfun
+
+#pragma once
+
 #define _H_dffnxfun
 
 typedef struct deffunctionStruct DEFFUNCTION;
 typedef struct deffunctionModule DEFFUNCTION_MODULE;
 
-#ifndef _H_conscomp
 #include "conscomp.h"
-#endif
-#ifndef _H_cstrccom
 #include "cstrccom.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_symbol
+#include "moduldef.h"
 #include "symbol.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _DFFNXFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct deffunctionModule
   {
@@ -90,7 +76,7 @@ struct deffunctionStruct
    struct constructHeader header;
    unsigned busy,
             executing;
-   unsigned short trace;
+   bool trace;
    EXPRESSION *code;
    int minNumberOfParameters,
        maxNumberOfParameters,
@@ -116,54 +102,37 @@ struct deffunctionData
 
 #define DeffunctionData(theEnv) ((struct deffunctionData *) GetEnvironmentData(theEnv,DEFFUNCTION_DATA))
 
-   LOCALE int                            CheckDeffunctionCall(void *,void *,int);
-   LOCALE void                           DeffunctionGetBind(DATA_OBJECT *);
-   LOCALE void                           DFRtnUnknown(DATA_OBJECT *);
-   LOCALE void                           DFWildargs(DATA_OBJECT *);
-   LOCALE const char                    *EnvDeffunctionModule(void *,void *);
-   LOCALE void                          *EnvFindDeffunction(void *,const char *);
-   LOCALE void                           EnvGetDeffunctionList(void *,DATA_OBJECT *,struct defmodule *);
-   LOCALE const char                    *EnvGetDeffunctionName(void *,void *);
-   LOCALE SYMBOL_HN                     *EnvGetDeffunctionNamePointer(void *,void *);
-   LOCALE const char                    *EnvGetDeffunctionPPForm(void *,void *);
-   LOCALE void                          *EnvGetNextDeffunction(void *,void *);
-   LOCALE int                            EnvIsDeffunctionDeletable(void *,void *);
-   LOCALE void                           EnvSetDeffunctionPPForm(void *,void *,const char *);
-   LOCALE intBool                        EnvUndeffunction(void *,void *);
-   LOCALE void                           GetDeffunctionListFunction(void *,DATA_OBJECT *);
-   LOCALE void                          *GetDeffunctionModuleCommand(void *);
-   LOCALE DEFFUNCTION                   *LookupDeffunctionByMdlOrScope(void *,const char *);
-   LOCALE DEFFUNCTION                   *LookupDeffunctionInScope(void *,const char *);
+   bool                           CheckDeffunctionCall(void *,void *,int);
+   void                           DeffunctionGetBind(DATA_OBJECT *);
+   void                           DFRtnUnknown(DATA_OBJECT *);
+   void                           DFWildargs(DATA_OBJECT *);
+   const char                    *EnvDeffunctionModule(void *,void *);
+   void                          *EnvFindDeffunction(void *,const char *);
+   void                          *EnvFindDeffunctionInModule(void *,const char *);
+   void                           EnvGetDeffunctionList(void *,DATA_OBJECT *,struct defmodule *);
+   const char                    *EnvGetDeffunctionName(void *,void *);
+   SYMBOL_HN                     *EnvGetDeffunctionNamePointer(void *,void *);
+   const char                    *EnvGetDeffunctionPPForm(void *,void *);
+   void                          *EnvGetNextDeffunction(void *,void *);
+   bool                           EnvIsDeffunctionDeletable(void *,void *);
+   void                           EnvSetDeffunctionPPForm(void *,void *,const char *);
+   bool                           EnvUndeffunction(void *,void *);
+   void                           GetDeffunctionListFunction(UDFContext *,CLIPSValue *);
+   void                           GetDeffunctionModuleCommand(UDFContext *,CLIPSValue *);
+   DEFFUNCTION                   *LookupDeffunctionByMdlOrScope(void *,const char *);
+   DEFFUNCTION                   *LookupDeffunctionInScope(void *,const char *);
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-   LOCALE void                           RemoveDeffunction(void *,void *);
+   void                           RemoveDeffunction(void *,void *);
 #endif
-   LOCALE void                           SetupDeffunctions(void *);
-   LOCALE void                           UndeffunctionCommand(void *);
+   void                           SetupDeffunctions(void *);
+   void                           UndeffunctionCommand(UDFContext *,CLIPSValue *);
 #if DEBUGGING_FUNCTIONS
-   LOCALE unsigned                       EnvGetDeffunctionWatch(void *,void *);
-   LOCALE void                           EnvListDeffunctions(void *,const char *,struct defmodule *);
-   LOCALE void                           EnvSetDeffunctionWatch(void *,unsigned,void *);
-   LOCALE void                           ListDeffunctionsCommand(void *);
-   LOCALE void                           PPDeffunctionCommand(void *);
+   bool                           EnvGetDeffunctionWatch(void *,void *);
+   void                           EnvListDeffunctions(void *,const char *,struct defmodule *);
+   void                           EnvSetDeffunctionWatch(void *,bool,void *);
+   void                           ListDeffunctionsCommand(UDFContext *,CLIPSValue *);
+   void                           PPDeffunctionCommand(UDFContext *,CLIPSValue *);
 #endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE const char                    *DeffunctionModule(void *);
-   LOCALE void                          *FindDeffunction(const char *);
-   LOCALE void                           GetDeffunctionList(DATA_OBJECT *,struct defmodule *);
-   LOCALE const char                    *GetDeffunctionName(void *);
-   LOCALE const char                    *GetDeffunctionPPForm(void *);
-   LOCALE void                          *GetNextDeffunction(void *);
-   LOCALE intBool                        IsDeffunctionDeletable(void *);
-   LOCALE intBool                        Undeffunction(void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE unsigned                       GetDeffunctionWatch(void *);
-   LOCALE void                           ListDeffunctions(const char *,struct defmodule *);
-   LOCALE void                           SetDeffunctionWatch(unsigned,void *);
-#endif 
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_dffnxfun */
 

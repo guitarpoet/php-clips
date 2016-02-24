@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -44,6 +44,9 @@
 /*************************************************************/
 
 #ifndef _H_objrtmch
+
+#pragma once
+
 #define _H_objrtmch
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
@@ -52,24 +55,12 @@
 #define OBJECT_RETRACT 2
 #define OBJECT_MODIFY  3
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
-#ifndef _H_object
 #include "object.h"
-#endif
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
 typedef struct classBitMap
   {
@@ -129,25 +120,15 @@ typedef struct objectMatchAction
    struct objectMatchAction *nxt;
   } OBJECT_MATCH_ACTION;
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTMCH_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                  ObjectMatchDelay(void *,DATA_OBJECT *);
-   LOCALE intBool               SetDelayObjectPatternMatching(void *,int);
-   LOCALE intBool               GetDelayObjectPatternMatching(void *);
-   LOCALE OBJECT_PATTERN_NODE  *ObjectNetworkPointer(void *);
-   LOCALE OBJECT_ALPHA_NODE    *ObjectNetworkTerminalPointer(void *);
-   LOCALE void                  SetObjectNetworkPointer(void *,OBJECT_PATTERN_NODE *);
-   LOCALE void                  SetObjectNetworkTerminalPointer(void *,OBJECT_ALPHA_NODE *);
-   LOCALE void                  ObjectNetworkAction(void *,int,INSTANCE_TYPE *,int);
-   LOCALE void                  ResetObjectMatchTimeTags(void *);
+   void                  ObjectMatchDelay(UDFContext *,CLIPSValue *);
+   bool                  SetDelayObjectPatternMatching(void *,bool);
+   bool                  GetDelayObjectPatternMatching(void *);
+   OBJECT_PATTERN_NODE  *ObjectNetworkPointer(void *);
+   OBJECT_ALPHA_NODE    *ObjectNetworkTerminalPointer(void *);
+   void                  SetObjectNetworkPointer(void *,OBJECT_PATTERN_NODE *);
+   void                  SetObjectNetworkTerminalPointer(void *,OBJECT_ALPHA_NODE *);
+   void                  ObjectNetworkAction(void *,int,INSTANCE_TYPE *,int);
+   void                  ResetObjectMatchTimeTags(void *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

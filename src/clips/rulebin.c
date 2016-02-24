@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              DEFRULE BSAVE/BLOAD MODULE             */
    /*******************************************************/
@@ -33,27 +33,24 @@
 /*                                                           */
 /*************************************************************/
 
-#define _RULEBIN_SOURCE_
-
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
-#include "memalloc.h"
+#include "agenda.h"
 #include "bload.h"
 #include "bsave.h"
-#include "envrnmnt.h"
-#include "reteutil.h"
-#include "agenda.h"
 #include "engine.h"
+#include "envrnmnt.h"
+#include "memalloc.h"
+#include "moduldef.h"
+#include "pattern.h"
+#include "reteutil.h"
 #include "retract.h"
 #include "rulebsc.h"
-#include "pattern.h"
-#include "moduldef.h"
 
 #include "rulebin.h"
 
@@ -87,7 +84,7 @@
 /* DefruleBinarySetup: Installs the binary save/load */
 /*   feature for the defrule construct.              */
 /*****************************************************/
-globle void DefruleBinarySetup(
+void DefruleBinarySetup(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,RULEBIN_DATA,sizeof(struct defruleBinaryData),DeallocateDefruleBloadData);
@@ -454,15 +451,15 @@ static void BsaveDisjuncts(
    struct defrule *theDisjunct;
    struct bsaveDefrule tempDefrule;
    long int disjunctExpressionCount = 0L;
-   int first;
+   bool first;
 
    /*=========================================*/
    /* Loop through each disjunct of the rule. */
    /*=========================================*/
 
-   for (theDisjunct = theDefrule, first = TRUE;
+   for (theDisjunct = theDefrule, first = true;
         theDisjunct != NULL;
-        theDisjunct = theDisjunct->disjunct, first = FALSE)
+        theDisjunct = theDisjunct->disjunct, first = false)
      {
       DefruleBinaryData(theEnv)->NumberOfDefrules++;
 
@@ -745,7 +742,7 @@ static void BsaveLink(
 /* AssignBsavePatternHeaderValues: Assigns the appropriate */
 /*   values to a bsave pattern header record.              */
 /***********************************************************/
-globle void AssignBsavePatternHeaderValues(
+void AssignBsavePatternHeaderValues(
   void *theEnv,
   struct bsavePatternNodeHeader *theBsaveHeader,
   struct patternNodeHeader *theHeader)
@@ -964,7 +961,7 @@ static void UpdateJoin(
    DefruleBinaryData(theEnv)->JoinArray[obji].nextLinks = BloadJoinLinkPointer(bj->nextLinks);
    DefruleBinaryData(theEnv)->JoinArray[obji].lastLevel = BloadJoinPointer(bj->lastLevel);
 
-   if (bj->joinFromTheRight == TRUE)
+   if (bj->joinFromTheRight == true)
      { DefruleBinaryData(theEnv)->JoinArray[obji].rightSideEntryStructure =  (void *) BloadJoinPointer(bj->rightSideEntryStructure); }
    else
      { DefruleBinaryData(theEnv)->JoinArray[obji].rightSideEntryStructure = NULL; }
@@ -1001,7 +998,7 @@ static void UpdateLink(
 /* UpdatePatternNodeHeader: Refreshes the values in pattern */
 /*   node headers from the loaded binary image.             */
 /************************************************************/
-globle void UpdatePatternNodeHeader(
+void UpdatePatternNodeHeader(
   void *theEnv,
   struct patternNodeHeader *theHeader,
   struct bsavePatternNodeHeader *theBsaveHeader)
@@ -1120,7 +1117,7 @@ static void ClearBload(
 /* BloadDefruleModuleReference: Returns the defrule    */
 /*   module pointer for using with the bload function. */
 /*******************************************************/
-globle void *BloadDefruleModuleReference(
+void *BloadDefruleModuleReference(
   void *theEnv,
   int theIndex)
   {

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -35,13 +35,12 @@
 
 #include "bload.h"
 #include "bsave.h"
-#include "envrnmnt.h"
-#include "memalloc.h"
 #include "cstrcbin.h"
 #include "defins.h"
+#include "envrnmnt.h"
+#include "memalloc.h"
 #include "modulbin.h"
 
-#define _DFINSBIN_SOURCE_
 #include "dfinsbin.h"
 
 /* =========================================
@@ -104,7 +103,7 @@ static void DeallocateDefinstancesBinaryData(void *);
   SIDE EFFECTS : Routines defined and structures initialized
   NOTES        : None
  ***********************************************************/
-globle void SetupDefinstancesBload(
+void SetupDefinstancesBload(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,DFINSBIN_DATA,sizeof(struct definstancesBinaryData),DeallocateDefinstancesBinaryData);
@@ -147,7 +146,7 @@ static void DeallocateDefinstancesBinaryData(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-globle void *BloadDefinstancesModuleRef(
+void *BloadDefinstancesModuleRef(
   void *theEnv,
   int theIndex)
   {
@@ -186,7 +185,7 @@ static void BsaveDefinstancesFind(
 
    DefinstancesBinaryData(theEnv)->ModuleCount = 
       DoForAllConstructs(theEnv,MarkDefinstancesItems,DefinstancesData(theEnv)->DefinstancesModuleIndex,
-                         FALSE,NULL);
+                         false,NULL);
   }
 
 
@@ -228,7 +227,7 @@ static void BsaveDefinstancesExpressions(
   FILE *fp)
   {
    DoForAllConstructs(theEnv,BsaveDefinstancesExpression,DefinstancesData(theEnv)->DefinstancesModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
   }
 
 /***************************************************
@@ -312,7 +311,7 @@ static void BsaveDefinstancesDriver(
       Write out each definstances
       ========================== */
    DoForAllConstructs(theEnv,BsaveDefinstances,DefinstancesData(theEnv)->DefinstancesModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    RestoreBloadCount(theEnv,&DefinstancesBinaryData(theEnv)->ModuleCount);
    RestoreBloadCount(theEnv,&DefinstancesBinaryData(theEnv)->DefinstancesCount);

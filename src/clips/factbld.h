@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                FACT BUILD HEADER FILE               */
    /*******************************************************/
@@ -25,18 +25,14 @@
 
 #ifndef _H_factbld
 
+#pragma once
+
 #define _H_factbld
 
-#ifndef _H_pattern
-#include "pattern.h"
-#endif
-#ifndef _H_network
-#include "network.h"
-#endif
+struct factPatternNode;
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+#include "network.h"
+#include "expressn.h"
 
 struct factPatternNode
   {
@@ -52,14 +48,9 @@ struct factPatternNode
    struct factPatternNode *rightNode;
   };
 
-#ifdef _FACTBUILD_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#include "pattern.h" // TBD Needed?
 
-   LOCALE void                           InitializeFactPatterns(void *);
-   LOCALE void                           DestroyFactPatternNetwork(void *,
-                                                                   struct factPatternNode *);
+   void                           InitializeFactPatterns(void *);
+   void                           DestroyFactPatternNetwork(void *,struct factPatternNode *);
 
 #endif /* _H_factbld */

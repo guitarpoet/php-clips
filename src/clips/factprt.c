@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           FACT RETE PRINT FUNCTIONS MODULE          */
    /*******************************************************/
@@ -29,19 +29,16 @@
 /*                                                           */
 /*************************************************************/
 
-#define _FACTPRT_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT
 
 #include "envrnmnt.h"
-#include "symbol.h"
-#include "router.h"
 #include "factgen.h"
+#include "router.h"
+#include "symbol.h"
 
 #include "factprt.h"
 
@@ -49,7 +46,7 @@
 /* PrintFactJNCompVars1: Print routine */
 /*   for the FactJNCompVars1 function. */
 /***************************************/
-globle void PrintFactJNCompVars1(
+void PrintFactJNCompVars1(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -97,7 +94,7 @@ globle void PrintFactJNCompVars1(
 /* PrintFactJNCompVars2: Print routine */
 /*   for the FactJNCompVars2 function. */
 /***************************************/
-globle void PrintFactJNCompVars2(
+void PrintFactJNCompVars2(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -157,7 +154,7 @@ globle void PrintFactJNCompVars2(
 /* PrintFactPNCompVars1: Print routine */
 /*   for the FactPNCompVars1 function. */
 /***************************************/
-globle void PrintFactPNCompVars1(
+void PrintFactPNCompVars1(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -186,7 +183,7 @@ globle void PrintFactPNCompVars1(
 /* PrintFactSlotLength: Print routine */
 /*   for the FactSlotLength function. */
 /**************************************/
-globle void PrintFactSlotLength(
+void PrintFactSlotLength(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -216,7 +213,7 @@ globle void PrintFactSlotLength(
 /* PrintFactJNGetVar1: Print routine */
 /*   for the FactJNGetvar1 function. */
 /*************************************/
-globle void PrintFactJNGetVar1(
+void PrintFactJNGetVar1(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -256,7 +253,7 @@ globle void PrintFactJNGetVar1(
 /* PrintFactJNGetVar2: Print routine */
 /*   for the FactJNGetvar2 function. */
 /*************************************/
-globle void PrintFactJNGetVar2(
+void PrintFactJNGetVar2(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -289,7 +286,7 @@ globle void PrintFactJNGetVar2(
 /* PrintFactJNGetVar3: Print routine */
 /*   for the FactJNGetVar3 function. */
 /*************************************/
-globle void PrintFactJNGetVar3(
+void PrintFactJNGetVar3(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -332,7 +329,7 @@ globle void PrintFactJNGetVar3(
 /* PrintFactPNGetVar1: Print routine */
 /*   for the FactPNGetvar1 function. */
 /*************************************/
-globle void PrintFactPNGetVar1(
+void PrintFactPNGetVar1(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -364,7 +361,7 @@ globle void PrintFactPNGetVar1(
 /* PrintFactPNGetVar2: Print routine */
 /*   for the FactPNGetvar2 function. */
 /*************************************/
-globle void PrintFactPNGetVar2(
+void PrintFactPNGetVar2(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -389,7 +386,7 @@ globle void PrintFactPNGetVar2(
 /* PrintFactPNGetVar3: Print routine */
 /*   for the FactPNGetvar3 function. */
 /*************************************/
-globle void PrintFactPNGetVar3(
+void PrintFactPNGetVar3(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -424,7 +421,7 @@ globle void PrintFactPNGetVar3(
 /* PrintFactPNConstant1: Print routine */
 /*   for the FactPNConstant1 function. */
 /***************************************/
-globle void PrintFactPNConstant1(
+void PrintFactPNConstant1(
   void *theEnv,
   const char *logicalName,
   void *theValue)
@@ -456,7 +453,7 @@ globle void PrintFactPNConstant1(
 /* PrintFactPNConstant2: Print routine */
 /*   for the FactPNConstant2 function. */
 /***************************************/
-globle void PrintFactPNConstant2(
+void PrintFactPNConstant2(
   void *theEnv,
   const char *logicalName,
   void *theValue)

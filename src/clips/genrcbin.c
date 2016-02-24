@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -33,25 +33,20 @@
 
 #if DEFGENERIC_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
 
-#include "constant.h"
-#include "envrnmnt.h"
-#include "memalloc.h"
 #include "bload.h"
 #include "bsave.h"
-
+#include "constant.h"
 #include "cstrcbin.h"
-
+#include "envrnmnt.h"
+#include "genrccom.h"
+#include "memalloc.h"
+#include "modulbin.h"
 #if OBJECT_SYSTEM
 #include "objbin.h"
 #endif
-
-#include "genrccom.h"
-#include "modulbin.h"
-
-#define _GENRCBIN_SOURCE_
-#include "genrcbin.h"
-
 #include "router.h"
+
+#include "genrcbin.h"
 
 /* =========================================
    *****************************************
@@ -139,7 +134,7 @@ static void DeallocateDefgenericBinaryData(void *);
   SIDE EFFECTS : Routines defined and structures initialized
   NOTES        : None
  ***********************************************************/
-globle void SetupGenericsBload(
+void SetupGenericsBload(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,GENRCBIN_DATA,sizeof(struct defgenericBinaryData),DeallocateDefgenericBinaryData);
@@ -192,7 +187,7 @@ static void DeallocateDefgenericBinaryData(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-globle void *BloadDefgenericModuleReference(
+void *BloadDefgenericModuleReference(
   void *theEnv,
   int theIndex)
   {
@@ -240,7 +235,7 @@ static void BsaveGenericsFind(
 
    DefgenericBinaryData(theEnv)->ModuleCount = 
       DoForAllConstructs(theEnv,MarkDefgenericItems,DefgenericData(theEnv)->DefgenericModuleIndex,
-                                    FALSE,NULL);
+                                    false,NULL);
   }
 
 /***************************************************
@@ -302,10 +297,10 @@ static void BsaveGenericsExpressions(
       expressions for restrictions, since methods will be stored first
       ================================================================ */
    DoForAllConstructs(theEnv,BsaveMethodExpressions,DefgenericData(theEnv)->DefgenericModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    DoForAllConstructs(theEnv,BsaveRestrictionExpressions,DefgenericData(theEnv)->DefgenericModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
   }
 
 /***************************************************
@@ -444,27 +439,27 @@ static void BsaveGenerics(
       ====================================== */
    DefgenericBinaryData(theEnv)->MethodCount = 0L;
    DoForAllConstructs(theEnv,BsaveDefgenericHeader,DefgenericData(theEnv)->DefgenericModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    /* =====================
       Write out the methods
       ===================== */
    DefgenericBinaryData(theEnv)->RestrictionCount = 0L;
    DoForAllConstructs(theEnv,BsaveMethods,DefgenericData(theEnv)->DefgenericModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    /* =================================
       Write out the method restrictions
       ================================= */
    DefgenericBinaryData(theEnv)->TypeCount = 0L;
    DoForAllConstructs(theEnv,BsaveMethodRestrictions,DefgenericData(theEnv)->DefgenericModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    /* =============================================================
       Finally, write out the type lists for the method restrictions
       ============================================================= */
    DoForAllConstructs(theEnv,BsaveRestrictionTypes,DefgenericData(theEnv)->DefgenericModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    RestoreBloadCount(theEnv,&DefgenericBinaryData(theEnv)->ModuleCount);
    RestoreBloadCount(theEnv,&DefgenericBinaryData(theEnv)->GenericCount);
@@ -813,7 +808,7 @@ static void UpdateType(
 #else
    if ((* (long *) buf) > (long) INSTANCE_TYPE_CODE)
      {
-      PrintWarningID(theEnv,"GENRCBIN",1,FALSE);
+      PrintWarningID(theEnv,"GENRCBIN",1,false);
       EnvPrintRouter(theEnv,WWARNING,"COOL not installed!  User-defined class\n");
       EnvPrintRouter(theEnv,WWARNING,"  in method restriction substituted with OBJECT.\n");
       DefgenericBinaryData(theEnv)->TypeArray[obji] = (void *) EnvAddLong(theEnv,(long long) OBJECT_TYPE_CODE);

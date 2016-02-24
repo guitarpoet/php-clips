@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -31,6 +31,9 @@
 /*************************************************************/
 
 #ifndef _H_clsltpsr
+
+#pragma once
+
 #define _H_clsltpsr
 
 #if OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME)
@@ -39,9 +42,7 @@
 #define REACTIVE_RLN         "reactive"
 #define NONREACTIVE_RLN      "non-reactive"
 
-#ifndef _H_object
 #include "object.h"
-#endif
 
 typedef struct tempSlotLink
   {
@@ -49,21 +50,8 @@ typedef struct tempSlotLink
    struct tempSlotLink *nxt;
   } TEMP_SLOT_LINK;
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CLSLTPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-LOCALE TEMP_SLOT_LINK *ParseSlot(void *,const char *,TEMP_SLOT_LINK *,PACKED_CLASS_LINKS *,int,int);
-LOCALE void DeleteSlots(void *,TEMP_SLOT_LINK *);
-
-#ifndef _CLSLTPSR_SOURCE_
-#endif
+TEMP_SLOT_LINK *ParseSlot(void *,const char *,TEMP_SLOT_LINK *,PACKED_CLASS_LINKS *,bool,bool);
+void DeleteSlots(void *,TEMP_SLOT_LINK *);
 
 #endif
 

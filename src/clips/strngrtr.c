@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              STRING I/O ROUTER MODULE               */
    /*******************************************************/
@@ -31,10 +31,7 @@
 /*                                                           */
 /*************************************************************/
 
-#define _STRNGRTR_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 #include <string.h>
 
@@ -55,18 +52,18 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     FindString(void *,const char *);
+   static bool                    FindString(void *,const char *);
    static int                     PrintString(void *,const char *,const char *);
    static int                     GetcString(void *,const char *);
    static int                     UngetcString(void *,int,const char *);
    static struct stringRouter    *FindStringRouter(void *,const char *);
-   static int                     CreateReadStringSource(void *,const char *,const char *,size_t,size_t);
+   static bool                    CreateReadStringSource(void *,const char *,const char *,size_t,size_t);
    static void                    DeallocateStringRouterData(void *);
 
 /**********************************************************/
 /* InitializeStringRouter: Initializes string I/O router. */
 /**********************************************************/
-globle void InitializeStringRouter(
+void InitializeStringRouter(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,STRING_ROUTER_DATA,sizeof(struct stringRouterData),DeallocateStringRouterData);
@@ -96,7 +93,7 @@ static void DeallocateStringRouterData(
 /*************************************************************/
 /* FindString: Find routine for string router logical names. */
 /*************************************************************/
-static int FindString(
+static bool FindString(
   void *theEnv,
   const char *fileid)
   {
@@ -106,11 +103,11 @@ static int FindString(
    while (head != NULL)
      {
       if (strcmp(head->name,fileid) == 0)
-        { return(TRUE); }
+        { return(true); }
       head = head->next;
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /**************************************************/
@@ -205,7 +202,7 @@ static int UngetcString(
 /************************************************/
 /* OpenStringSource: Opens a new string router. */
 /************************************************/
-globle int OpenStringSource(
+bool OpenStringSource(
   void *theEnv,
   const char *name,
   const char *str,
@@ -228,7 +225,7 @@ globle int OpenStringSource(
 /* OpenTextSource: Opens a new string router for text */
 /*   (which is not NULL terminated).                  */
 /******************************************************/
-globle int OpenTextSource(
+int OpenTextSource(
   void *theEnv,
   const char *name,
   const char *str,
@@ -247,7 +244,7 @@ globle int OpenTextSource(
 /******************************************************************/
 /* CreateReadStringSource: Creates a new string router for input. */
 /******************************************************************/
-static int CreateReadStringSource(
+static bool CreateReadStringSource(
   void *theEnv,
   const char *name,
   const char *str,
@@ -257,7 +254,7 @@ static int CreateReadStringSource(
    struct stringRouter *newStringRouter;
    char *theName;
 
-   if (FindStringRouter(theEnv,name) != NULL) return(0);
+   if (FindStringRouter(theEnv,name) != NULL) return(false);
 
    newStringRouter = get_struct(theEnv,stringRouter);
    theName = (char *) gm1(theEnv,strlen(name) + 1);
@@ -271,13 +268,13 @@ static int CreateReadStringSource(
    newStringRouter->next = StringRouterData(theEnv)->ListOfStringRouters;
    StringRouterData(theEnv)->ListOfStringRouters = newStringRouter;
 
-   return(1);
+   return(true);
   }
 
 /**********************************************/
 /* CloseStringSource: Closes a string router. */
 /**********************************************/
-globle int CloseStringSource(
+int CloseStringSource(
   void *theEnv,
   const char *name)
   {
@@ -314,7 +311,7 @@ globle int CloseStringSource(
 /******************************************************************/
 /* OpenStringDestination: Opens a new string router for printing. */
 /******************************************************************/
-globle int OpenStringDestination(
+int OpenStringDestination(
   void *theEnv,
   const char *name,
   char *str,
@@ -343,7 +340,7 @@ globle int OpenStringDestination(
 /***************************************************/
 /* CloseStringDestination: Closes a string router. */
 /***************************************************/
-globle int CloseStringDestination(
+int CloseStringDestination(
   void *theEnv,
   const char *name)
   {

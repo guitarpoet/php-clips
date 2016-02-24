@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/20/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*         DEFRULE BASIC COMMANDS HEADER FILE          */
    /*******************************************************/
@@ -47,54 +47,31 @@
 /*************************************************************/
 
 #ifndef _H_rulebsc
+
+#pragma once
+
 #define _H_rulebsc
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEBSC_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefruleBasicCommands(void *);
-   LOCALE void                           UndefruleCommand(void *);
-   LOCALE intBool                        EnvUndefrule(void *,void *);
-   LOCALE void                           GetDefruleListFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EnvGetDefruleList(void *,DATA_OBJECT_PTR,void *);
-   LOCALE void                          *DefruleModuleFunction(void *);
+   void                           DefruleBasicCommands(void *);
+   void                           UndefruleCommand(UDFContext *,CLIPSValue *);
+   bool                           EnvUndefrule(void *,void *);
+   void                           GetDefruleListFunction(UDFContext *,CLIPSValue *);
+   void                           EnvGetDefruleList(void *,DATA_OBJECT_PTR,void *);
+   void                           DefruleModuleFunction(UDFContext *,CLIPSValue *);
 #if DEBUGGING_FUNCTIONS
-   LOCALE void                           PPDefruleCommand(void *);
-   LOCALE int                            PPDefrule(void *,const char *,const char *);
-   LOCALE void                           ListDefrulesCommand(void *);
-   LOCALE void                           EnvListDefrules(void *,const char *,void *);
-   LOCALE unsigned                       EnvGetDefruleWatchFirings(void *,void *);
-   LOCALE unsigned                       EnvGetDefruleWatchActivations(void *,void *);
-   LOCALE void                           EnvSetDefruleWatchFirings(void *,unsigned,void *);
-   LOCALE void                           EnvSetDefruleWatchActivations(void *,unsigned,void *);
-   LOCALE unsigned                       DefruleWatchAccess(void *,int,unsigned,struct expr *);
-   LOCALE unsigned                       DefruleWatchPrint(void *,const char *,int,struct expr *);
+   void                           PPDefruleCommand(UDFContext *,CLIPSValue *);
+   int                            PPDefrule(void *,const char *,const char *);
+   void                           ListDefrulesCommand(UDFContext *,CLIPSValue *);
+   void                           EnvListDefrules(void *,const char *,void *);
+   bool                           EnvGetDefruleWatchFirings(void *,void *);
+   bool                           EnvGetDefruleWatchActivations(void *,void *);
+   void                           EnvSetDefruleWatchFirings(void *,bool,void *);
+   void                           EnvSetDefruleWatchActivations(void *,bool,void *);
+   bool                           DefruleWatchAccess(void *,int,bool,struct expr *);
+   bool                           DefruleWatchPrint(void *,const char *,int,struct expr *);
 #endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           GetDefruleList(DATA_OBJECT_PTR,void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE unsigned                       GetDefruleWatchActivations(void *);
-   LOCALE unsigned                       GetDefruleWatchFirings(void *);
-   LOCALE void                           ListDefrules(const char *,void *);
-   LOCALE void                           SetDefruleWatchActivations(unsigned,void *);
-   LOCALE void                           DefruleWatchFirings(unsigned,void *);
-#endif
-   LOCALE intBool                        Undefrule(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_rulebsc */
 

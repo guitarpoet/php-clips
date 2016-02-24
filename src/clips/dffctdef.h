@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                DEFFACTS HEADER FILE                 */
    /*******************************************************/
@@ -28,32 +28,25 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*            Changed find construct functionality so that   */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffctdef
+
+#pragma once
+
 #define _H_dffctdef
 
-#ifndef _H_conscomp
-#include "conscomp.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-#ifndef _H_cstrccom
+#include "conscomp.h"
 #include "cstrccom.h"
-#endif
+#include "evaluatn.h"
+#include "expressn.h"
+#include "moduldef.h"
+#include "symbol.h"
 
 #define DEFFACTS_DATA 0
 
@@ -79,36 +72,16 @@ struct deffactsModule
 
 #define DeffactsData(theEnv) ((struct deffactsData *) GetEnvironmentData(theEnv,DEFFACTS_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFCTDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDeffacts(void *);
-   LOCALE void                          *EnvFindDeffacts(void *,const char *);
-   LOCALE void                          *EnvGetNextDeffacts(void *,void *);
-   LOCALE void                           CreateInitialFactDeffacts(void);
-   LOCALE intBool                        EnvIsDeffactsDeletable(void *,void *);
-   LOCALE struct deffactsModule         *GetDeffactsModuleItem(void *,struct defmodule *);
-   LOCALE const char                    *EnvDeffactsModule(void *,void *);
-   LOCALE const char                    *EnvGetDeffactsName(void *,void *);
-   LOCALE const char                    *EnvGetDeffactsPPForm(void *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *FindDeffacts(const char *);
-   LOCALE void                          *GetNextDeffacts(void *);
-   LOCALE intBool                        IsDeffactsDeletable(void *);
-   LOCALE const char                    *DeffactsModule(void *);
-   LOCALE const char                    *GetDeffactsName(void *);
-   LOCALE const char                    *GetDeffactsPPForm(void *);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           InitializeDeffacts(void *);
+   void                          *EnvFindDeffacts(void *,const char *);
+   void                          *EnvFindDeffactsInModule(void *,const char *);
+   void                          *EnvGetNextDeffacts(void *,void *);
+   void                           CreateInitialFactDeffacts(void);
+   bool                           EnvIsDeffactsDeletable(void *,void *);
+   struct deffactsModule         *GetDeffactsModuleItem(void *,struct defmodule *);
+   const char                    *EnvDeffactsModule(void *,void *);
+   const char                    *EnvGetDeffactsName(void *,void *);
+   const char                    *EnvGetDeffactsPPForm(void *,void *);
 
 #endif /* _H_dffctdef */
 

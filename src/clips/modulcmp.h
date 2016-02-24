@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*       DEFMODULE CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -33,28 +33,15 @@
 
 #ifndef _H_modulcmp
 
+#pragma once
+
 #define _H_modulcmp
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefmoduleCompilerSetup(void *);
-   LOCALE void                           PrintDefmoduleReference(void *,FILE *,struct defmodule *);
+   void                           DefmoduleCompilerSetup(void *);
+   void                           PrintDefmoduleReference(void *,FILE *,struct defmodule *);
 
 #endif /* _H_modulcmp */

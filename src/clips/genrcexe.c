@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -27,6 +27,9 @@
 /*                                                           */
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
+/*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
 /*                                                           */
 /*************************************************************/
 
@@ -57,7 +60,6 @@
 #include "router.h"
 #include "utility.h"
 
-#define _GENRCEXE_SOURCE_
 #include "genrcexe.h"
 
 /* =========================================
@@ -109,7 +111,7 @@ static DEFCLASS *DetermineRestrictionClass(void *,DATA_OBJECT *);
                  Any side-effects of actual execution of methods (see warning #2)
                  Caller's buffer set to the result of the generic function call
 
-                 In case of errors, the result is FALSE, otherwise it is the
+                 In case of errors, the result is false, otherwise it is the
                    result returned by the most specific method (which can choose
                    to ignore or return the values of more general methods)
   NOTES        : WARNING #1: Query functions on method parameter restrictions
@@ -121,7 +123,7 @@ static DEFCLASS *DetermineRestrictionClass(void *,DATA_OBJECT *);
                     method is executed.  Thus, it is possible for a method to be
                     executed multiple times per generic function call.
  ***********************************************************************************/
-globle void GenericDispatch(
+void GenericDispatch(
   void *theEnv,
   DEFGENERIC *gfunc,
   DEFMETHOD *prevmeth,
@@ -135,22 +137,18 @@ globle void GenericDispatch(
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
-
+   struct CLIPSBlock gcBlock;
+   
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
-   EvaluationData(theEnv)->EvaluationError = FALSE;
+   EvaluationData(theEnv)->EvaluationError = false;
    if (EvaluationData(theEnv)->HaltExecution)
      return;
 
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   newGarbageFrame.priorFrame = oldGarbageFrame;
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
-
+   CLIPSBlockStart(theEnv,&gcBlock);
+   
    oldce = ExecutingConstruct(theEnv);
-   SetExecutingConstruct(theEnv,TRUE);
+   SetExecutingConstruct(theEnv,true);
    previousGeneric = DefgenericData(theEnv)->CurrentGeneric;
    previousMethod = DefgenericData(theEnv)->CurrentMethod;
    DefgenericData(theEnv)->CurrentGeneric = gfunc;
@@ -166,7 +164,7 @@ globle void GenericDispatch(
       DefgenericData(theEnv)->CurrentMethod = previousMethod;
       EvaluationData(theEnv)->CurrentEvaluationDepth--;
       
-      RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+      CLIPSBlockEnd(theEnv,&gcBlock,result);
       CallPeriodicTasks(theEnv);
      
       SetExecutingConstruct(theEnv,oldce);
@@ -181,8 +179,8 @@ globle void GenericDispatch(
         }
       else
         {
-         PrintErrorID(theEnv,"GENRCEXE",4,FALSE);
-         SetEvaluationError(theEnv,TRUE);
+         PrintErrorID(theEnv,"GENRCEXE",4,false);
+         EnvSetEvaluationError(theEnv,true);
          DefgenericData(theEnv)->CurrentMethod = NULL;
          EnvPrintRouter(theEnv,WERROR,"Generic function ");
          EnvPrintRouter(theEnv,WERROR,EnvGetDefgenericName(theEnv,(void *) gfunc));
@@ -237,20 +235,20 @@ globle void GenericDispatch(
      }
    else if (! EvaluationData(theEnv)->EvaluationError)
      {
-      PrintErrorID(theEnv,"GENRCEXE",1,FALSE);
+      PrintErrorID(theEnv,"GENRCEXE",1,false);
       EnvPrintRouter(theEnv,WERROR,"No applicable methods for ");
       EnvPrintRouter(theEnv,WERROR,EnvGetDefgenericName(theEnv,(void *) gfunc));
       EnvPrintRouter(theEnv,WERROR,".\n");
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
      }
    gfunc->busy--;
-   ProcedureFunctionData(theEnv)->ReturnFlag = FALSE;
+   ProcedureFunctionData(theEnv)->ReturnFlag = false;
    PopProcParameters(theEnv);
    DefgenericData(theEnv)->CurrentGeneric = previousGeneric;
    DefgenericData(theEnv)->CurrentMethod = previousMethod;
    EvaluationData(theEnv)->CurrentEvaluationDepth--;
 
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+   CLIPSBlockEnd(theEnv,&gcBlock,result);
    CallPeriodicTasks(theEnv);
    
    SetExecutingConstruct(theEnv,oldce);
@@ -266,7 +264,7 @@ globle void GenericDispatch(
   SIDE EFFECTS : Error synopsis printed to WERROR
   NOTES        : None
  *******************************************************/
-globle void UnboundMethodErr(
+void UnboundMethodErr(
   void *theEnv)
   {
    EnvPrintRouter(theEnv,WERROR,"generic function ");
@@ -283,11 +281,11 @@ globle void UnboundMethodErr(
                  A method is applicable if all its restrictions are
                    satisfied by the corresponding arguments
   INPUTS       : The method address
-  RETURNS      : TRUE if method is applicable, FALSE otherwise
+  RETURNS      : true if method is applicable, false otherwise
   SIDE EFFECTS : Any query functions are evaluated
   NOTES        : Uses globals ProcParamArraySize and ProcParamArray
  ***********************************************************************/
-globle intBool IsMethodApplicable(
+bool IsMethodApplicable(
   void *theEnv,
   DEFMETHOD *meth)
   {
@@ -302,7 +300,7 @@ globle intBool IsMethodApplicable(
 
    if ((ProceduralPrimitiveData(theEnv)->ProcParamArraySize < meth->minRestrictions) ||
        ((ProceduralPrimitiveData(theEnv)->ProcParamArraySize > meth->minRestrictions) && (meth->maxRestrictions != -1)))
-     return(FALSE);
+     return(false);
    for (i = 0 , k = 0 ; i < ProceduralPrimitiveData(theEnv)->ProcParamArraySize ; i++)
      {
       rp = &meth->restrictions[k];
@@ -311,7 +309,7 @@ globle intBool IsMethodApplicable(
 #if OBJECT_SYSTEM
          type = (void *) DetermineRestrictionClass(theEnv,&ProceduralPrimitiveData(theEnv)->ProcParamArray[i]);
          if (type == NULL)
-           return(FALSE);
+           return(false);
          for (j = 0 ; j < rp->tcnt ; j++)
            {
             if (type == rp->types[j])
@@ -347,20 +345,20 @@ globle intBool IsMethodApplicable(
            }
 #endif
          if (j == rp->tcnt)
-           return(FALSE);
+           return(false);
         }
       if (rp->query != NULL)
         {
          DefgenericData(theEnv)->GenericCurrentArgument = &ProceduralPrimitiveData(theEnv)->ProcParamArray[i];
          EvaluateExpression(theEnv,rp->query,&temp);
-         if ((temp.type != SYMBOL) ? FALSE :
+         if ((temp.type != SYMBOL) ? false :
              (temp.value == EnvFalseSymbol(theEnv)))
-           return(FALSE);
+           return(false);
         }
       if (((int) k) != meth->restrictionCount-1)
         k++;
      }
-   return(TRUE);
+   return(true);
   }
 
 /***************************************************
@@ -369,25 +367,32 @@ globle intBool IsMethodApplicable(
                    function method is available for
                    execution
   INPUTS       : None
-  RETURNS      : TRUE if there is a method available,
-                   FALSE otherwise
+  RETURNS      : true if there is a method available,
+                   false otherwise
   SIDE EFFECTS : None
   NOTES        : H/L Syntax: (next-methodp)
  ***************************************************/
-globle int NextMethodP(
+bool NextMethodP(
   void *theEnv)
   {
    register DEFMETHOD *meth;
 
    if (DefgenericData(theEnv)->CurrentMethod == NULL)
-     return(FALSE);
+     return(false);
    meth = FindApplicableMethod(theEnv,DefgenericData(theEnv)->CurrentGeneric,DefgenericData(theEnv)->CurrentMethod);
    if (meth != NULL)
      {
       meth->busy--;
-      return(TRUE);
+      return(true);
      }
-   return(FALSE);
+   return(false);
+  }
+
+void NextMethodPCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   mCVSetBoolean(returnValue,NextMethodP(UDFContextEnvironment(context)));
   }
 
 /****************************************************
@@ -401,17 +406,18 @@ globle int NextMethodP(
                    is available to execute.
   NOTES        : H/L Syntax: (call-next-method)
  ****************************************************/
-globle void CallNextMethod(
-  void *theEnv,
-  DATA_OBJECT *result)
+void CallNextMethod(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DEFMETHOD *oldMethod;
+   Environment *theEnv = UDFContextEnvironment(context);
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
 
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
+   mCVSetBoolean(returnValue,false);
+   
    if (EvaluationData(theEnv)->HaltExecution)
      return;
    oldMethod = DefgenericData(theEnv)->CurrentMethod;
@@ -420,9 +426,9 @@ globle void CallNextMethod(
    if (DefgenericData(theEnv)->CurrentMethod == NULL)
      {
       DefgenericData(theEnv)->CurrentMethod = oldMethod;
-      PrintErrorID(theEnv,"GENRCEXE",2,FALSE);
+      PrintErrorID(theEnv,"GENRCEXE",2,false);
       EnvPrintRouter(theEnv,WERROR,"Shadowed methods not applicable in current context.\n");
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       return;
      }
 
@@ -438,7 +444,7 @@ globle void CallNextMethod(
       fcall.value = DefgenericData(theEnv)->CurrentMethod->actions->value;
       fcall.nextArg = NULL;
       fcall.argList = GetProcParamExpressions(theEnv);
-      EvaluateExpression(theEnv,&fcall,result);
+      EvaluateExpression(theEnv,&fcall,returnValue);
      }
    else
      {
@@ -450,7 +456,7 @@ globle void CallNextMethod(
 
       EvaluateProcActions(theEnv,DefgenericData(theEnv)->CurrentGeneric->header.whichModule->theModule,
                          DefgenericData(theEnv)->CurrentMethod->actions,DefgenericData(theEnv)->CurrentMethod->localVarCount,
-                         result,UnboundMethodErr);
+                         returnValue,UnboundMethodErr);
 
 #if PROFILING_FUNCTIONS
       EndProfile(theEnv,&profileFrame);
@@ -463,7 +469,7 @@ globle void CallNextMethod(
      WatchMethod(theEnv,END_TRACE);
 #endif
    DefgenericData(theEnv)->CurrentMethod = oldMethod;
-   ProcedureFunctionData(theEnv)->ReturnFlag = FALSE;
+   ProcedureFunctionData(theEnv)->ReturnFlag = false;
   }
 
 /**************************************************************************
@@ -478,29 +484,30 @@ globle void CallNextMethod(
   NOTES        : H/L Syntax: (call-specific-method
                                 <generic-function> <method-index> <args>)
  **************************************************************************/
-globle void CallSpecificMethod(
-  void *theEnv,
-  DATA_OBJECT *result)
+void CallSpecificMethod(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT temp;
+   CLIPSValue theArg;
    DEFGENERIC *gfunc;
    int mi;
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   mCVSetBoolean(returnValue,false);
+   
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg)) return;
+     
+   gfunc = CheckGenericExists(theEnv,"call-specific-method",mCVToString(&theArg));
+   if (gfunc == NULL) return;
+   
+   if (! UDFNextArgument(context,INTEGER_TYPE,&theArg)) return;
 
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
-   if (EnvArgTypeCheck(theEnv,"call-specific-method",1,SYMBOL,&temp) == FALSE)
-     return;
-   gfunc = CheckGenericExists(theEnv,"call-specific-method",DOToString(temp));
-   if (gfunc == NULL)
-     return;
-   if (EnvArgTypeCheck(theEnv,"call-specific-method",2,INTEGER,&temp) == FALSE)
-     return;
-   mi = CheckMethodExists(theEnv,"call-specific-method",gfunc,(long) DOToLong(temp));
+   mi = CheckMethodExists(theEnv,"call-specific-method",gfunc,(long) mCVToInteger(&theArg));
    if (mi == -1)
      return;
    gfunc->methods[mi].busy++;
    GenericDispatch(theEnv,gfunc,NULL,&gfunc->methods[mi],
-                   GetFirstArgument()->nextArg->nextArg,result);
+                   GetFirstArgument()->nextArg->nextArg,returnValue);
    gfunc->methods[mi].busy--;
   }
 
@@ -513,23 +520,24 @@ globle void CallSpecificMethod(
   SIDE EFFECTS : Any of evaluating method restrictions and bodies
   NOTES        : H/L Syntax: (override-next-method <args>)
  ***********************************************************************/
-globle void OverrideNextMethod(
-  void *theEnv,
-  DATA_OBJECT *result)
+void OverrideNextMethod(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   mCVSetBoolean(returnValue,false);
    if (EvaluationData(theEnv)->HaltExecution)
      return;
    if (DefgenericData(theEnv)->CurrentMethod == NULL)
      {
-      PrintErrorID(theEnv,"GENRCEXE",2,FALSE);
+      PrintErrorID(theEnv,"GENRCEXE",2,false);
       EnvPrintRouter(theEnv,WERROR,"Shadowed methods not applicable in current context.\n");
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       return;
      }
    GenericDispatch(theEnv,DefgenericData(theEnv)->CurrentGeneric,DefgenericData(theEnv)->CurrentMethod,NULL,
-                   GetFirstArgument(),result);
+                   GetFirstArgument(),returnValue);
   }
 
 /***********************************************************
@@ -542,14 +550,16 @@ globle void OverrideNextMethod(
   SIDE EFFECTS : Data-object set
   NOTES        : Useful for queries in wildcard restrictions
  ***********************************************************/
-globle void GetGenericCurrentArgument(
-  void *theEnv,
-  DATA_OBJECT *result)
+void GetGenericCurrentArgument(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   result->type = DefgenericData(theEnv)->GenericCurrentArgument->type;
-   result->value = DefgenericData(theEnv)->GenericCurrentArgument->value;
-   result->begin = DefgenericData(theEnv)->GenericCurrentArgument->begin;
-   result->end = DefgenericData(theEnv)->GenericCurrentArgument->end;
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   returnValue->type = DefgenericData(theEnv)->GenericCurrentArgument->type;
+   returnValue->value = DefgenericData(theEnv)->GenericCurrentArgument->value;
+   returnValue->begin = DefgenericData(theEnv)->GenericCurrentArgument->begin;
+   returnValue->end = DefgenericData(theEnv)->GenericCurrentArgument->end;
   }
 
 /* =========================================
@@ -692,8 +702,8 @@ static DEFCLASS *DetermineRestrictionClass(
      return(DefclassData(theEnv)->PrimitiveClassMap[dobj->type]);
    if (cls == NULL)
      {
-      SetEvaluationError(theEnv,TRUE);
-      PrintErrorID(theEnv,"GENRCEXE",3,FALSE);
+      EnvSetEvaluationError(theEnv,true);
+      PrintErrorID(theEnv,"GENRCEXE",3,false);
       EnvPrintRouter(theEnv,WERROR,"Unable to determine class of ");
       PrintDataObject(theEnv,WERROR,dobj);
       EnvPrintRouter(theEnv,WERROR," in generic function ");

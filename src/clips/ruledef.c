@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                   DEFRULE MODULE                    */
    /*******************************************************/
@@ -51,16 +51,17 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*            Changed find construct functionality so that    */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
+/*                                                           */
 /*************************************************************/
-
-#define _RULEDEF_SOURCE_
 
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "agenda.h"
 #include "drive.h"
@@ -102,7 +103,7 @@
 /**********************************************************/
 /* InitializeDefrules: Initializes the defrule construct. */
 /**********************************************************/
-globle void InitializeDefrules(
+void InitializeDefrules(
   void *theEnv)
   {   
    unsigned long i;
@@ -137,7 +138,7 @@ globle void InitializeDefrules(
 
    for (i = 0; i < ALPHA_MEMORY_HASH_SIZE; i++) DefruleData(theEnv)->AlphaMemoryTable[i] = NULL;
 
-   DefruleData(theEnv)->BetaMemoryResizingFlag = TRUE;
+   DefruleData(theEnv)->BetaMemoryResizingFlag = true;
    
    DefruleData(theEnv)->RightPrimeJoins = NULL;
    DefruleData(theEnv)->LeftPrimeJoins = NULL;   
@@ -160,7 +161,7 @@ static void DeallocateDefruleData(
      { return; }
 #endif
    
-   DoForAllConstructs(theEnv,DestroyDefruleAction,DefruleData(theEnv)->DefruleModuleIndex,FALSE,NULL);
+   DoForAllConstructs(theEnv,DestroyDefruleAction,DefruleData(theEnv)->DefruleModuleIndex,false,NULL);
 
    for (theModule = EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
@@ -235,7 +236,7 @@ static void InitializeDefruleModules(
 #else
                                     NULL,
 #endif
-                                    EnvFindDefrule);
+                                    EnvFindDefruleInModule);
   }
 
 /***********************************************/
@@ -267,7 +268,7 @@ static void ReturnModule(
 /* GetDefruleModuleItem: Returns a pointer to the defmodule */
 /*  item for the specified defrule or defmodule.            */
 /************************************************************/
-globle struct defruleModule *GetDefruleModuleItem(
+struct defruleModule *GetDefruleModuleItem(
   void *theEnv,
   struct defmodule *theModule)
   {   
@@ -278,11 +279,22 @@ globle struct defruleModule *GetDefruleModuleItem(
 /* EnvFindDefrule: Searches for a defrule in the list of defrules. */
 /*   Returns a pointer to the defrule if found, otherwise NULL.    */
 /*******************************************************************/
-globle void *EnvFindDefrule(
+void *EnvFindDefrule(
   void *theEnv,
   const char *defruleName)
   {   
-   return(FindNamedConstruct(theEnv,defruleName,DefruleData(theEnv)->DefruleConstruct)); 
+   return(FindNamedConstructInModuleOrImports(theEnv,defruleName,DefruleData(theEnv)->DefruleConstruct)); 
+  }
+
+/*******************************************************************/
+/* EnvFindDefruleInModule: Searches for a defrule in the list of defrules. */
+/*   Returns a pointer to the defrule if found, otherwise NULL.    */
+/*******************************************************************/
+void *EnvFindDefruleInModule(
+  void *theEnv,
+  const char *defruleName)
+  {   
+   return(FindNamedConstructInModule(theEnv,defruleName,DefruleData(theEnv)->DefruleConstruct));
   }
 
 /************************************************************/
@@ -291,7 +303,7 @@ globle void *EnvFindDefrule(
 /*   the next defrule following the defrule passed as an    */
 /*   argument.                                              */
 /************************************************************/
-globle void *EnvGetNextDefrule(
+void *EnvGetNextDefrule(
   void *theEnv,
   void *defrulePtr)
   {   
@@ -299,33 +311,33 @@ globle void *EnvGetNextDefrule(
   }
 
 /*******************************************************/
-/* EnvIsDefruleDeletable: Returns TRUE if a particular */
-/*   defrule can be deleted, otherwise returns FALSE.  */
+/* EnvIsDefruleDeletable: Returns true if a particular */
+/*   defrule can be deleted, otherwise returns false.  */
 /*******************************************************/
-globle intBool EnvIsDefruleDeletable(
+bool EnvIsDefruleDeletable(
   void *theEnv,
   void *vTheDefrule)
   {
    struct defrule *theDefrule;
 
    if (! ConstructsDeletable(theEnv))
-     { return FALSE; }
+     { return false; }
 
    for (theDefrule = (struct defrule *) vTheDefrule;
         theDefrule != NULL;
         theDefrule = theDefrule->disjunct)
-     { if (theDefrule->executing) return(FALSE); }
+     { if (theDefrule->executing) return(false); }
 
-   if (EngineData(theEnv)->JoinOperationInProgress) return(FALSE);
+   if (EngineData(theEnv)->JoinOperationInProgress) return(false);
 
-   return(TRUE);
+   return(true);
   }
 
 /***********************************************************/
 /* EnvGetDisjunctCount: Returns the number of disjuncts of */
 /*   a rule (permutations caused by the use of or CEs).    */
 /***********************************************************/
-globle long EnvGetDisjunctCount(
+long EnvGetDisjunctCount(
   void *theEnv,
   void *vTheDefrule)
   {
@@ -345,7 +357,7 @@ globle long EnvGetDisjunctCount(
 /*   The disjunct indices run from 1 to N rather than 0   */
 /*   to N - 1.                                            */
 /**********************************************************/
-globle void *EnvGetNthDisjunct(
+void *EnvGetNthDisjunct(
   void *theEnv,
   void *vTheDefrule,
   long index)
@@ -371,7 +383,7 @@ globle void *EnvGetNthDisjunct(
 /* DefruleRunTimeInitialize:  Initializes */
 /*   defrule in a run-time module.        */
 /******************************************/
-globle void DefruleRunTimeInitialize(
+void DefruleRunTimeInitialize(
   void *theEnv,
   struct joinLink *rightPrime,
   struct joinLink *leftPrime)
@@ -427,7 +439,7 @@ static void AddBetaMemoriesToRule(
 /**************************/
 /* AddBetaMemoriesToJoin: */
 /**************************/
-globle void AddBetaMemoriesToJoin(
+void AddBetaMemoriesToJoin(
   void *theEnv,
   struct joinNode *theNode)
   {   
@@ -494,7 +506,7 @@ globle void AddBetaMemoriesToJoin(
       theNode->rightMemory->last = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *));
       theNode->rightMemory->beta[0] = CreateEmptyPartialMatch(theEnv);
       theNode->rightMemory->beta[0]->owner = theNode;
-      theNode->rightMemory->beta[0]->rhsMemory = TRUE;
+      theNode->rightMemory->beta[0]->rhsMemory = true;
       theNode->rightMemory->last[0] = theNode->rightMemory->beta[0];
       theNode->rightMemory->size = 1;
       theNode->rightMemory->count = 1;    
@@ -509,70 +521,26 @@ globle void AddBetaMemoriesToJoin(
 /* Additional Environment Functions */
 /*##################################*/
 
-globle const char *EnvDefruleModule(
+const char *EnvDefruleModule(
   void *theEnv,
   void *theDefrule)
   {
    return GetConstructModuleName((struct constructHeader *) theDefrule);
   }
 
-globle const char *EnvGetDefruleName(
+const char *EnvGetDefruleName(
   void *theEnv,
   void *theDefrule)
   {
    return GetConstructNameString((struct constructHeader *) theDefrule);
   }
 
-globle const char *EnvGetDefrulePPForm(
+const char *EnvGetDefrulePPForm(
   void *theEnv,
   void *theDefrule)
   {
    return GetConstructPPForm(theEnv,(struct constructHeader *) theDefrule);
   }
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle const char *DefruleModule(
-  void *theDefrule)
-  {
-   return EnvDefruleModule(GetCurrentEnvironment(),theDefrule);
-  }
-
-globle void *FindDefrule(
-  const char *defruleName)
-  {
-   return EnvFindDefrule(GetCurrentEnvironment(),defruleName);
-  }
-
-globle const char *GetDefruleName(
-  void *theDefrule)
-  {
-   return EnvGetDefruleName(GetCurrentEnvironment(),theDefrule);
-  }
-
-globle const char *GetDefrulePPForm(
-  void *theDefrule)
-  {
-   return EnvGetDefrulePPForm(GetCurrentEnvironment(),theDefrule);
-  }
-
-globle void *GetNextDefrule(
-  void *defrulePtr)
-  {
-   return EnvGetNextDefrule(GetCurrentEnvironment(),defrulePtr);
-  }
-
-globle intBool IsDefruleDeletable(
-  void *vTheDefrule)
-  {
-   return EnvIsDefruleDeletable(GetCurrentEnvironment(),vTheDefrule);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFRULE_CONSTRUCT */
 

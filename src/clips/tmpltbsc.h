@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*       DEFTEMPLATE BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -44,50 +44,29 @@
 /*************************************************************/
 
 #ifndef _H_tmpltbsc
+
+#pragma once
+
 #define _H_tmpltbsc
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTBSC_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeftemplateBasicCommands(void *);
-   LOCALE void                           UndeftemplateCommand(void *);
-   LOCALE intBool                        EnvUndeftemplate(void *,void *);
-   LOCALE void                           GetDeftemplateListFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EnvGetDeftemplateList(void *,DATA_OBJECT_PTR,void *);
-   LOCALE void                          *DeftemplateModuleFunction(void *);
+   void                           DeftemplateBasicCommands(void *);
+   void                           UndeftemplateCommand(UDFContext *,CLIPSValue *);
+   bool                           EnvUndeftemplate(void *,void *);
+   void                           GetDeftemplateListFunction(UDFContext *,CLIPSValue *);
+   void                           EnvGetDeftemplateList(void *,DATA_OBJECT_PTR,void *);
+   void                           DeftemplateModuleFunction(UDFContext *,CLIPSValue *);
 #if DEBUGGING_FUNCTIONS
-   LOCALE void                           PPDeftemplateCommand(void *);
-   LOCALE int                            PPDeftemplate(void *,const char *,const char *);
-   LOCALE void                           ListDeftemplatesCommand(void *);
-   LOCALE void                           EnvListDeftemplates(void *,const char *,void *);
-   LOCALE unsigned                       EnvGetDeftemplateWatch(void *,void *);
-   LOCALE void                           EnvSetDeftemplateWatch(void *,unsigned,void *);
-   LOCALE unsigned                       DeftemplateWatchAccess(void *,int,unsigned,struct expr *);
-   LOCALE unsigned                       DeftemplateWatchPrint(void *,const char *,int,struct expr *);
+   void                           PPDeftemplateCommand(UDFContext *,CLIPSValue *);
+   int                            PPDeftemplate(void *,const char *,const char *);
+   void                           ListDeftemplatesCommand(UDFContext *,CLIPSValue *);
+   void                           EnvListDeftemplates(void *,const char *,void *);
+   bool                           EnvGetDeftemplateWatch(void *,void *);
+   void                           EnvSetDeftemplateWatch(void *,bool,void *);
+   bool                           DeftemplateWatchAccess(void *,int,bool,struct expr *);
+   bool                           DeftemplateWatchPrint(void *,const char *,int,struct expr *);
 #endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           GetDeftemplateList(DATA_OBJECT_PTR,void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE unsigned                       GetDeftemplateWatch(void *);
-   LOCALE void                           ListDeftemplates(const char *,void *);
-   LOCALE void                           SetDeftemplateWatch(unsigned,void *);
-#endif
-   LOCALE intBool                        Undeftemplate(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_tmpltbsc */
 

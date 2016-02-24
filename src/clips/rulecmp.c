@@ -2,7 +2,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            DEFRULE CONSTRUCTS-TO-C MODULE           */
    /*******************************************************/
@@ -34,16 +34,15 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Fixed disjunct bug in defrule iteration.       */
+/*                                                           */
 /*************************************************************/
-
-#define _RULECMP_SOURCE_
 
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT && (! RUN_TIME) && CONSTRUCT_COMPILER
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "envrnmnt.h"
@@ -56,7 +55,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   static bool                    ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
    static void                    JoinToCode(void *,FILE *,struct joinNode *,int,int);
    static void                    LinkToCode(void *,FILE *,struct joinLink *,int,int);
    static void                    DefruleModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
@@ -64,17 +63,17 @@
    static void                    CloseDefruleFiles(void *,FILE *,FILE *,FILE *,FILE*,int);
    static void                    BeforeDefrulesCode(void *);
    static void                    InitDefruleCode(void *,FILE *,int,int);
-   static int                     RuleCompilerTraverseJoins(void *,struct joinNode *,const char *,const char *,char *,int,
+   static bool                    RuleCompilerTraverseJoins(void *,struct joinNode *,const char *,const char *,char *,int,
                                                             FILE *,int,int,FILE **,FILE **,
                                                             int *,int *,int *,int *,int *);
-   static int                     TraverseJoinLinks(void *,struct joinLink *,const char *,const char *,char *,int,FILE *,
+   static bool                    TraverseJoinLinks(void *,struct joinLink *,const char *,const char *,char *,int,FILE *,
                                                     int,int,FILE **,int *,int *, int *);
   
 /***********************************************************/
 /* DefruleCompilerSetup: Initializes the defrule construct */
 /*   for use with the constructs-to-c command.             */
 /***********************************************************/
-globle void DefruleCompilerSetup(
+void DefruleCompilerSetup(
   void *theEnv)
   {
    DefruleData(theEnv)->DefruleCodeItem = AddCodeGeneratorItem(theEnv,"defrules",0,BeforeDefrulesCode,
@@ -98,7 +97,7 @@ static void BeforeDefrulesCode(
 /* ConstructToCode: Produces defrule code for a run-time */
 /*   module created using the constructs-to-c function.  */
 /*********************************************************/
-static int ConstructToCode(
+static bool ConstructToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -110,7 +109,7 @@ static int ConstructToCode(
   {
    int fileCount = 1;
    struct defmodule *theModule;
-   struct defrule *theDefrule;
+   struct defrule *theDefrule, *theDisjunct;
    int joinArrayCount = 0, joinArrayVersion = 1;
    int linkArrayCount = 0, linkArrayVersion = 1;
    int moduleCount = 0, moduleArrayCount = 0, moduleArrayVersion = 1;
@@ -131,14 +130,14 @@ static int ConstructToCode(
                            maxIndices,&linkFile,&fileCount,&linkArrayVersion,&linkArrayCount))
      {
       CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
-      return(0);
+      return(false);
      }
 
    if (! TraverseJoinLinks(theEnv,DefruleData(theEnv)->RightPrimeJoins,fileName,pathName,fileNameBuffer,fileID,headerFP,imageID,
                            maxIndices,&linkFile,&fileCount,&linkArrayVersion,&linkArrayCount))
      {
       CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
-      return(0);
+      return(false);
      }
      
    /*=========================================================*/
@@ -164,12 +163,12 @@ static int ConstructToCode(
       moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "struct defruleModule",ModulePrefix(DefruleData(theEnv)->DefruleCodeItem),
-                                    FALSE,NULL);
+                                    false,NULL);
 
       if (moduleFile == NULL)
         {
          CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
-         return(0);
+         return(false);
         }
 
       DefruleModuleToCode(theEnv,moduleFile,theModule,imageID,maxIndices,moduleCount);
@@ -181,48 +180,46 @@ static int ConstructToCode(
       /* their disjuncts) in the current module. */
       /*=========================================*/
 
-      theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
-
-      while (theDefrule != NULL)
+      for (theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
+           theDefrule != NULL;
+           theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,theDefrule))
         {
-         /*===================================*/
-         /* Save the defrule data structures. */
-         /*===================================*/
-
-         defruleFile = OpenFileIfNeeded(theEnv,defruleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
-                                        defruleArrayVersion,headerFP,
-                                        "struct defrule",ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem),
-                                        FALSE,NULL);
-         if (defruleFile == NULL)
+         for (theDisjunct = theDefrule;
+              theDisjunct != NULL;
+              theDisjunct = theDisjunct->disjunct)
            {
-            CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
-            return(0);
+            /*===================================*/
+            /* Save the defrule data structures. */
+            /*===================================*/
+
+            defruleFile = OpenFileIfNeeded(theEnv,defruleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+                                           defruleArrayVersion,headerFP,
+                                           "struct defrule",ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem),
+                                           false,NULL);
+            if (defruleFile == NULL)
+              {
+               CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
+               return(false);
+              }
+
+            DefruleToCode(theEnv,defruleFile,theDisjunct,imageID,maxIndices,
+                           moduleCount);
+            defruleArrayCount++;
+            defruleFile = CloseFileIfNeeded(theEnv,defruleFile,&defruleArrayCount,&defruleArrayVersion,
+                                            maxIndices,NULL,NULL);
+
+            /*================================*/
+            /* Save the join data structures. */
+            /*================================*/
+
+            if (! RuleCompilerTraverseJoins(theEnv,theDisjunct->lastJoin,fileName,pathName,fileNameBuffer,fileID,headerFP,imageID,
+                                            maxIndices,&joinFile,&linkFile,&fileCount,&joinArrayVersion,&joinArrayCount,
+                                            &linkArrayVersion,&linkArrayCount))
+              {
+               CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
+               return(false);
+              }
            }
-
-         DefruleToCode(theEnv,defruleFile,theDefrule,imageID,maxIndices,
-                        moduleCount);
-         defruleArrayCount++;
-         defruleFile = CloseFileIfNeeded(theEnv,defruleFile,&defruleArrayCount,&defruleArrayVersion,
-                                         maxIndices,NULL,NULL);
-
-         /*================================*/
-         /* Save the join data structures. */
-         /*================================*/
-
-         if (! RuleCompilerTraverseJoins(theEnv,theDefrule->lastJoin,fileName,pathName,fileNameBuffer,fileID,headerFP,imageID,
-                                         maxIndices,&joinFile,&linkFile,&fileCount,&joinArrayVersion,&joinArrayCount,
-                                         &linkArrayVersion,&linkArrayCount))
-           {
-            CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
-            return(0);
-           }
-
-         /*==========================================*/
-         /* Move on to the next disjunct or defrule. */
-         /*==========================================*/
-
-         if (theDefrule->disjunct != NULL) theDefrule = theDefrule->disjunct;
-         else theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,theDefrule);
         }
 
       moduleCount++;
@@ -231,13 +228,13 @@ static int ConstructToCode(
 
    CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,linkFile,maxIndices);
 
-   return(1);
+   return(true);
   }
 
 /*********************************************************************/
 /* RuleCompilerTraverseJoins: Traverses the join network for a rule. */
 /*********************************************************************/
-static int RuleCompilerTraverseJoins(
+static bool RuleCompilerTraverseJoins(
   void *theEnv,
   struct joinNode *joinPtr,
   const char *fileName,
@@ -263,9 +260,9 @@ static int RuleCompilerTraverseJoins(
         {
          *joinFile = OpenFileIfNeeded(theEnv,*joinFile,fileName,pathName,fileNameBuffer,fileID,imageID,fileCount,
                                       *joinArrayVersion,headerFP,
-                                      "struct joinNode",JoinPrefix(),FALSE,NULL);
+                                      "struct joinNode",JoinPrefix(),false,NULL);
          if (*joinFile == NULL)
-           { return(FALSE); }
+           { return(false); }
 
          JoinToCode(theEnv,*joinFile,joinPtr,imageID,maxIndices);
          (*joinArrayCount)++;
@@ -275,7 +272,7 @@ static int RuleCompilerTraverseJoins(
                                        
          if (! TraverseJoinLinks(theEnv,joinPtr->nextLinks,fileName,pathName,fileNameBuffer,fileID,headerFP,imageID,
                                  maxIndices,linkFile,fileCount,linkArrayVersion,linkArrayCount))
-           { return(FALSE); } 
+           { return(false); }
         }
       
       if (joinPtr->joinFromTheRight)
@@ -283,18 +280,18 @@ static int RuleCompilerTraverseJoins(
          if (RuleCompilerTraverseJoins(theEnv,(struct joinNode *) joinPtr->rightSideEntryStructure,fileName,pathName,
                                        fileNameBuffer,fileID,headerFP,imageID,maxIndices,joinFile,linkFile,fileCount,
                                        joinArrayVersion,joinArrayCount,
-                                       linkArrayVersion,linkArrayCount) == FALSE)
-           { return(FALSE); }
+                                       linkArrayVersion,linkArrayCount) == false)
+           { return(false); }
         }
      }
 
-   return(TRUE);
+   return(true);
   }
 
 /*******************************************************/
 /* TraverseJoinLinks: Writes out a list of join links. */
 /*******************************************************/
-static int TraverseJoinLinks(
+static bool TraverseJoinLinks(
   void *theEnv,
   struct joinLink *linkPtr,
   const char *fileName,
@@ -315,10 +312,10 @@ static int TraverseJoinLinks(
      {
       *linkFile = OpenFileIfNeeded(theEnv,*linkFile,fileName,pathName,fileNameBuffer,fileID,imageID,fileCount,
                                    *linkArrayVersion,headerFP,
-                                   "struct joinLink",LinkPrefix(),FALSE,NULL);
+                                   "struct joinLink",LinkPrefix(),false,NULL);
            
       if (*linkFile == NULL)
-        { return(FALSE); }
+        { return(false); }
            
       LinkToCode(theEnv,*linkFile,linkPtr,imageID,maxIndices);
       (*linkArrayCount)++;
@@ -326,7 +323,7 @@ static int TraverseJoinLinks(
                                     maxIndices,NULL,NULL);
      }
 
-   return(TRUE);
+   return(true);
   }
 
 /********************************************************/
@@ -545,7 +542,7 @@ static void JoinToCode(
 
    if (theJoin->rightSideEntryStructure == NULL)
      { fprintf(joinFile,"NULL,"); }
-   else if (theJoin->joinFromTheRight == FALSE)
+   else if (theJoin->joinFromTheRight == false)
      {
       theParser = GetPatternParser(theEnv,(int) theJoin->rhsType);
       if (theParser->codeReferenceFunction == NULL) fprintf(joinFile,"NULL,");
@@ -671,7 +668,7 @@ static void LinkToCode(
 /* DefruleCModuleReference: Writes the C code representation */
 /*   of a reference to a defrule module data structure.      */
 /*************************************************************/
-globle void DefruleCModuleReference(
+void DefruleCModuleReference(
   void *theEnv,
   FILE *theFile,
   int count,

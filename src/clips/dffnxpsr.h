@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -30,21 +30,14 @@
 /*************************************************************/
 
 #ifndef _H_dffnxpsr
+
+#pragma once
+
 #define _H_dffnxpsr
 
 #if DEFFUNCTION_CONSTRUCT && (! BLOAD_ONLY) && (! RUN_TIME)
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFNXPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                        ParseDeffunction(void *,const char *);
+   bool                           ParseDeffunction(void *,const char *);
 
 #endif /* DEFFUNCTION_CONSTRUCT && (! BLOAD_ONLY) && (! RUN_TIME) */
 

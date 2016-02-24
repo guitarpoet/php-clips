@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             FILE I/O ROUTER HEADER FILE             */
    /*******************************************************/
@@ -39,12 +39,12 @@
 /*************************************************************/
 
 #ifndef _H_filertr
+
+#pragma once
+
 #define _H_filertr
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
 #define FILE_ROUTER_DATA 47
    
@@ -62,22 +62,12 @@ struct fileRouterData
 
 #define FileRouterData(theEnv) ((struct fileRouterData *) GetEnvironmentData(theEnv,FILE_ROUTER_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FILERTR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeFileRouter(void *);
-   LOCALE FILE                          *FindFptr(void *,const char *);
-   LOCALE int                            OpenAFile(void *,const char *,const char *,const char *);
-   LOCALE int                            CloseAllFiles(void *);
-   LOCALE int                            CloseFile(void *,const char *);
-   LOCALE int                            FindFile(void *,const char *);
+   void                           InitializeFileRouter(void *);
+   FILE                          *FindFptr(void *,const char *);
+   bool                           OpenAFile(void *,const char *,const char *,const char *);
+   bool                           CloseAllFiles(void *);
+   bool                           CloseFile(void *,const char *);
+   bool                           FindFile(void *,const char *);
 
 #endif /* _H_filertr */
 

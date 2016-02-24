@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           DEFRULE BSAVE/BLOAD HEADER FILE           */
    /*******************************************************/
@@ -32,16 +32,17 @@
 /*                                                           */
 /*************************************************************/
 
-#if (! RUN_TIME)
 #ifndef _H_rulebin
+
+#pragma once
 
 #define _H_rulebin
 
-#include "modulbin.h"
+#if (! RUN_TIME)
+
 #include "cstrcbin.h"
-#ifndef _H_network
+#include "modulbin.h"
 #include "network.h"
-#endif
 
 struct bsaveDefrule
   {
@@ -128,26 +129,17 @@ struct defruleBinaryData
 #define BsaveJoinLinkIndex(linkPtr) ((linkPtr == NULL) ? -1L :  ((struct joinLink *) linkPtr)->bsaveID)
 #define BloadJoinLinkPointer(i) ((struct joinLink *) ((i == -1L) ? NULL : &DefruleBinaryData(theEnv)->LinkArray[i]))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefruleBinarySetup(void *);
-   LOCALE void                           UpdatePatternNodeHeader(void *,struct patternNodeHeader *,
+   void                           DefruleBinarySetup(void *);
+   void                           UpdatePatternNodeHeader(void *,struct patternNodeHeader *,
                                                                  struct bsavePatternNodeHeader *);
-   LOCALE void                           AssignBsavePatternHeaderValues(void *,struct bsavePatternNodeHeader *,
+   void                           AssignBsavePatternHeaderValues(void *,struct bsavePatternNodeHeader *,
                                                                         struct patternNodeHeader *);
-   LOCALE void                          *BloadDefruleModuleReference(void *,int);
-
-#endif /* _H_rulebin */ 
+   void                          *BloadDefruleModuleReference(void *,int);
 
 #endif /* (! RUN_TIME) */
+
+#endif /* _H_rulebin */
+
 
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            DEFAULT ATTRIBUTE HEADER FILE            */
    /*******************************************************/
@@ -29,27 +29,16 @@
 /*************************************************************/
 
 #ifndef _H_default
+
+#pragma once
+
 #define _H_default
 
-#ifndef _H_constrnt
 #include "constrnt.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DEFAULT_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeriveDefaultFromConstraints(void *,CONSTRAINT_RECORD *,DATA_OBJECT *,int,int);
-   LOCALE struct expr                   *ParseDefault(void *,const char *,int,int,int,int *,int *,int *);
+   void                           DeriveDefaultFromConstraints(void *,CONSTRAINT_RECORD *,DATA_OBJECT *,bool,bool);
+   struct expr                   *ParseDefault(void *,const char *,bool,bool,bool,bool *,bool *,bool *);
 
 #endif /* _H_default */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               RULE PARSING HEADER FILE              */
    /*******************************************************/
@@ -35,23 +35,16 @@
 /*************************************************************/
 
 #ifndef _H_rulepsr
+
+#pragma once
+
 #define _H_rulepsr
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int                            ParseDefrule(void *,const char *);
-   LOCALE struct lhsParseNode           *FindVariable(struct symbolHashNode *,
+   bool                           ParseDefrule(void *,const char *);
+   struct lhsParseNode           *FindVariable(struct symbolHashNode *,
                                                       struct lhsParseNode *);
 #if DEVELOPER && DEBUGGING_FUNCTIONS
-   LOCALE void                           DumpRuleAnalysis(void *,struct lhsParseNode *);
+   void                           DumpRuleAnalysis(void *,struct lhsParseNode *);
 #endif
 
 #endif /* _H_rulepsr */

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*         DEFTEMPLATE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -26,11 +26,13 @@
 /*                                                           */
 /*************************************************************/
 
-#if (! RUN_TIME)
-
 #ifndef _H_tmpltbin
 
+#pragma once
+
 #define _H_tmpltbin
+
+#if (! RUN_TIME)
 
 struct bsaveTemplateSlot
   {
@@ -86,22 +88,12 @@ struct deftemplateBinaryData
 #include "tmpltdef.h"
 #endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeftemplateBinarySetup(void *);
-   LOCALE void                          *BloadDeftemplateModuleReference(void *,int);
-
-#endif /* _H_tmpltbin */
+   void                           DeftemplateBinarySetup(void *);
+   void                          *BloadDeftemplateModuleReference(void *,int);
 
 #endif /* (! RUN_TIME) */
+
+#endif /* _H_tmpltbin */
 
 
 

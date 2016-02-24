@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.39  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            MISCELLANEOUS FUNCTIONS MODULE           */
    /*******************************************************/
@@ -58,13 +58,34 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*            Removed deallocating message parameter from    */
+/*            EnvReleaseMem.                                 */
+/*                                                           */
+/*            Removed support for BLOCK_MEMORY.              */
+/*                                                           */
+/*      6.40: Refactored code to reduce header dependencies  */
+/*            in sysdep.c.                                   */
+/*                                                           */
+/*            Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Changed restrictions from char * to            */
+/*            symbolHashNode * to support strings            */
+/*            originating from sources that are not          */
+/*            statically allocated.                          */
+/*                                                           */
+/*            Fact ?var:slot reference support.              */
+/*                                                           */
+/*            Added local-time and gm-time functions.        */
+/*                                                           */
 /*************************************************************/
 
-#define _MISCFUN_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
+#include <time.h>
 
 #include "setup.h"
 
@@ -79,6 +100,11 @@
 
 #if DEFFUNCTION_CONSTRUCT
 #include "dffnxfun.h"
+#endif
+
+#if DEFTEMPLATE_CONSTRUCT
+#include "factfun.h"
+#include "tmpltutl.h"
 #endif
 
 #include "miscfun.h"
@@ -99,119 +125,126 @@ struct miscFunctionData
    static void                    ExpandFuncMultifield(void *,DATA_OBJECT *,EXPRESSION *,
                                                        EXPRESSION **,void *);
    static int                     FindLanguageType(void *,const char *);
-   
+   static void                    ConvertTime(void *,CLIPSValue *,struct tm *);
+
 /*****************************************************************/
 /* MiscFunctionDefinitions: Initializes miscellaneous functions. */
 /*****************************************************************/
-globle void MiscFunctionDefinitions(
+void MiscFunctionDefinitions(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,MISCFUN_DATA,sizeof(struct miscFunctionData),NULL);
    MiscFunctionData(theEnv)->GensymNumber = 1;
    
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"gensym",           'w', PTIEF GensymFunction,      "GensymFunction", "00");
-   EnvDefineFunction2(theEnv,"gensym*",          'w', PTIEF GensymStarFunction,  "GensymStarFunction", "00");
-   EnvDefineFunction2(theEnv,"setgen",           'g', PTIEF SetgenFunction,      "SetgenFunction", "11i");
-   EnvDefineFunction2(theEnv,"system",           'v', PTIEF gensystem,           "gensystem", "1*k");
-   EnvDefineFunction2(theEnv,"length",           'g', PTIEF LengthFunction,      "LengthFunction", "11q");
-   EnvDefineFunction2(theEnv,"length$",          'g', PTIEF LengthFunction,      "LengthFunction", "11q");
-   EnvDefineFunction2(theEnv,"time",             'd', PTIEF TimeFunction,        "TimeFunction", "00");
-   EnvDefineFunction2(theEnv,"random",           'g', PTIEF RandomFunction,      "RandomFunction", "02i");
-   EnvDefineFunction2(theEnv,"seed",             'v', PTIEF SeedFunction,        "SeedFunction", "11i");
-   EnvDefineFunction2(theEnv,"conserve-mem",     'v', PTIEF ConserveMemCommand,  "ConserveMemCommand", "11w");
-   EnvDefineFunction2(theEnv,"release-mem",      'g', PTIEF ReleaseMemCommand,   "ReleaseMemCommand", "00");
+   EnvAddUDF(theEnv,"gensym",       "y", GensymFunction,     "GensymFunction",    0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"gensym*",      "y", GensymStarFunction, "GensymStarFunction",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"setgen",       "l", SetgenFunction,     "SetgenFunction",    1,1,"l", NULL);
+   
+   EnvAddUDF(theEnv,"system",       "v", SystemCommand,      "SystemCommand", 1, UNBOUNDED , "sy" , NULL );
+   EnvAddUDF(theEnv,"length",       "l", LengthFunction,     "LengthFunction", 1,1, "sym" ,NULL);
+   EnvAddUDF(theEnv,"length$",      "l", LengthFunction,     "LengthFunction", 1,1, "sym", NULL);
+   EnvAddUDF(theEnv,"time",         "d", TimeFunction,       "TimeFunction", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"local-time",   "m", LocalTimeFunction,  "LocalTimeFunction", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"gm-time",      "m", GMTimeFunction,     "GMTimeFunction", 0,0,NULL,NULL);
+
+   EnvAddUDF(theEnv,"random",       "l", RandomFunction,     "RandomFunction", 0,2, "l" ,NULL);
+   EnvAddUDF(theEnv,"seed",         "v", SeedFunction,       "SeedFunction", 1,1,"l", NULL);
+   EnvAddUDF(theEnv,"conserve-mem", "v", ConserveMemCommand, "ConserveMemCommand", 1,1,"y",NULL);
+   EnvAddUDF(theEnv,"release-mem",  "l", ReleaseMemCommand,  "ReleaseMemCommand", 0,0,NULL,NULL);
 #if DEBUGGING_FUNCTIONS
-   EnvDefineFunction2(theEnv,"mem-used",         'g', PTIEF MemUsedCommand,      "MemUsedCommand", "00");
-   EnvDefineFunction2(theEnv,"mem-requests",     'g', PTIEF MemRequestsCommand,  "MemRequestsCommand", "00");
+   EnvAddUDF(theEnv,"mem-used",     "l", MemUsedCommand,     "MemUsedCommand", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"mem-requests", "l", MemRequestsCommand, "MemRequestsCommand", 0,0,NULL,NULL);
 #endif
-   EnvDefineFunction2(theEnv,"options",          'v', PTIEF OptionsCommand,      "OptionsCommand", "00");
-   EnvDefineFunction2(theEnv,"operating-system", 'w', PTIEF OperatingSystemFunction,"OperatingSystemFunction", "00");
-   EnvDefineFunction2(theEnv,"(expansion-call)", 'u', PTIEF ExpandFuncCall,      "ExpandFuncCall",NULL);
-   EnvDefineFunction2(theEnv,"expand$",'u', PTIEF DummyExpandFuncMultifield,
-                                           "DummyExpandFuncMultifield","11m");
-   FuncSeqOvlFlags(theEnv,"expand$",FALSE,FALSE);
-   EnvDefineFunction2(theEnv,"(set-evaluation-error)",
-                                       'w', PTIEF CauseEvaluationError,"CauseEvaluationError",NULL);
-   EnvDefineFunction2(theEnv,"set-sequence-operator-recognition",
-                                       'b', PTIEF SetSORCommand,"SetSORCommand","11w");
-   EnvDefineFunction2(theEnv,"get-sequence-operator-recognition",'b',
-                    PTIEF EnvGetSequenceOperatorRecognition,"EnvGetSequenceOperatorRecognition","00");
-   EnvDefineFunction2(theEnv,"get-function-restrictions",'s',
-                   PTIEF GetFunctionRestrictions,"GetFunctionRestrictions","11w");
-   EnvDefineFunction2(theEnv,"create$",     'm', PTIEF CreateFunction,  "CreateFunction", NULL);
-   EnvDefineFunction2(theEnv,"mv-append",   'm', PTIEF CreateFunction,  "CreateFunction", NULL);
-   EnvDefineFunction2(theEnv,"apropos",   'v', PTIEF AproposCommand,  "AproposCommand", "11w");
-   EnvDefineFunction2(theEnv,"get-function-list",   'm', PTIEF GetFunctionListFunction,  "GetFunctionListFunction", "00");
-   EnvDefineFunction2(theEnv,"funcall",'u', PTIEF FuncallFunction,"FuncallFunction","1**k");
-   EnvDefineFunction2(theEnv,"new",'u', PTIEF NewFunction,"NewFunction","1*uw");
-   EnvDefineFunction2(theEnv,"call",'u', PTIEF CallFunction,"CallFunction","1*u");
-   EnvDefineFunction2(theEnv,"timer",'d', PTIEF TimerFunction,"TimerFunction","**");
+
+   EnvAddUDF(theEnv,"options",      "v", OptionsCommand,    "OptionsCommand",    0,0,NULL, NULL);
+
+   EnvAddUDF(theEnv,"operating-system", "y", OperatingSystemFunction,"OperatingSystemFunction", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"(expansion-call)", "*", ExpandFuncCall,      "ExpandFuncCall", 0,UNBOUNDED,NULL,NULL);
+   EnvAddUDF(theEnv,"expand$","*",  DummyExpandFuncMultifield,
+                                           "DummyExpandFuncMultifield",1,1,"m",NULL);
+   FuncSeqOvlFlags(theEnv,"expand$",false,false);
+   EnvAddUDF(theEnv,"(set-evaluation-error)",
+                                       "y", CauseEvaluationError,"CauseEvaluationError",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"set-sequence-operator-recognition",
+                                       "b",  SetSORCommand,"SetSORCommand",1,1,"y",NULL);
+   EnvAddUDF(theEnv,"get-sequence-operator-recognition","b",
+                     GetSORCommand,"GetSORCommand",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"get-function-restrictions","s",
+                    GetFunctionRestrictions,"GetFunctionRestrictions",1,1,"y",NULL);
+   EnvAddUDF(theEnv,"create$",           "m",  CreateFunction,  "CreateFunction", 0,UNBOUNDED,NULL,NULL);
+   EnvAddUDF(theEnv,"apropos",           "v", AproposCommand,  "AproposCommand", 1,1,"y",NULL);
+   EnvAddUDF(theEnv,"get-function-list", "m", GetFunctionListFunction,  "GetFunctionListFunction",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"funcall",           "*",  FuncallFunction,"FuncallFunction",1,UNBOUNDED,"*;sy",NULL);
+   EnvAddUDF(theEnv,"new",               "*",  NewFunction,"NewFunction",1,UNBOUNDED,"*;y",NULL);
+   EnvAddUDF(theEnv,"call",              "*",  CallFunction,"CallFunction",1,UNBOUNDED,"*",NULL);
+   EnvAddUDF(theEnv,"timer",             "d",  TimerFunction,"TimerFunction",0,UNBOUNDED,NULL,NULL);
+#if DEFTEMPLATE_CONSTRUCT 
+   EnvAddUDF(theEnv,"(slot-value)",      "*", SlotValueFunction,"SlotValueFunction", 3,3,"y;z",NULL);
+#endif
 #endif
   }
 
 /******************************************************************/
 /* CreateFunction: H/L access routine for the create$ function.   */
 /******************************************************************/
-globle void CreateFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void CreateFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   StoreInMultifield(theEnv,returnValue,GetFirstArgument(),TRUE);
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   StoreInMultifield(theEnv,returnValue,GetFirstArgument(),true);
   }
 
 /*****************************************************************/
 /* SetgenFunction: H/L access routine for the setgen function.   */
 /*****************************************************************/
-globle long long SetgenFunction(
-  void *theEnv)
+void SetgenFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   long long theLong;
-   DATA_OBJECT theValue;
+   CLIPSInteger theLong;
+   void *theEnv = UDFContextEnvironment(context);
 
-   /*==========================================================*/
-   /* Check to see that a single integer argument is provided. */
-   /*==========================================================*/
+   /*====================================================*/
+   /* Check to see that an integer argument is provided. */
+   /*====================================================*/
 
-   if (EnvArgCountCheck(theEnv,"setgen",EXACTLY,1) == -1) return(MiscFunctionData(theEnv)->GensymNumber);
-   if (EnvArgTypeCheck(theEnv,"setgen",1,INTEGER,&theValue) == FALSE) return(MiscFunctionData(theEnv)->GensymNumber);
+   if (! UDFNthArgument(context,1,INTEGER_TYPE,returnValue))
+     { return; }
 
    /*========================================*/
    /* The integer must be greater than zero. */
    /*========================================*/
 
-   theLong = ValueToLong(theValue.value);
+   theLong = mCVToInteger(returnValue);
 
    if (theLong < 1LL)
      {
-      ExpectedTypeError1(theEnv,"setgen",1,"number (greater than or equal to 1)");
-      return(MiscFunctionData(theEnv)->GensymNumber);
+      UDFInvalidArgumentMessage(context,"integer (greater than or equal to 1)");
+      mCVSetInteger(returnValue,MiscFunctionData(theEnv)->GensymNumber);
+      return;
      }
 
-   /*====================================*/
-   /* Set the gensym index to the number */
-   /* provided and return this value.    */
-   /*====================================*/
+   /*==============================================*/
+   /* Set the gensym index to the number provided. */
+   /*==============================================*/
 
    MiscFunctionData(theEnv)->GensymNumber = theLong;
-   return(theLong);
   }
 
 /****************************************/
 /* GensymFunction: H/L access routine   */
 /*   for the gensym function.           */
 /****************************************/
-globle void *GensymFunction(
-  void *theEnv)
+void GensymFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
+   void *theEnv = UDFContextEnvironment(context);
    char genstring[128];
    
-   /*===========================================*/
-   /* The gensym function accepts no arguments. */
-   /*===========================================*/
-
-   EnvArgCountCheck(theEnv,"gensym",EXACTLY,0);
-
    /*================================================*/
    /* Create a symbol using the current gensym index */
    /* as the postfix.                                */
@@ -224,35 +257,31 @@ globle void *GensymFunction(
    /* Return the symbol. */
    /*====================*/
 
-   return(EnvAddSymbol(theEnv,genstring));
+   mCVSetSymbol(returnValue,genstring);
   }
 
 /************************************************/
 /* GensymStarFunction: H/L access routine for   */
 /*   the gensym* function.                      */
 /************************************************/
-globle void *GensymStarFunction(
-  void *theEnv)
+void GensymStarFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*============================================*/
-   /* The gensym* function accepts no arguments. */
-   /*============================================*/
-
-   EnvArgCountCheck(theEnv,"gensym*",EXACTLY,0);
-
    /*====================*/
    /* Return the symbol. */
    /*====================*/
 
-   return(GensymStar(theEnv));
+   GensymStar(UDFContextEnvironment(context),returnValue);
   }
 
 /************************************/
 /* GensymStar: C access routine for */
 /*   the gensym* function.          */
 /************************************/
-globle void *GensymStar(
-  void *theEnv)
+void GensymStar(
+  void *theEnv,
+  CLIPSValue *returnValue)
   {
    char genstring[128];
    
@@ -274,31 +303,34 @@ globle void *GensymStar(
    /* Return the symbol. */
    /*====================*/
 
-   return(EnvAddSymbol(theEnv,genstring));
+   mEnvCVInit(theEnv,returnValue);
+   mCVSetSymbol(returnValue,genstring);
   }
 
 /********************************************/
 /* RandomFunction: H/L access routine for   */
 /*   the random function.                   */
 /********************************************/
-globle long long RandomFunction(
-  void *theEnv)
+void RandomFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    int argCount;
-   long long rv;
-   DATA_OBJECT theValue;
-   long long begin, end;
+   CLIPSInteger rv;
+   CLIPSValue theArg;
+   CLIPSInteger begin, end;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*====================================*/
    /* The random function accepts either */
    /* zero or two arguments.             */
    /*====================================*/
 
-   argCount = EnvRtnArgCount(theEnv);
+   argCount = UDFArgumentCount(context);
    
    if ((argCount != 0) && (argCount != 2))
      {
-      PrintErrorID(theEnv,"MISCFUN",2,FALSE);
+      PrintErrorID(theEnv,"MISCFUN",2,false);
       EnvPrintRouter(theEnv,WERROR,"Function random expected either 0 or 2 arguments\n"); 
      }
 
@@ -310,129 +342,130 @@ globle long long RandomFunction(
    
    if (argCount == 2)
      {
-      if (EnvArgTypeCheck(theEnv,"random",1,INTEGER,&theValue) == FALSE) return(rv);
-      begin = DOToLong(theValue);
-      if (EnvArgTypeCheck(theEnv,"random",2,INTEGER,&theValue) == FALSE) return(rv);
-      end = DOToLong(theValue);
+      if (! UDFFirstArgument(context,INTEGER_TYPE,&theArg))
+        { return; }
+      begin = mCVToInteger(&theArg);
+      
+      if (! UDFNextArgument(context,INTEGER_TYPE,&theArg))
+        { return; }
+      end = mCVToInteger(&theArg);
+      
       if (end < begin)
         {
-         PrintErrorID(theEnv,"MISCFUN",3,FALSE);
+         PrintErrorID(theEnv,"MISCFUN",3,false);
          EnvPrintRouter(theEnv,WERROR,"Function random expected argument #1 to be less than argument #2\n"); 
-         return(rv);
+         mCVSetInteger(returnValue,rv);
+         return;
         }
         
       rv = begin + (rv % ((end - begin) + 1));
      }
    
    
-   return(rv);
+   mCVSetInteger(returnValue,rv);
   }
 
 /******************************************/
 /* SeedFunction: H/L access routine for   */
 /*   the seed function.                   */
 /******************************************/
-globle void SeedFunction(
-  void *theEnv)
+void SeedFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT theValue;
+   CLIPSValue theValue;
 
    /*==========================================================*/
    /* Check to see that a single integer argument is provided. */
    /*==========================================================*/
 
-   if (EnvArgCountCheck(theEnv,"seed",EXACTLY,1) == -1) return;
-   if (EnvArgTypeCheck(theEnv,"seed",1,INTEGER,&theValue) == FALSE) return;
-
+   if (! UDFFirstArgument(context,INTEGER_TYPE,&theValue))
+     { return; }
+     
    /*=============================================================*/
    /* Seed the random number generator with the provided integer. */
    /*=============================================================*/
 
-   genseed((int) DOToLong(theValue));
+   genseed((int) mCVToInteger(&theValue));
   }
 
 /********************************************/
 /* LengthFunction: H/L access routine for   */
 /*   the length$ function.                  */
 /********************************************/
-globle long long LengthFunction(
-  void *theEnv)
+void LengthFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue theArg;
 
    /*====================================================*/
    /* The length$ function expects exactly one argument. */
    /*====================================================*/
 
-   if (EnvArgCountCheck(theEnv,"length$",EXACTLY,1) == -1) return(-1L);
-   EnvRtnUnknown(theEnv,1,&item);
+   if (! UDFFirstArgument(context, LEXEME_TYPES | MULTIFIELD_TYPE, &theArg))
+     { return; }
 
    /*====================================================*/
    /* If the argument is a string or symbol, then return */
    /* the number of characters in the argument.          */
    /*====================================================*/
 
-   if ((GetType(item) == STRING) || (GetType(item) == SYMBOL))
-     {  return( (long) strlen(DOToString(item))); }
+   if (mCVIsType(&theArg,LEXEME_TYPES))
+     {
+      mCVSetInteger(returnValue,strlen(mCVToString(&theArg)));
+      return;
+     }
 
    /*====================================================*/
    /* If the argument is a multifield value, then return */
    /* the number of fields in the argument.              */
    /*====================================================*/
 
-   if (GetType(item) == MULTIFIELD)
-     { return ( (long) GetDOLength(item)); }
-
-   /*=============================================*/
-   /* If the argument wasn't a string, symbol, or */
-   /* multifield value, then generate an error.   */
-   /*=============================================*/
-
-   SetEvaluationError(theEnv,TRUE);
-   ExpectedTypeError2(theEnv,"length$",1);
-   return(-1L);
+   if (mCVIsType(&theArg,MULTIFIELD_TYPE))
+     {
+      mCVSetInteger(returnValue,MFLength(&theArg));
+      return;
+     }
   }
 
 /*******************************************/
 /* ReleaseMemCommand: H/L access routine   */
 /*   for the release-mem function.         */
 /*******************************************/
-globle long long ReleaseMemCommand(
-  void *theEnv)
+void ReleaseMemCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*================================================*/
-   /* The release-mem function accepts no arguments. */
-   /*================================================*/
-
-   if (EnvArgCountCheck(theEnv,"release-mem",EXACTLY,0) == -1) return(0LL);
-
    /*========================================*/
    /* Release memory to the operating system */
    /* and return the amount of memory freed. */
    /*========================================*/
 
-   return(EnvReleaseMem(theEnv,-1L,FALSE));
+   mCVSetInteger(returnValue,EnvReleaseMem(UDFContextEnvironment(context),-1L));
   }
 
 /******************************************/
 /* ConserveMemCommand: H/L access routine */
 /*   for the conserve-mem command.        */
 /******************************************/
-globle void ConserveMemCommand(
-  void *theEnv)
+void ConserveMemCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *argument;
-   DATA_OBJECT theValue;
+   CLIPSValue theValue;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*===================================*/
    /* The conserve-mem function expects */
    /* a single symbol argument.         */
    /*===================================*/
 
-   if (EnvArgCountCheck(theEnv,"conserve-mem",EXACTLY,1) == -1) return;
-   if (EnvArgTypeCheck(theEnv,"conserve-mem",1,SYMBOL,&theValue) == FALSE) return;
-
-   argument = DOToString(theValue);
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theValue))
+     { return; }
+     
+   argument = mCVToString(&theValue);
 
    /*====================================================*/
    /* If the argument is the symbol "on", then store the */
@@ -441,7 +474,7 @@ globle void ConserveMemCommand(
    /*====================================================*/
 
    if (strcmp(argument,"on") == 0)
-     { EnvSetConserveMemory(theEnv,TRUE); }
+     { EnvSetConserveMemory(theEnv,true); }
 
    /*======================================================*/
    /* Otherwise, if the argument is the symbol "off", then */
@@ -450,7 +483,7 @@ globle void ConserveMemCommand(
    /*======================================================*/
 
    else if (strcmp(argument,"off") == 0)
-     { EnvSetConserveMemory(theEnv,FALSE); }
+     { EnvSetConserveMemory(theEnv,false); }
 
    /*=====================================================*/
    /* Otherwise, generate an error since the only allowed */
@@ -459,7 +492,7 @@ globle void ConserveMemCommand(
 
    else
      {
-      ExpectedTypeError1(theEnv,"conserve-mem",1,"symbol with value on or off");
+      UDFInvalidArgumentMessage(context,"symbol with value on or off");
       return;
      }
 
@@ -472,42 +505,32 @@ globle void ConserveMemCommand(
 /* MemUsedCommand: H/L access routine   */
 /*   for the mem-used command.          */
 /****************************************/
-globle long long MemUsedCommand(
-  void *theEnv)
+void MemUsedCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*=============================================*/
-   /* The mem-used function accepts no arguments. */
-   /*=============================================*/
-
-   if (EnvArgCountCheck(theEnv,"mem-used",EXACTLY,0) == -1) return(0);
-
    /*============================================*/
    /* Return the amount of memory currently held */
    /* (both for current use and for later use).  */
    /*============================================*/
 
-   return(EnvMemUsed(theEnv));
+   mCVSetInteger(returnValue,EnvMemUsed(UDFContextEnvironment(context)));
   }
 
 /********************************************/
 /* MemRequestsCommand: H/L access routine   */
 /*   for the mem-requests command.          */
 /********************************************/
-globle long long MemRequestsCommand(
-  void *theEnv)
+void MemRequestsCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*=================================================*/
-   /* The mem-requests function accepts no arguments. */
-   /*=================================================*/
-
-   if (EnvArgCountCheck(theEnv,"mem-requests",EXACTLY,0) == -1) return(0);
-
    /*==================================*/
    /* Return the number of outstanding */
    /* memory requests.                 */
    /*==================================*/
 
-   return(EnvMemRequests(theEnv));
+   mCVSetInteger(returnValue,EnvMemRequests(UDFContextEnvironment(context)));
   }
 
 #endif
@@ -516,26 +539,28 @@ globle long long MemRequestsCommand(
 /* AproposCommand: H/L access routine   */
 /*   for the apropos command.           */
 /****************************************/
-globle void AproposCommand(
-  void *theEnv)
+void AproposCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *argument;
    DATA_OBJECT argPtr;
    struct symbolHashNode *hashPtr = NULL;
    size_t theLength;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*=======================================================*/
    /* The apropos command expects a single symbol argument. */
    /*=======================================================*/
 
-   if (EnvArgCountCheck(theEnv,"apropos",EXACTLY,1) == -1) return;
-   if (EnvArgTypeCheck(theEnv,"apropos",1,SYMBOL,&argPtr) == FALSE) return;
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&argPtr))
+     { return; }
 
    /*=======================================*/
    /* Determine the length of the argument. */
    /*=======================================*/
 
-   argument = DOToString(argPtr);
+   argument = mCVToString(&argPtr);
    theLength = strlen(argument);
 
    /*====================================================================*/
@@ -545,7 +570,7 @@ globle void AproposCommand(
    /* are printed.                                                       */
    /*====================================================================*/
 
-   while ((hashPtr = GetNextSymbolMatch(theEnv,argument,theLength,hashPtr,TRUE,NULL)) != NULL)
+   while ((hashPtr = GetNextSymbolMatch(theEnv,argument,theLength,hashPtr,true,NULL)) != NULL)
      {
       EnvPrintRouter(theEnv,WDISPLAY,ValueToString(hashPtr));
       EnvPrintRouter(theEnv,WDISPLAY,"\n");
@@ -556,15 +581,18 @@ globle void AproposCommand(
 /* OptionsCommand: H/L access routine   */
 /*   for the options command.           */
 /****************************************/
-globle void OptionsCommand(
-  void *theEnv)
+void OptionsCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*===========================================*/
-   /* The options command accepts no arguments. */
-   /*===========================================*/
+   void *theEnv = UDFContextEnvironment(context);
 
-   if (EnvArgCountCheck(theEnv,"options",EXACTLY,0) == -1) return;
-
+   /*=======================*/
+   /* Set the return value. */
+   /*=======================*/
+   
+   mCVSetVoid(returnValue);
+   
    /*=================================*/
    /* Print the state of the compiler */
    /* flags for this executable.      */
@@ -574,9 +602,6 @@ globle void OptionsCommand(
 
 #if GENERIC
    EnvPrintRouter(theEnv,WDISPLAY,"Generic ");
-#endif
-#if VAX_VMS
-   EnvPrintRouter(theEnv,WDISPLAY,"VAX VMS ");
 #endif
 #if UNIX_V
    EnvPrintRouter(theEnv,WDISPLAY,"UNIX System V or 4.2BSD ");
@@ -764,13 +789,6 @@ EnvPrintRouter(theEnv,WDISPLAY,"Debugging function package is ");
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
 #endif
 
-EnvPrintRouter(theEnv,WDISPLAY,"Block memory is ");
-#if BLOCK_MEMORY
-  EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
-#else
-  EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
-#endif
-
 EnvPrintRouter(theEnv,WDISPLAY,"Window Interface flag is ");
 #if WINDOW_INTERFACE
    EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
@@ -797,48 +815,29 @@ EnvPrintRouter(theEnv,WDISPLAY,"Run time module is ");
 /* OperatingSystemFunction: H/L access routine */
 /*   for the operating system function.        */
 /***********************************************/
-globle void *OperatingSystemFunction(
-  void *theEnv)
+void OperatingSystemFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EnvArgCountCheck(theEnv,"operating-system",EXACTLY,0);
-
 #if GENERIC
-   return(EnvAddSymbol(theEnv,"UNKNOWN"));
+   mCVSetSymbol(returnValue,"UNKNOWN");
+#elif UNIX_V
+   mCVSetSymbol(returnValue,"UNIX-V");
+#elif UNIX_7
+   mCVSetSymbol(returnValue,"UNIX-7");
+#elif LINUX
+   mCVSetSymbol(returnValue,"LINUX");
+#elif DARWIN
+   mCVSetSymbol(returnValue,"DARWIN");
+#elif MAC_XCD
+   mCVSetSymbol(returnValue,"MAC-OS-X");
+#elif IBM && (! WINDOW_INTERFACE)
+   mCVSetSymbol(returnValue,"DOS");
+#elif IBM && WINDOW_INTERFACE
+   mCVSetSymbol(returnValue,"WINDOWS");
+#else
+   mCVSetSymbol(returnValue,"UNKNOWN");
 #endif
-
-#if VAX_VMS
-   return(EnvAddSymbol(theEnv,"VMS"));
-#endif
-
-#if UNIX_V
-   return(EnvAddSymbol(theEnv,"UNIX-V"));
-#endif
-
-#if UNIX_7
-   return(EnvAddSymbol(theEnv,"UNIX-7"));
-#endif
-
-#if LINUX
-   return(EnvAddSymbol(theEnv,"LINUX"));
-#endif
-
-#if DARWIN
-   return(EnvAddSymbol(theEnv,"DARWIN"));
-#endif
-
-#if MAC_XCD
-   return(EnvAddSymbol(theEnv,"MAC-OS-X"));
-#endif
-
-#if IBM && (! WINDOW_INTERFACE)
-   return(EnvAddSymbol(theEnv,"DOS"));
-#endif
-
-#if IBM && WINDOW_INTERFACE
-   return(EnvAddSymbol(theEnv,"WINDOWS"));
-#endif
-
-   return(EnvAddSymbol(theEnv,"UNKNOWN"));
   }
   
 /********************************************************************
@@ -856,12 +855,13 @@ globle void *OperatingSystemFunction(
                  EvaluationError set on errors
   NOTES        : None
  *******************************************************************/
-globle void ExpandFuncCall(
-  void *theEnv,
-  DATA_OBJECT *result)
+void ExpandFuncCall(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    EXPRESSION *newargexp,*fcallexp;
    struct FunctionDefinition *func;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /* ======================================================================
       Copy the original function call's argument expression list.
@@ -870,7 +870,7 @@ globle void ExpandFuncCall(
         of the arguments.
       ====================================================================== */
    newargexp = CopyExpression(theEnv,GetFirstArgument()->argList);
-   ExpandFuncMultifield(theEnv,result,newargexp,&newargexp,
+   ExpandFuncMultifield(theEnv,returnValue,newargexp,&newargexp,
                         (void *) FindFunction(theEnv,"expand$"));
 
    /* ===================================================================
@@ -885,11 +885,9 @@ globle void ExpandFuncCall(
    if (fcallexp->type == FCALL)
      {
       func = (struct FunctionDefinition *) fcallexp->value;
-      if (CheckFunctionArgCount(theEnv,ValueToString(func->callFunctionName),
-                                func->restrictions,CountArguments(newargexp)) == FALSE)
+      if (CheckFunctionArgCount(theEnv,func,CountArguments(newargexp)) == false)
         {
-         result->type = SYMBOL;
-         result->value = EnvFalseSymbol(theEnv);
+         mCVSetBoolean(returnValue,false);
          ReturnExpression(theEnv,fcallexp);
          return;
         }
@@ -898,18 +896,17 @@ globle void ExpandFuncCall(
    else if (fcallexp->type == PCALL)
      {
       if (CheckDeffunctionCall(theEnv,fcallexp->value,
-              CountArguments(fcallexp->argList)) == FALSE)
+              CountArguments(fcallexp->argList)) == false)
         {
-         result->type = SYMBOL;
-         result->value = EnvFalseSymbol(theEnv);
+         mCVSetBoolean(returnValue,false);
          ReturnExpression(theEnv,fcallexp);
-         SetEvaluationError(theEnv,TRUE);
+         EnvSetEvaluationError(theEnv,true);
          return;
         }
      }
 #endif
 
-   EvaluateExpression(theEnv,fcallexp,result);
+   EvaluateExpression(theEnv,fcallexp,returnValue);
    ReturnExpression(theEnv,fcallexp);
   }
 
@@ -926,14 +923,15 @@ globle void ExpandFuncCall(
   SIDE EFFECTS : EvaluationError set
   NOTES        : None
  **********************************************************************/
-globle void DummyExpandFuncMultifield(
-  void *theEnv,
-  DATA_OBJECT *result)
+void DummyExpandFuncMultifield(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
-   SetEvaluationError(theEnv,TRUE);
-   PrintErrorID(theEnv,"MISCFUN",1,FALSE);
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   mCVSetBoolean(returnValue,false);
+   EnvSetEvaluationError(theEnv,true);
+   PrintErrorID(theEnv,"MISCFUN",1,false);
    EnvPrintRouter(theEnv,WERROR,"expand$ must be used in the argument list of a function call.\n");
   }
 
@@ -975,11 +973,11 @@ static void ExpandFuncMultifield(
          if ((EvaluationData(theEnv)->EvaluationError) || (result->type != MULTIFIELD))
            {
             theExp->argList = NULL;
-            if ((EvaluationData(theEnv)->EvaluationError == FALSE) && (result->type != MULTIFIELD))
+            if ((EvaluationData(theEnv)->EvaluationError == false) && (result->type != MULTIFIELD))
               ExpectedTypeError2(theEnv,"expand$",1);
             theExp->value = (void *) FindFunction(theEnv,"(set-evaluation-error)");
-            EvaluationData(theEnv)->EvaluationError = FALSE;
-            EvaluationData(theEnv)->HaltExecution = FALSE;
+            EvaluationData(theEnv)->EvaluationError = false;
+            EvaluationData(theEnv)->HaltExecution = false;
             return;
            }
          top = bot = NULL;
@@ -1030,16 +1028,29 @@ static void ExpandFuncMultifield(
   SIDE EFFECTS : EvaluationError set
   NOTES        : None
  ****************************************************************/
-globle void *CauseEvaluationError(
-  void *theEnv)
+void CauseEvaluationError(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   SetEvaluationError(theEnv,TRUE);
-   return((SYMBOL_HN *) EnvFalseSymbol(theEnv));
+   EnvSetEvaluationError(UDFContextEnvironment(context),true);
+   mCVSetBoolean(returnValue,false);
+  }
+
+/*****************/
+/* GetSORCommand */
+/*****************/
+void GetSORCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   mCVSetBoolean(returnValue,EnvGetSequenceOperatorRecognition(theEnv));
   }
 
 /****************************************************************
   NAME         : SetSORCommand
-  DESCRIPTION  : Toggles SequenceOpMode - if TRUE, multifield
+  DESCRIPTION  : Toggles SequenceOpMode - if true, multifield
                    references are replaced with sequence
                    expansion operators
   INPUTS       : None
@@ -1047,18 +1058,21 @@ globle void *CauseEvaluationError(
   SIDE EFFECTS : SequenceOpMode toggled
   NOTES        : None
  ****************************************************************/
-globle intBool SetSORCommand(
-  void *theEnv)
+void SetSORCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
+   Environment *theEnv = UDFContextEnvironment(context);
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   DATA_OBJECT arg;
-
-   if (EnvArgTypeCheck(theEnv,"set-sequence-operator-recognition",1,SYMBOL,&arg) == FALSE)
-     return(ExpressionData(theEnv)->SequenceOpMode);
-   return(EnvSetSequenceOperatorRecognition(theEnv,(arg.value == EnvFalseSymbol(theEnv)) ?
-                                         FALSE : TRUE));
+   DATA_OBJECT theArg;
+   
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg))
+     { return; }
+     
+   mCVSetBoolean(returnValue,EnvSetSequenceOperatorRecognition(theEnv,(CVIsFalseSymbol(&theArg) ?
+                                                                      false : true)));
 #else
-     return(ExpressionData(theEnv)->SequenceOpMode);
+    mCVSetBoolean(returnValue,ExpressionData(theEnv)->SequenceOpMode);
 #endif
   }
 
@@ -1070,43 +1084,91 @@ globle intBool SetSORCommand(
   SIDE EFFECTS : EvaluationError set on errors
   NOTES        : None
  ********************************************************************/
-globle void *GetFunctionRestrictions(
-  void *theEnv)
+void GetFunctionRestrictions(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT temp;
+   CLIPSValue theArg;
    struct FunctionDefinition *fptr;
+   char *stringBuffer = NULL;
+   size_t bufferPosition = 0;
+   size_t bufferMaximum = 0;
+   Environment *theEnv = UDFContextEnvironment(context);
 
-   if (EnvArgTypeCheck(theEnv,"get-function-restrictions",1,SYMBOL,&temp) == FALSE)
-     return((SYMBOL_HN *) EnvAddSymbol(theEnv,""));
-   fptr = FindFunction(theEnv,DOToString(temp));
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg))
+     { return; }
+     
+   fptr = FindFunction(theEnv,mCVToString(&theArg));
    if (fptr == NULL)
      {
-      CantFindItemErrorMessage(theEnv,"function",DOToString(temp));
-      SetEvaluationError(theEnv,TRUE);
-      return((SYMBOL_HN *) EnvAddSymbol(theEnv,""));
+      CantFindItemErrorMessage(theEnv,"function",mCVToString(&theArg));
+      EnvSetEvaluationError(theEnv,true);
+      mCVSetString(returnValue,"");
+      return;
      }
+
+   if (fptr->returnValueType != 'z')
+     {
+      if (fptr->restrictions == NULL)
+        {
+         mCVSetString(returnValue,"0**");
+         return;
+        }
+     
+      CVSetCLIPSString(returnValue,fptr->restrictions);
+      return;
+     }
+    
+   if (fptr->minArgs == UNBOUNDED)
+     {
+      stringBuffer = AppendToString(theEnv,"0",
+                                    stringBuffer,&bufferPosition,&bufferMaximum);
+     }
+   else
+     {
+      stringBuffer = AppendToString(theEnv,LongIntegerToString(theEnv,fptr->minArgs),
+                                    stringBuffer,&bufferPosition,&bufferMaximum);
+     }
+   
+   if (fptr->maxArgs == UNBOUNDED)
+     {
+      stringBuffer = AppendToString(theEnv,"*",
+                                    stringBuffer,&bufferPosition,&bufferMaximum);
+     }
+   else
+     {
+      stringBuffer = AppendToString(theEnv,LongIntegerToString(theEnv,fptr->maxArgs),
+                                    stringBuffer,&bufferPosition,&bufferMaximum);
+     }
+   
    if (fptr->restrictions == NULL)
-     return((SYMBOL_HN *) EnvAddSymbol(theEnv,"0**"));
-   return((SYMBOL_HN *) EnvAddSymbol(theEnv,fptr->restrictions));
+     {
+      stringBuffer = AppendToString(theEnv,"*",
+                                    stringBuffer,&bufferPosition,&bufferMaximum);
+     }
+   else
+     {
+      stringBuffer = AppendToString(theEnv,ValueToString(fptr->restrictions),
+                                    stringBuffer,&bufferPosition,&bufferMaximum);
+     }
+
+   mCVSetString(returnValue,stringBuffer);
+   
+   rm(theEnv,stringBuffer,bufferMaximum);
   }
 
 /*************************************************/
 /* GetFunctionListFunction: H/L access routine   */
 /*   for the get-function-list function.         */
 /*************************************************/
-globle void GetFunctionListFunction(
-  void *theEnv,
+void GetFunctionListFunction(
+  UDFContext *context,
   DATA_OBJECT *returnValue)
   {
    struct FunctionDefinition *theFunction;
    struct multifield *theList;
    unsigned long functionCount = 0;
-
-   if (EnvArgCountCheck(theEnv,"get-function-list",EXACTLY,0) == -1)
-     {
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
+   Environment *theEnv = UDFContextEnvironment(context);
 
    for (theFunction = GetFunctionList(theEnv);
         theFunction != NULL;
@@ -1132,44 +1194,37 @@ globle void GetFunctionListFunction(
 /* FuncallFunction: H/L access routine */
 /*   for the funcall function.         */
 /***************************************/
-globle void FuncallFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
+void FuncallFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int argCount, i, j;
-   DATA_OBJECT theValue;
+   int j;
+   CLIPSValue theArg;
    FUNCTION_REFERENCE theReference;
    const char *name;
    struct multifield *theMultifield;
    struct expr *lastAdd = NULL, *nextAdd, *multiAdd;
    struct FunctionDefinition *theFunction;
+   Environment *theEnv = UDFContextEnvironment(context);
     
    /*==================================*/
    /* Set up the default return value. */
    /*==================================*/
    
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
-   
-   /*=================================================*/
-   /* The funcall function has at least one argument: */
-   /* the name of the function being called.          */
-   /*=================================================*/
-   
-   if ((argCount = EnvArgCountCheck(theEnv,"funcall",AT_LEAST,1)) == -1) return;
-   
+   mCVSetBoolean(returnValue,false);
+      
    /*============================================*/
    /* Get the name of the function to be called. */
    /*============================================*/
    
-   if (EnvArgTypeCheck(theEnv,"funcall",1,SYMBOL_OR_STRING,&theValue) == FALSE) 
+   if (! UDFFirstArgument(context,LEXEME_TYPES,&theArg))
      { return; }
    
    /*====================*/
    /* Find the function. */
    /*====================*/
 
-   name = DOToString(theValue);
+   name = mCVToString(&theArg);
    if (! GetFunctionReference(theEnv,name,&theReference))
      {
       ExpectedTypeError1(theEnv,"funcall",1,"function, deffunction, or generic function name");
@@ -1197,16 +1252,15 @@ globle void FuncallFunction(
      
    ExpressionInstall(theEnv,&theReference);
 
-   for (i = 2; i <= argCount; i++)
+   while (UDFHasNextArgument(context))
      {
-      EnvRtnUnknown(theEnv,i,&theValue);
-      if (GetEvaluationError(theEnv))
-        {  
+      if (! UDFNextArgument(context,ANY_TYPE,&theArg))
+        {
          ExpressionDeinstall(theEnv,&theReference);
          return; 
         }
       
-      switch(GetType(theValue))
+      switch(GetType(theArg))
         {
          case MULTIFIELD:
            nextAdd = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"create$"));
@@ -1218,8 +1272,8 @@ globle void FuncallFunction(
            lastAdd = nextAdd;
 
            multiAdd = NULL;
-           theMultifield = (struct multifield *) GetValue(theValue);
-           for (j = GetDOBegin(theValue); j <= GetDOEnd(theValue); j++)
+           theMultifield = (struct multifield *) GetValue(theArg);
+           for (j = GetDOBegin(theArg); j <= GetDOEnd(theArg); j++)
              {
               nextAdd = GenConstant(theEnv,GetMFType(theMultifield,j),GetMFValue(theMultifield,j));
               if (multiAdd == NULL)
@@ -1233,7 +1287,7 @@ globle void FuncallFunction(
            break;
          
          default:
-           nextAdd = GenConstant(theEnv,GetType(theValue),GetValue(theValue));
+           nextAdd = GenConstant(theEnv,GetType(theArg),GetValue(theArg));
            if (lastAdd == NULL)
              { theReference.argList = nextAdd; }
            else
@@ -1251,9 +1305,9 @@ globle void FuncallFunction(
 #if DEFFUNCTION_CONSTRUCT
    if (theReference.type == PCALL)
      {
-      if (CheckDeffunctionCall(theEnv,theReference.value,CountArguments(theReference.argList)) == FALSE)
+      if (CheckDeffunctionCall(theEnv,theReference.value,CountArguments(theReference.argList)) == false)
         {
-         PrintErrorID(theEnv,"MISCFUN",4,FALSE);
+         PrintErrorID(theEnv,"MISCFUN",4,false);
          EnvPrintRouter(theEnv,WERROR,"Function funcall called with the wrong number of arguments for deffunction ");
          EnvPrintRouter(theEnv,WERROR,EnvGetDeffunctionName(theEnv,theReference.value));
          EnvPrintRouter(theEnv,WERROR,"\n");
@@ -1264,6 +1318,20 @@ globle void FuncallFunction(
      }
 #endif
      
+   /*=========================================*/
+   /* Verify the correct number of arguments. */
+   /*=========================================*/
+
+   if (theReference.type == FCALL)
+     {
+      if (CheckExpressionAgainstRestrictions(theEnv,&theReference,theFunction,name))
+        {
+         ExpressionDeinstall(theEnv,&theReference);
+         ReturnExpression(theEnv,theReference.argList);
+         return;
+        }
+     }
+
    /*======================*/
    /* Call the expression. */
    /*======================*/
@@ -1282,20 +1350,20 @@ globle void FuncallFunction(
 /* NewFunction: H/L access routine */
 /*   for the new function.         */
 /***********************************/
-globle void NewFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
+void NewFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    int theType;
    DATA_OBJECT theValue;
    const char *name;
+   Environment *theEnv = UDFContextEnvironment(context);
     
    /*==================================*/
    /* Set up the default return value. */
    /*==================================*/
    
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
+   mCVSetBoolean(returnValue,false);
    
    /*================================================================*/
    /* The new function has at least two arguments: the language type */
@@ -1308,7 +1376,7 @@ globle void NewFunction(
    /* Get the name of the language type. */
    /*====================================*/
    
-   if (EnvArgTypeCheck(theEnv,"new",1,SYMBOL,&theValue) == FALSE) 
+   if (EnvArgTypeCheck(theEnv,"new",1,SYMBOL,&theValue) == false)
      { return; }
    
    /*=========================*/
@@ -1338,22 +1406,22 @@ globle void NewFunction(
 /* CallFunction: H/L access routine */
 /*   for the new function.          */
 /************************************/
-globle void CallFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
+void CallFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    int theType;
    DATA_OBJECT theValue;
    const char *name;
    int argumentCount;
    struct externalAddressHashNode *theEA;
+   Environment *theEnv = UDFContextEnvironment(context);
     
    /*==================================*/
    /* Set up the default return value. */
    /*==================================*/
    
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
+   mCVSetBoolean(returnValue,false);
    
    /*=====================================================*/
    /* The call function has at least one argument: either */
@@ -1443,43 +1511,297 @@ static int FindLanguageType(
 /* TimeFunction: H/L access routine */
 /*   for the time function.         */
 /************************************/
-globle double TimeFunction(
-  void *theEnv)
+void TimeFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*=========================================*/
-   /* The time function accepts no arguments. */
-   /*=========================================*/
-
-   EnvArgCountCheck(theEnv,"time",EXACTLY,0);
-
    /*==================*/
    /* Return the time. */
    /*==================*/
 
-   return(gentime());
+   mCVSetFloat(returnValue,gentime());
+  }
+
+/****************************************/
+/* ConvertTime: Function for converting */
+/*   time for local-time and gm-time.   */
+/****************************************/
+static void ConvertTime(
+  void *theEnv,
+  CLIPSValue *returnValue,
+  struct tm *info)
+  {
+   returnValue->type = MULTIFIELD;
+   returnValue->begin = 0;
+   returnValue->end = 8;
+   returnValue->value = EnvCreateMultifield(theEnv,9L);
+   SetMFType(returnValue->value,1,INTEGER);
+   SetMFValue(returnValue->value,1,EnvAddLong(theEnv,info->tm_year + 1900));
+   SetMFType(returnValue->value,2,INTEGER);
+   SetMFValue(returnValue->value,2,EnvAddLong(theEnv,info->tm_mon + 1));
+   SetMFType(returnValue->value,3,INTEGER);
+   SetMFValue(returnValue->value,3,EnvAddLong(theEnv,info->tm_mday));
+   SetMFType(returnValue->value,4,INTEGER);
+   SetMFValue(returnValue->value,4,EnvAddLong(theEnv,info->tm_hour));
+   SetMFType(returnValue->value,5,INTEGER);
+   SetMFValue(returnValue->value,5,EnvAddLong(theEnv,info->tm_min));
+   SetMFType(returnValue->value,6,INTEGER);
+   SetMFValue(returnValue->value,6,EnvAddLong(theEnv,info->tm_sec));
+
+   SetMFType(returnValue->value,7,SYMBOL);
+   switch (info->tm_wday)
+     {
+      case 0:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Sunday"));
+        break;
+        
+      case 1:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Monday"));
+        break;
+        
+      case 2:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Tuesday"));
+        break;
+        
+      case 3:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Wednesday"));
+        break;
+        
+      case 4:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Thursday"));
+        break;
+        
+      case 5:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Friday"));
+        break;
+        
+      case 6:
+        SetMFValue(returnValue->value,7,EnvAddSymbol(theEnv,"Saturday"));
+        break;
+     }
+
+   SetMFType(returnValue->value,8,INTEGER);
+   SetMFValue(returnValue->value,8,EnvAddLong(theEnv,info->tm_yday));
+
+   SetMFType(returnValue->value,9,SYMBOL);
+   if (info->tm_isdst > 0)
+     { SetMFValue(returnValue->value,9,SymbolData(theEnv)->TrueSymbolHN); }
+   else if (info->tm_isdst == 0)
+     { SetMFValue(returnValue->value,9,SymbolData(theEnv)->FalseSymbolHN); }
+   else
+     { SetMFValue(returnValue->value,9,EnvAddSymbol(theEnv,"UNKNOWN")); }
+  }
+
+/*****************************************/
+/* LocalTimeFunction: H/L access routine */
+/*   for the local-time function.        */
+/*****************************************/
+void LocalTimeFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   time_t rawtime;
+   struct tm *info;
+
+   /*=====================*/
+   /* Get the local time. */
+   /*=====================*/
+   
+   time(&rawtime);
+   info = localtime(&rawtime);
+   
+   ConvertTime(UDFContextEnvironment(context),returnValue,info);
+  }
+
+/**************************************/
+/* GMTimeFunction: H/L access routine */
+/*   for the gm-time function.        */
+/**************************************/
+void GMTimeFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   time_t rawtime;
+   struct tm *info;
+
+   /*=====================*/
+   /* Get the local time. */
+   /*=====================*/
+   
+   time(&rawtime);
+   info = gmtime(&rawtime);
+   
+   ConvertTime(UDFContextEnvironment(context),returnValue,info);
   }
 
 /***************************************/
 /* TimerFunction: H/L access routine   */
 /*   for the timer function.           */
 /***************************************/
-globle double TimerFunction(
-  void *theEnv)
+void TimerFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int numa, i;
-   double startTime;
-   DATA_OBJECT returnValue;
+   CLIPSFloat startTime;
+   CLIPSValue theArg;
 
    startTime = gentime();
    
-   numa = EnvRtnArgCount(theEnv);
+   while (UDFHasNextArgument(context) &&
+          (! EnvGetHaltExecution(UDFContextEnvironment(context))))
+     { UDFNextArgument(context,ANY_TYPE,&theArg); }
 
-   i = 1;
-   while ((i <= numa) && (GetHaltExecution(theEnv) != TRUE))
+   mCVSetFloat(returnValue,gentime() - startTime);
+  }
+
+/***************************************/
+/* SystemCommand: H/L access routine   */
+/*   for the system function.          */
+/***************************************/
+void SystemCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   char *commandBuffer = NULL;
+   size_t bufferPosition = 0;
+   size_t bufferMaximum = 0;
+   CLIPSValue tempValue;
+   const char *theString;
+   Environment *theEnv = UDFContextEnvironment(context);
+
+   /*============================================================*/
+   /* Concatenate the arguments together to form a single string */
+   /* containing the command to be sent to the operating system. */
+   /*============================================================*/
+
+   while (UDFHasNextArgument(context))
      {
-      EnvRtnUnknown(theEnv,i,&returnValue);
-      i++;
-     }
+      if (! UDFNextArgument(context,LEXEME_TYPES,&tempValue))
+        { return; }
 
-   return(gentime() - startTime);
+     theString = mCVToString(&tempValue);
+
+     commandBuffer = AppendToString(theEnv,theString,commandBuffer,&bufferPosition,&bufferMaximum);
+    }
+
+   if (commandBuffer == NULL) return;
+
+   /*=======================================*/
+   /* Execute the operating system command. */
+   /*=======================================*/
+   
+   gensystem(theEnv,commandBuffer);
+
+   /*==================================================*/
+   /* Return the string buffer containing the command. */
+   /*==================================================*/
+
+   rm(theEnv,commandBuffer,bufferMaximum);
+  }
+
+/*****************************************/
+/* SlotValueFunction: H/L access routine */
+/*   for the slot-value function.        */
+/*****************************************/
+void SlotValueFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+#if DEFTEMPLATE_CONSTRUCT
+   struct fact *theFact;
+#endif
+   DATA_OBJECT slotNameReference, factReference, variableSlotReference;
+   short position;
+   Environment *theEnv = UDFContextEnvironment(context);
+
+   /*=============================================*/
+   /* Set up the default return value for errors. */
+   /*=============================================*/
+
+   returnValue->type = SYMBOL;
+   returnValue->value = EnvFalseSymbol(theEnv);
+
+#if DEFTEMPLATE_CONSTRUCT
+
+   /*===========================*/
+   /* Get the name of the slot. */
+   /*===========================*/
+
+   if (EnvArgTypeCheck(theEnv,"slot-value",3,SYMBOL,&variableSlotReference) == false)
+     { return; }
+
+   /*================================*/
+   /* Get the reference to the fact. */
+   /*================================*/
+
+   EnvRtnUnknown(theEnv,1,&factReference);
+   if (GetType(factReference) == FACT_ADDRESS)
+     {
+      if (((struct fact *) GetValue(factReference))->garbage)
+        {
+         PrintErrorID(theEnv,"MISCFUN",5,false);
+         EnvPrintRouter(theEnv,WERROR,"The variable/slot reference ?");
+         EnvPrintRouter(theEnv,WERROR,DOToString(variableSlotReference));
+         EnvPrintRouter(theEnv,WERROR," can not be resolved because the referenced fact has been retracted\n");
+         EnvSetEvaluationError(theEnv,true);
+         return;
+        }
+      else
+        { theFact = ((struct fact *) GetValue(factReference)); }
+     }
+   else
+     {
+      PrintErrorID(theEnv,"MISCFUN",6,false);
+      EnvPrintRouter(theEnv,WERROR,"The variable/slot reference ?");
+      EnvPrintRouter(theEnv,WERROR,DOToString(variableSlotReference));
+      EnvPrintRouter(theEnv,WERROR," can not be resolved because the variable value is not a fact address\n");
+      EnvSetEvaluationError(theEnv,true);
+      return;
+     }
+   
+   /*===========================*/
+   /* Get the name of the slot. */
+   /*===========================*/
+
+   if (EnvArgTypeCheck(theEnv,"slot-value",2,SYMBOL,&slotNameReference) == false)
+     { return; }
+
+   /*=================================================*/
+   /* If the specified slot exists, return the value. */
+   /*=================================================*/
+   
+   if (theFact->whichDeftemplate->implied)
+     {
+      if (strcmp(DOToString(slotNameReference),"implied") == 0)
+        {
+         returnValue->type = theFact->theProposition.theFields[0].type;
+         returnValue->value = theFact->theProposition.theFields[0].value;
+         SetpDOBegin(returnValue,1);
+         SetpDOEnd(returnValue,((struct multifield *) returnValue->value)->multifieldLength);
+         return;
+        }
+     }
+   else if (FindSlot(theFact->whichDeftemplate,
+                     (SYMBOL_HN *) slotNameReference.value,&position) != NULL)
+     {
+      returnValue->type = theFact->theProposition.theFields[position-1].type;
+      returnValue->value = theFact->theProposition.theFields[position-1].value;
+      if (returnValue->type == MULTIFIELD)
+        {
+         SetpDOBegin(returnValue,1);
+         SetpDOEnd(returnValue,((struct multifield *) returnValue->value)->multifieldLength);
+        }
+      return;
+     }
+     
+   /*==========================================*/
+   /* Otherwise the specified slot is invalid. */
+   /*==========================================*/
+   
+   PrintErrorID(theEnv,"MISCFUN",7,false);
+   EnvPrintRouter(theEnv,WERROR,"The variable/slot reference ?");
+   EnvPrintRouter(theEnv,WERROR,DOToString(variableSlotReference));
+   EnvPrintRouter(theEnv,WERROR," can not be resolved because referenced fact does not contain the specified slot\n");
+   EnvSetEvaluationError(theEnv,true);
+#endif
   }

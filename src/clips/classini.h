@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -40,32 +40,21 @@
 /*************************************************************/
 
 #ifndef _H_classini
+
+#pragma once
+
 #define _H_classini
 
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
-#ifndef _H_object
 #include "object.h"
-#endif
 
 #if OBJECT_SYSTEM
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CLASSINI_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-LOCALE void SetupObjectSystem(void *);
+void SetupObjectSystem(void *);
 #if RUN_TIME
-LOCALE void ObjectsRunTimeInitialize(void *,DEFCLASS *[],SLOT_NAME *[],DEFCLASS *[],unsigned);
+void ObjectsRunTimeInitialize(void *,DEFCLASS *[],SLOT_NAME *[],DEFCLASS *[],unsigned);
 #else
-LOCALE void CreateSystemClasses(void *);
+void CreateSystemClasses(void *);
 #endif
 
 #endif

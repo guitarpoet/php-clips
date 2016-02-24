@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                RETRACT HEADER FILE                  */
    /*******************************************************/
@@ -35,24 +35,13 @@
 /*************************************************************/
 
 #ifndef _H_retract
+
+#pragma once
+
 #define _H_retract
 
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RETRACT_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct rdriveinfo
   {
@@ -61,13 +50,14 @@ struct rdriveinfo
    struct rdriveinfo *next;
   };
 
-LOCALE void                           NetworkRetract(void *,struct patternMatch *);
-LOCALE void                           ReturnPartialMatch(void *,struct partialMatch *);
-LOCALE void                           DestroyPartialMatch(void *,struct partialMatch *);
-LOCALE void                           FlushGarbagePartialMatches(void *);
-LOCALE void                           DeletePartialMatches(void *,struct partialMatch *);
-LOCALE void                           PosEntryRetractBeta(void *,struct partialMatch *,struct partialMatch *);
-LOCALE void                           PosEntryRetractAlpha(void *,struct partialMatch *);
+void                           NetworkRetract(void *,struct patternMatch *);
+void                           ReturnPartialMatch(void *,struct partialMatch *);
+void                           DestroyPartialMatch(void *,struct partialMatch *);
+void                           FlushGarbagePartialMatches(void *);
+void                           DeletePartialMatches(void *,struct partialMatch *);
+void                           PosEntryRetractBeta(void *,struct partialMatch *,struct partialMatch *,int);
+void                           PosEntryRetractAlpha(void *,struct partialMatch *,int);
+bool                           PartialMatchWillBeDeleted(void *,struct partialMatch *);
 
 #endif /* _H_retract */
 

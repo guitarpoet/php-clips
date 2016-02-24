@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -35,13 +35,11 @@
 
 #include "bload.h"
 #include "bsave.h"
-
-#include "memalloc.h"
 #include "cstrcbin.h"
 #include "envrnmnt.h"
+#include "memalloc.h"
 #include "modulbin.h"
 
-#define _DFFNXBIN_SOURCE_
 #include "dffnxbin.h"
 
 /* =========================================
@@ -108,7 +106,7 @@ static void DeallocateDeffunctionBloadData(void *);
   SIDE EFFECTS : Routines defined and structures initialized
   NOTES        : None
  ***********************************************************/
-globle void SetupDeffunctionsBload(
+void SetupDeffunctionsBload(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,DFFNXBIN_DATA,sizeof(struct deffunctionBinaryData),DeallocateDeffunctionBloadData);
@@ -151,7 +149,7 @@ static void DeallocateDeffunctionBloadData(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-globle void *BloadDeffunctionModuleReference(
+void *BloadDeffunctionModuleReference(
   void *theEnv,
   int theIndex)
   {
@@ -190,7 +188,7 @@ static void BsaveDeffunctionFind(
 
    DeffunctionBinaryData(theEnv)->ModuleCount = 
       DoForAllConstructs(theEnv,MarkDeffunctionItems,DeffunctionData(theEnv)->DeffunctionModuleIndex,
-                         FALSE,NULL);
+                         false,NULL);
   }
 
 /***************************************************
@@ -231,7 +229,7 @@ static void BsaveDeffunctionExpressions(
   FILE *fp)
   {
    DoForAllConstructs(theEnv,BsaveDeffunctionExpression,DeffunctionData(theEnv)->DeffunctionModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
   }
 
 /***************************************************
@@ -315,7 +313,7 @@ static void BsaveDeffunctions(
       Write out each deffunction
       ========================== */
    DoForAllConstructs(theEnv,BsaveDeffunction,DeffunctionData(theEnv)->DeffunctionModuleIndex,
-                      FALSE,(void *) fp);
+                      false,(void *) fp);
 
    RestoreBloadCount(theEnv,&DeffunctionBinaryData(theEnv)->ModuleCount);
    RestoreBloadCount(theEnv,&DeffunctionBinaryData(theEnv)->DeffunctionCount);

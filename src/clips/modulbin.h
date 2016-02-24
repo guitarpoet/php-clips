@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           DEFMODULE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -23,11 +23,11 @@
 
 #ifndef _H_modulbin
 
+#pragma once
+
 #define _H_modulbin
 
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
 
 struct bsaveDefmodule
   {
@@ -55,23 +55,13 @@ struct bsavePortItem
 
 #define ModulePointer(i) ((struct defmodule *) (&DefmoduleData(theEnv)->DefmoduleArray[i]))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefmoduleBinarySetup(void *);
-   LOCALE void                           UpdateDefmoduleItemHeader
+   void                           DefmoduleBinarySetup(void *);
+   void                           UpdateDefmoduleItemHeader
                                                  (void *,struct bsaveDefmoduleItemHeader *,
                                                   struct defmoduleItemHeader *,int,void *);
 
 #if BLOAD_AND_BSAVE
-   LOCALE void                           AssignBsaveDefmdlItemHdrVals
+   void                           AssignBsaveDefmdlItemHdrVals
                                                  (struct bsaveDefmoduleItemHeader *,
                                                   struct defmoduleItemHeader *);
 #endif

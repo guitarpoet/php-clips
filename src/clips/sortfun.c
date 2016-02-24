@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                SORT FUNCTIONS MODULE                */
    /*******************************************************/
@@ -26,8 +26,6 @@
 /*            DeallocateSortFunctionData.                    */
 /*                                                           */
 /*************************************************************/
-
-#define _SORTFUN_SOURCE_
 
 #include "setup.h"
 
@@ -57,20 +55,20 @@ struct sortFunctionData
 
    static void                    DoMergeSort(void *,DATA_OBJECT *,DATA_OBJECT *,unsigned long,
                                               unsigned long,unsigned long,unsigned long,
-                                              int (*)(void *,DATA_OBJECT *,DATA_OBJECT *));
-   static int                     DefaultCompareSwapFunction(void *,DATA_OBJECT *,DATA_OBJECT *);
+                                              bool (*)(void *,DATA_OBJECT *,DATA_OBJECT *));
+   static bool                    DefaultCompareSwapFunction(void *,DATA_OBJECT *,DATA_OBJECT *);
    static void                    DeallocateSortFunctionData(void *);
    
 /****************************************/
 /* SortFunctionDefinitions: Initializes */
 /*   the sorting functions.             */
 /****************************************/
-globle void SortFunctionDefinitions(
+void SortFunctionDefinitions(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,SORTFUN_DATA,sizeof(struct sortFunctionData),DeallocateSortFunctionData);
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"sort",'u', PTIEF SortFunction,"SortFunction","1**w");
+   EnvAddUDF(theEnv,"sort","bm", SortFunction,"SortFunction",1,UNBOUNDED, "*;y",NULL);
 #endif
   }
 
@@ -84,10 +82,10 @@ static void DeallocateSortFunctionData(
    ReturnExpression(theEnv,SortFunctionData(theEnv)->SortComparisonFunction);
   }
 
-/**************************************/
+/********************************/
 /* DefaultCompareSwapFunction:  */
-/**************************************/
-static int DefaultCompareSwapFunction(
+/********************************/
+static bool DefaultCompareSwapFunction(
   void *theEnv,
   DATA_OBJECT *item1,
   DATA_OBJECT *item2)
@@ -104,18 +102,18 @@ static int DefaultCompareSwapFunction(
 
    if ((GetType(returnValue) == SYMBOL) &&
        (GetValue(returnValue) == EnvFalseSymbol(theEnv)))
-     { return(FALSE); }
+     { return(false); }
 
-   return(TRUE);
+   return(true);
   }
 
-/**************************************/
-/* SortFunction: H/L access routine   */
-/*   for the rest$ function.          */
-/**************************************/
-globle void SortFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+/************************************/
+/* SortFunction: H/L access routine */
+/*   for the rest$ function.        */
+/************************************/
+void SortFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    long argumentCount, i, j, k = 0;
    DATA_OBJECT *theArguments, *theArguments2;
@@ -125,6 +123,7 @@ globle void SortFunction(
    struct expr *functionReference;
    int argumentSize = 0;
    struct FunctionDefinition *fptr;
+   Environment *theEnv = UDFContextEnvironment(context);
 #if DEFFUNCTION_CONSTRUCT
    DEFFUNCTION *dptr;
 #endif
@@ -133,21 +132,13 @@ globle void SortFunction(
    /* Set up the default return value. */
    /*==================================*/
 
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
-
-   /*=============================================*/
-   /* The function expects at least one argument. */
-   /*=============================================*/
-
-   if ((argumentCount = EnvArgCountCheck(theEnv,"sort",AT_LEAST,1)) == -1)
-     { return; }
-
+   mCVSetBoolean(returnValue,false);
+ 
    /*=============================================*/
    /* Verify that the comparison function exists. */
    /*=============================================*/
 
-   if (EnvArgTypeCheck(theEnv,"sort",1,SYMBOL,&theArg) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"sort",1,SYMBOL,&theArg) == false)
      { return; }
 
    functionName = DOToString(theArg);
@@ -200,7 +191,9 @@ globle void SortFunction(
    /* If there are no items to be sorted, */
    /* then return an empty multifield.    */
    /*=====================================*/
-
+  
+   argumentCount = UDFArgumentCount(context);
+ 
    if (argumentCount == 1)
      {
       EnvSetMultifieldErrorValue(theEnv,returnValue);
@@ -300,7 +293,7 @@ void MergeSort(
   void *theEnv,
   unsigned long listSize,
   DATA_OBJECT *theList,
-  int (*swapFunction)(void *,DATA_OBJECT *,DATA_OBJECT  *))
+  bool (*swapFunction)(void *,DATA_OBJECT *,DATA_OBJECT  *))
   {
    DATA_OBJECT *tempList;
    unsigned long middle;
@@ -342,7 +335,7 @@ static void DoMergeSort(
   unsigned long e1,
   unsigned long s2,
   unsigned long e2,
-  int (*swapFunction)(void *,DATA_OBJECT *,DATA_OBJECT *))
+  bool (*swapFunction)(void *,DATA_OBJECT *,DATA_OBJECT *))
   {
    DATA_OBJECT temp;
    unsigned long middle, size;

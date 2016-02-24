@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             TEXT PROCESSING HEADER FILE             */
    /*******************************************************/
@@ -47,26 +47,18 @@
 
 #ifndef _H_textpro
 
+#pragma once
+
 #define _H_textpro
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TEXTPRO_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
 #if TEXTPRO_FUNCTIONS
-   LOCALE void                           FetchCommand(void *,DATA_OBJECT *);
-   LOCALE int                            PrintRegionCommand(void *);
-   LOCALE void                          *GetRegionCommand(void *);
-   int                                   TossCommand(void *);
+   void                           FetchCommand(UDFContext *,CLIPSValue *);
+   void                           PrintRegionCommand(UDFContext *,CLIPSValue *);
+   void                           GetRegionCommand(UDFContext *,CLIPSValue *);
+   void                           TossCommand(UDFContext *,CLIPSValue *);
 #endif
 
-   LOCALE void                           HelpFunctionDefinitions(void *);
+   void                           HelpFunctionDefinitions(void *);
 
 #endif /* _H_textpro */
 

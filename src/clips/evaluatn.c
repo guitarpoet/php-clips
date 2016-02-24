@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*                  EVALUATION MODULE                  */
    /*******************************************************/
@@ -42,12 +42,17 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Callbacks must be environment aware.           */
+/*                                                           */
 /*************************************************************/
 
-#define _EVALUATN_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -60,10 +65,8 @@
 #include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
-#include "extnfunc.h"
 #include "prcdrfun.h"
 #include "multifld.h"
-#include "factmngr.h"
 #include "prntutil.h"
 #include "exprnpsr.h"
 #include "utility.h"
@@ -80,6 +83,7 @@
 
 #if OBJECT_SYSTEM
 #include "object.h"
+#include "inscom.h"
 #endif
 
 #include "evaluatn.h"
@@ -92,14 +96,14 @@
    static void                    PrintCAddress(void *,const char *,void *);
    static void                    NewCAddress(void *,DATA_OBJECT *);
    /*
-   static intBool                 DiscardCAddress(void *,void *);
+   static bool                    DiscardCAddress(void *,void *);
    */
    
 /**************************************************/
 /* InitializeEvaluationData: Allocates environment */
 /*    data for expression evaluation.             */
 /**************************************************/
-globle void InitializeEvaluationData(
+void InitializeEvaluationData(
   void *theEnv)
   {
    struct externalAddressType cPointer = { "C", PrintCAddress, PrintCAddress, NULL, NewCAddress, NULL };
@@ -123,10 +127,10 @@ static void DeallocateEvaluationData(
   }
 
 /**************************************************************/
-/* EvaluateExpression: Evaluates an expression. Returns FALSE */
-/*   if no errors occurred during evaluation, otherwise TRUE. */
+/* EvaluateExpression: Evaluates an expression. Returns false */
+/*   if no errors occurred during evaluation, otherwise true. */
 /**************************************************************/
-globle int EvaluateExpression(
+bool EvaluateExpression(
   void *theEnv,
   struct expr *problem,
   DATA_OBJECT_PTR returnValue)
@@ -134,10 +138,15 @@ globle int EvaluateExpression(
    struct expr *oldArgument;
    void *oldContext;
    struct FunctionDefinition *fptr;
+   UDFContext theUDFContext;
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
 
+   returnValue->environment = theEnv;
+   returnValue->type = RVOID;
+   returnValue->bitType = VOID_TYPE;
+   
    if (problem == NULL)
      {
       returnValue->type = SYMBOL;
@@ -182,173 +191,88 @@ globle int EvaluateExpression(
          switch(fptr->returnValueType)
            {
             case 'v' :
-              if (fptr->environmentAware)
-                { (* (void (*)(void *)) fptr->functionPointer)(theEnv); }
-              else
-                { (* (void (*)(void)) fptr->functionPointer)(); }
+              (* (void (*)(void *)) fptr->functionPointer)(theEnv);
               returnValue->type = RVOID;
               returnValue->value = EnvFalseSymbol(theEnv);
               break;
             case 'b' :
               returnValue->type = SYMBOL;
-              if (fptr->environmentAware)
-                {
-                 if ((* (int (*)(void *)) fptr->functionPointer)(theEnv))
-                   returnValue->value = EnvTrueSymbol(theEnv);
-                 else
-                   returnValue->value = EnvFalseSymbol(theEnv);
-                }
+              if ((* (bool (*)(void *)) fptr->functionPointer)(theEnv))
+                returnValue->value = EnvTrueSymbol(theEnv);
               else
-                {
-                 if ((* (int (*)(void)) fptr->functionPointer)())
-                   returnValue->value = EnvTrueSymbol(theEnv);
-                 else
-                   returnValue->value = EnvFalseSymbol(theEnv);
-                }
+                returnValue->value = EnvFalseSymbol(theEnv);
               break;
             case 'a' :
               returnValue->type = EXTERNAL_ADDRESS;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value =
-                                (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
-                }
-              else
-                {
-                 returnValue->value =
-                                (* (void *(*)(void)) fptr->functionPointer)();
-                }
+              returnValue->value =
+                             (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
               break;
             case 'g' :
               returnValue->type = INTEGER;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                   EnvAddLong(theEnv,(* (long long (*)(void *)) fptr->functionPointer)(theEnv));
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                   EnvAddLong(theEnv,(* (long long (*)(void)) fptr->functionPointer)());
-                }
+              returnValue->value = (void *)
+                EnvAddLong(theEnv,(* (long long (*)(void *)) fptr->functionPointer)(theEnv));
               break;
             case 'i' :
               returnValue->type = INTEGER;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                   EnvAddLong(theEnv,(long long) (* (int (*)(void *)) fptr->functionPointer)(theEnv));
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                   EnvAddLong(theEnv,(long long) (* (int (*)(void)) fptr->functionPointer)());
-                }
+              returnValue->value = (void *)
+                EnvAddLong(theEnv,(long long) (* (int (*)(void *)) fptr->functionPointer)(theEnv));
               break;
             case 'l' :
               returnValue->type = INTEGER;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                    EnvAddLong(theEnv,(long long) (* (long int (*)(void *)) fptr->functionPointer)(theEnv));
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                    EnvAddLong(theEnv,(long long) (* (long int (*)(void)) fptr->functionPointer)());
-                }
+              returnValue->value = (void *)
+                 EnvAddLong(theEnv,(long long) (* (long int (*)(void *)) fptr->functionPointer)(theEnv));
               break;
             case 'f' :
               returnValue->type = FLOAT;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                    EnvAddDouble(theEnv,(double) (* (float (*)(void *)) fptr->functionPointer)(theEnv));
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                    EnvAddDouble(theEnv,(double) (* (float (*)(void)) fptr->functionPointer)());
-                }
+              returnValue->value = (void *)
+                 EnvAddDouble(theEnv,(double) (* (float (*)(void *)) fptr->functionPointer)(theEnv));
               break;
             case 'd' :
               returnValue->type = FLOAT;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                    EnvAddDouble(theEnv,(* (double (*)(void *)) fptr->functionPointer)(theEnv));
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                    EnvAddDouble(theEnv,(* (double (*)(void)) fptr->functionPointer)());
-                }
+              returnValue->value = (void *)
+                 EnvAddDouble(theEnv,(* (double (*)(void *)) fptr->functionPointer)(theEnv));
               break;
             case 's' :
               returnValue->type = STRING;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                   (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                   (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
-                }
+              returnValue->value = (void *)
+                (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
               break;
             case 'w' :
               returnValue->type = SYMBOL;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                   (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                   (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
-                }
+              returnValue->value = (void *)
+                (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
               break;
 #if OBJECT_SYSTEM
             case 'x' :
               returnValue->type = INSTANCE_ADDRESS;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value =
-                                (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
-                }
-              else
-                {
-                 returnValue->value =
-                                (* (void *(*)(void)) fptr->functionPointer)();
-                }
+              returnValue->value =
+                              (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
+              if (returnValue->value == NULL)
+                { returnValue->value = (void *) &InstanceData(theEnv)->DummyInstance; }
+                
               break;
             case 'o' :
               returnValue->type = INSTANCE_NAME;
-              if (fptr->environmentAware)
-                {
-                 returnValue->value = (void *)
-                   (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
-                }
-              else
-                {
-                 returnValue->value = (void *)
-                   (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
-                }
+              returnValue->value = (void *)
+                (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
               break;
 #endif
+
+#if DEFTEMPLATE_CONSTRUCT
+            case 'y' :
+              returnValue->type = FACT_ADDRESS;
+              returnValue->value =
+                             (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
+              if (returnValue->value == NULL)
+                { returnValue->value = (void *) &FactData(theEnv)->DummyFact; }
+                
+              break;
+#endif
+
             case 'c' :
               {
                char cbuff[2];
-               if (fptr->environmentAware)
-                 {
-                  cbuff[0] = (* (char (*)(void *)) fptr->functionPointer)(theEnv);
-                 }
-               else
-                 {
-                  cbuff[0] = (* (char (*)(void)) fptr->functionPointer)();
-                 }
+               cbuff[0] = (* (char (*)(void *)) fptr->functionPointer)(theEnv);
                cbuff[1] = EOS;
                returnValue->type = SYMBOL;
                returnValue->value = (void *) EnvAddSymbol(theEnv,cbuff);
@@ -360,14 +284,16 @@ globle int EvaluateExpression(
             case 'm' :
             case 'n' :
             case 'u' :
-               if (fptr->environmentAware)
-                 {
-                  (* (void (*)(void *,DATA_OBJECT_PTR)) fptr->functionPointer)(theEnv,returnValue);
-                 }
-               else
-                 {
-                  (* (void (*)(DATA_OBJECT_PTR)) fptr->functionPointer)(returnValue);
-                 }
+              (* (void (*)(void *,DATA_OBJECT_PTR)) fptr->functionPointer)(theEnv,returnValue);
+              break;
+
+            case 'z' :
+              theUDFContext.environment = theEnv;
+              theUDFContext.theFunction = fptr;
+              theUDFContext.lastArg = problem->argList;
+              theUDFContext.lastPosition = 1;
+              theUDFContext.returnValue = returnValue;
+              (* (void (*)(UDFContext *,DATA_OBJECT_PTR)) fptr->functionPointer)(&theUDFContext,returnValue);
               break;
 
             default :
@@ -394,15 +320,15 @@ globle int EvaluateExpression(
 
      case MF_VARIABLE:
      case SF_VARIABLE:
-        if (GetBoundVariable(theEnv,returnValue,(SYMBOL_HN *) problem->value) == FALSE)
+        if (GetBoundVariable(theEnv,returnValue,(SYMBOL_HN *) problem->value) == false)
           {
-           PrintErrorID(theEnv,"EVALUATN",1,FALSE);
+           PrintErrorID(theEnv,"EVALUATN",1,false);
            EnvPrintRouter(theEnv,WERROR,"Variable ");
            EnvPrintRouter(theEnv,WERROR,ValueToString(problem->value));
            EnvPrintRouter(theEnv,WERROR," is unbound\n");
            returnValue->type = SYMBOL;
            returnValue->value = EnvFalseSymbol(theEnv);
-           SetEvaluationError(theEnv,TRUE);
+           EnvSetEvaluationError(theEnv,true);
           }
         break;
 
@@ -452,7 +378,7 @@ globle int EvaluateExpression(
 /* InstallPrimitive: Installs a primitive */
 /*   data type in the primitives array.   */
 /******************************************/
-globle void InstallPrimitive(
+void InstallPrimitive(
   void *theEnv,
   struct entityRecord *thePrimitive,
   int whichPosition)
@@ -470,7 +396,7 @@ globle void InstallPrimitive(
 /* InstallExternalAddressType: Installs an external   */
 /*   address type in the external address type array. */
 /******************************************************/
-globle int InstallExternalAddressType(
+int InstallExternalAddressType(
   void *theEnv,
   struct externalAddressType *theAddressType)
   {
@@ -494,38 +420,38 @@ globle int InstallExternalAddressType(
 /******************************************************/
 /* SetEvaluationError: Sets the EvaluationError flag. */
 /******************************************************/
-globle void SetEvaluationError(
+void EnvSetEvaluationError(
   void *theEnv,
-  int value)
+  bool value)
   {
    EvaluationData(theEnv)->EvaluationError = value;
-   if (value == TRUE) 
-     { EvaluationData(theEnv)->HaltExecution = TRUE; }
+   if (value == true)
+     { EvaluationData(theEnv)->HaltExecution = true; }
   }
 
 /*********************************************************/
 /* GetEvaluationError: Returns the EvaluationError flag. */
 /*********************************************************/
-globle int GetEvaluationError(
+bool EnvGetEvaluationError(
   void *theEnv)
   {
    return(EvaluationData(theEnv)->EvaluationError);
   }
 
-/**************************************************/
-/* SetHaltExecution: Sets the HaltExecution flag. */
-/**************************************************/
-globle void SetHaltExecution(
+/*****************************************************/
+/* EnvSetHaltExecution: Sets the HaltExecution flag. */
+/*****************************************************/
+void EnvSetHaltExecution(
   void *theEnv,
-  int value)
+  bool value)
   { 
    EvaluationData(theEnv)->HaltExecution = value; 
   }
 
-/*****************************************************/
-/* GetHaltExecution: Returns the HaltExecution flag. */
-/*****************************************************/
-globle int GetHaltExecution(
+/********************************************************/
+/* EnvGetHaltExecution: Returns the HaltExecution flag. */
+/********************************************************/
+bool EnvGetHaltExecution(
   void *theEnv)
   {
    return(EvaluationData(theEnv)->HaltExecution);
@@ -535,10 +461,10 @@ globle int GetHaltExecution(
 /* ReturnValues: Returns a linked list of DATA_OBJECT */
 /*   structures to the pool of free memory.           */
 /******************************************************/
-globle void ReturnValues(
+void ReturnValues(
   void *theEnv,
   DATA_OBJECT_PTR garbagePtr,
-  intBool decrementSupplementalInfo)
+  bool decrementSupplementalInfo)
   {
    DATA_OBJECT_PTR nextPtr;
 
@@ -557,7 +483,7 @@ globle void ReturnValues(
 /* PrintDataObject: Prints a DATA_OBJECT structure */
 /*   to the specified logical name.                */
 /***************************************************/
-globle void PrintDataObject(
+void PrintDataObject(
   void *theEnv,
   const char *fileid,
   DATA_OBJECT_PTR argPtr)
@@ -581,7 +507,7 @@ globle void PrintDataObject(
 
       case MULTIFIELD:
         PrintMultifield(theEnv,fileid,(struct multifield *) argPtr->value,
-                        argPtr->begin,argPtr->end,TRUE);
+                        argPtr->begin,argPtr->end,true);
         break;
 
       default:
@@ -602,8 +528,8 @@ globle void PrintDataObject(
         EnvPrintRouter(theEnv,fileid,"<UnknownPrintType");
         PrintLongInteger(theEnv,fileid,(long int) argPtr->type);
         EnvPrintRouter(theEnv,fileid,">");
-        SetHaltExecution(theEnv,TRUE);
-        SetEvaluationError(theEnv,TRUE);
+        EnvSetHaltExecution(theEnv,true);
+        EnvSetEvaluationError(theEnv,true);
         break;
      }
   }
@@ -612,11 +538,12 @@ globle void PrintDataObject(
 /* EnvSetMultifieldErrorValue: Creates a multifield */
 /*   value of length zero for error returns.        */
 /****************************************************/
-globle void EnvSetMultifieldErrorValue(
+void EnvSetMultifieldErrorValue(
   void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    returnValue->type = MULTIFIELD;
+   returnValue->bitType = MULTIFIELD_TYPE;
    returnValue->value = EnvCreateMultifield(theEnv,0L);
    returnValue->begin = 1;
    returnValue->end = 0;
@@ -626,7 +553,7 @@ globle void EnvSetMultifieldErrorValue(
 /* ValueInstall: Increments the appropriate count */
 /*   (in use) values for a DATA_OBJECT structure. */
 /**************************************************/
-globle void ValueInstall(
+void ValueInstall(
   void *theEnv,
   DATA_OBJECT *vPtr)
   {
@@ -638,7 +565,7 @@ globle void ValueInstall(
 /* ValueDeinstall: Decrements the appropriate count */
 /*   (in use) values for a DATA_OBJECT structure.   */
 /****************************************************/
-globle void ValueDeinstall(
+void ValueDeinstall(
   void *theEnv,
   DATA_OBJECT *vPtr)
   {
@@ -650,7 +577,7 @@ globle void ValueDeinstall(
 /* AtomInstall: Increments the reference */
 /*   count of an atomic data type.       */
 /*****************************************/
-globle void AtomInstall(
+void AtomInstall(
   void *theEnv,
   int type,
   void *vPtr)
@@ -700,7 +627,7 @@ globle void AtomInstall(
 /* AtomDeinstall: Decrements the reference */
 /*   count of an atomic data type.         */
 /*******************************************/
-globle void AtomDeinstall(
+void AtomDeinstall(
   void *theEnv,
   int type,
   void *vPtr)
@@ -752,7 +679,7 @@ globle void AtomDeinstall(
 /*   Generic Functions to be called from C. */
 /*   Allows only constants as arguments.    */
 /********************************************/
-globle int EnvFunctionCall(
+bool EnvFunctionCall(
   void *theEnv,
   const char *name,
   const char *args,
@@ -773,11 +700,11 @@ globle int EnvFunctionCall(
    /* the specified function name.                            */
    /*=========================================================*/
 
-   PrintErrorID(theEnv,"EVALUATN",2,FALSE);
+   PrintErrorID(theEnv,"EVALUATN",2,false);
    EnvPrintRouter(theEnv,WERROR,"No function, generic function or deffunction of name ");
    EnvPrintRouter(theEnv,WERROR,name);
    EnvPrintRouter(theEnv,WERROR," exists for external call.\n");
-   return(TRUE);
+   return(true);
   }
 
 /********************************************/
@@ -785,14 +712,14 @@ globle int EnvFunctionCall(
 /*   Generic Functions to be called from C. */
 /*   Allows only constants as arguments.    */
 /********************************************/
-globle int FunctionCall2(
+bool FunctionCall2(
   void *theEnv,
   FUNCTION_REFERENCE *theReference,
   const char *args,
   DATA_OBJECT *result)
   {
    EXPRESSION *argexps;
-   int error = FALSE;
+   bool error = false;
 
    /*=============================================*/
    /* Force periodic cleanup if the function call */
@@ -810,8 +737,8 @@ globle int FunctionCall2(
    /* Reset the error state. */
    /*========================*/
 
-   if (UtilityData(theEnv)->CurrentGarbageFrame->topLevel) SetHaltExecution(theEnv,FALSE);
-   EvaluationData(theEnv)->EvaluationError = FALSE;
+   if (UtilityData(theEnv)->CurrentGarbageFrame->topLevel) EnvSetHaltExecution(theEnv,false);
+   EvaluationData(theEnv)->EvaluationError = false;
 
    /*======================================*/
    /* Initialize the default return value. */
@@ -825,7 +752,7 @@ globle int FunctionCall2(
    /*============================*/
 
    argexps = ParseConstantArguments(theEnv,args,&error);
-   if (error == TRUE) return(TRUE);
+   if (error == true) return(true);
 
    /*====================*/
    /* Call the function. */
@@ -854,7 +781,7 @@ globle int FunctionCall2(
 /* CopyDataObject: Copies the values from a source */
 /*   DATA_OBJECT to a destination DATA_OBJECT.     */
 /***************************************************/
-globle void CopyDataObject(
+void CopyDataObject(
   void *theEnv,
   DATA_OBJECT *dst,
   DATA_OBJECT *src,
@@ -878,7 +805,7 @@ globle void CopyDataObject(
 /*   directly from a source DATA_OBJECT to a   */
 /*   destination DATA_OBJECT.                  */
 /***********************************************/
-globle void TransferDataObjectValues(
+void TransferDataObjectValues(
   DATA_OBJECT *dst,
   DATA_OBJECT *src)
   {
@@ -896,7 +823,7 @@ globle void TransferDataObjectValues(
 /*   is generated and the chain is linked by the nextArg field. For a   */
 /*   single field value, a single expression is created.                */
 /************************************************************************/
-globle struct expr *ConvertValueToExpression(
+struct expr *ConvertValueToExpression(
   void *theEnv,
   DATA_OBJECT *theValue)
   {
@@ -988,7 +915,7 @@ unsigned long GetAtomicHashValue(
 /*   name if it is the name of a deffunction, defgeneric,  */
 /*   or user/system defined function.                      */
 /***********************************************************/
-globle struct expr *FunctionReferenceExpression(
+struct expr *FunctionReferenceExpression(
   void *theEnv,
   const char *name)
   {
@@ -1040,7 +967,7 @@ globle struct expr *FunctionReferenceExpression(
 /*   name of a deffunction, defgeneric, or user/system defined    */
 /*   function.                                                    */
 /******************************************************************/
-globle intBool GetFunctionReference(
+bool GetFunctionReference(
   void *theEnv,
   const char *name,
   FUNCTION_REFERENCE *theReference)
@@ -1067,7 +994,7 @@ globle intBool GetFunctionReference(
      {
       theReference->type = PCALL;
       theReference->value = dptr;
-      return(TRUE);
+      return(true);
      }
 #endif
 
@@ -1080,7 +1007,7 @@ globle intBool GetFunctionReference(
      {
       theReference->type = GCALL;
       theReference->value = gfunc;
-      return(TRUE);
+      return(true);
      }
 #endif
 
@@ -1093,7 +1020,7 @@ globle intBool GetFunctionReference(
      {
       theReference->type = FCALL;
       theReference->value = fptr;
-      return(TRUE);
+      return(true);
      }
 
    /*===================================================*/
@@ -1101,28 +1028,28 @@ globle intBool GetFunctionReference(
    /* defgeneric, or user/system defined function.      */
    /*===================================================*/
 
-   return(FALSE);
+   return(false);
   }
 
 /*******************************************************/
 /* DOsEqual: Determines if two DATA_OBJECTS are equal. */
 /*******************************************************/
-globle intBool DOsEqual(
+bool DOsEqual(
   DATA_OBJECT_PTR dobj1,
   DATA_OBJECT_PTR dobj2)
   {
    if (GetpType(dobj1) != GetpType(dobj2))
-     { return(FALSE); }
+     { return(false); }
 
    if (GetpType(dobj1) == MULTIFIELD)
      {
-      if (MultifieldDOsEqual(dobj1,dobj2) == FALSE)
-        { return(FALSE); }
+      if (MultifieldDOsEqual(dobj1,dobj2) == false)
+        { return(false); }
      }
    else if (GetpValue(dobj1) != GetpValue(dobj2))
-     { return(FALSE); }
+     { return(false); }
 
-   return(TRUE);
+   return(true);
   }
 
 /***********************************************************
@@ -1135,17 +1062,17 @@ globle intBool DOsEqual(
                  3) The data object structure
                  4) Flag indicating if a multifield value
                     should be placed on the garbage list.
-  RETURNS      : FALSE on errors, TRUE otherwise
+  RETURNS      : false on errors, true otherwise
   SIDE EFFECTS : Segment allocated for storing
                  multifield values
   NOTES        : None
  ***********************************************************/
-globle int EvaluateAndStoreInDataObject(
+bool EvaluateAndStoreInDataObject(
   void *theEnv,
-  int mfp,
+  bool mfp,
   EXPRESSION *theExp,
   DATA_OBJECT *val,
-  int garbageSegment)
+  bool garbageSegment)
   {
    val->type = MULTIFIELD;
    val->begin = 0;
@@ -1156,20 +1083,216 @@ globle int EvaluateAndStoreInDataObject(
       if (garbageSegment) val->value = EnvCreateMultifield(theEnv,0L);
       else val->value = CreateMultifield2(theEnv,0L);
 
-      return(TRUE);
+      return(true);
      }
 
-   if ((mfp == 0) && (theExp->nextArg == NULL))
+   if ((mfp == false) && (theExp->nextArg == NULL))
      EvaluateExpression(theEnv,theExp,val);
    else
      StoreInMultifield(theEnv,val,theExp,garbageSegment);
    
-   return(EvaluationData(theEnv)->EvaluationError ? FALSE : TRUE);
+   return(EvaluationData(theEnv)->EvaluationError ? false : true);
   }
 
-/*******************************************************/
-/* PrintCAddress:  */
-/*******************************************************/
+/******************/
+/* MFSetNthValueF */
+/******************/
+void MFSetNthValueF(
+  CLIPSValue *mf,
+  CLIPSInteger n,
+  CLIPSValue *nv)
+  {
+   ((struct field *) ((struct multifield *) (mf->value))->theFields)[(mf->begin + n) - 1].type = nv->type;
+   ((struct field *) ((struct multifield *) (mf->value))->theFields)[(mf->begin + n) - 1].value = nv->value;
+  }
+
+/***********************/
+/* CVCreateMultifieldF */
+/***********************/
+void CVCreateMultifieldF(
+  CLIPSValue *mf,
+  CLIPSInteger size)
+  {
+   mf->value = EnvCreateMultifield(mf->environment,size);
+   mf->bitType = MULTIFIELD_TYPE;
+   mf->type = MULTIFIELD;
+   mf->begin = 0;
+   mf->end = size - 1;
+  }
+
+/************/
+/* CVIsType */
+/************/
+bool CVIsType(
+  CLIPSValue *theValue,
+  unsigned expectedType)
+  {
+   return (theValue->bitType & expectedType);
+  }
+
+/*************/
+/* EnvCVInit */
+/*************/
+void EnvCVInit(
+  Environment *theEnv,
+  CLIPSValue *theValue)
+  {
+   theValue->environment = theEnv;
+  }
+
+/**************/
+/* CVToString */
+/**************/
+CLIPSString CVToString(
+  CLIPSValue *theValue)
+  {
+   if (mCVIsType(theValue,LEXEME_TYPES | INSTANCE_NAME_TYPE))
+     { return ((struct symbolHashNode *) theValue->value)->contents; }
+   else
+     { return NULL; }
+  }
+
+/***************/
+/* CVToInteger */
+/***************/
+CLIPSInteger CVToInteger(
+  CLIPSValue *theValue)
+  {
+   if (mCVIsType(theValue,INTEGER_TYPE))
+     { return ((struct integerHashNode *) theValue->value)->contents; }
+   else if (mCVIsType(theValue,FLOAT_TYPE))
+     { return (CLIPSInteger) ((struct floatHashNode *) theValue->value)->contents; }
+   else
+     { return 0LL; }
+  }
+
+/*************/
+/* CVToFloat */
+/*************/
+CLIPSFloat CVToFloat(
+  CLIPSValue *theValue)
+  {
+   if (mCVIsType(theValue,FLOAT_TYPE))
+     { return ((struct floatHashNode *) theValue->value)->contents; }
+   else if (mCVIsType(theValue,INTEGER_TYPE))
+     { return (CLIPSFloat) ((struct integerHashNode *) theValue->value)->contents; }
+   else
+     { return 0.0; }
+  }
+
+/*************/
+/* CVSetVoid */
+/*************/
+void CVSetVoid(
+  CLIPSValue *theValue)
+  {
+   theValue->value = NULL;
+   theValue->bitType = VOID_TYPE;
+   theValue->type = RVOID;
+  }
+
+/****************/
+/* CVSetInteger */
+/****************/
+void CVSetInteger(
+  CLIPSValue *theValue,
+  CLIPSInteger iv)
+  {
+   theValue->value = EnvAddLong(theValue->environment,iv);
+   theValue->bitType = INTEGER_TYPE;
+   theValue->type = INTEGER;
+  }
+
+/**************/
+/* CVSetFloat */
+/**************/
+void CVSetFloat(
+  CLIPSValue *theValue,
+  CLIPSFloat fv)
+  {
+   theValue->value = EnvAddDouble(theValue->environment,fv);
+   theValue->bitType = FLOAT_TYPE;
+   theValue->type = FLOAT;
+  }
+
+/***************/
+/* CVSetString */
+/***************/
+void CVSetString(
+  CLIPSValue *theValue,
+  CLIPSString sv)
+  {
+   theValue->value = EnvAddSymbol(theValue->environment,sv);
+   theValue->bitType = STRING_TYPE;
+   theValue->type = STRING;
+  }
+
+/***************/
+/* CVSetSymbol */
+/***************/
+void CVSetSymbol(
+  CLIPSValue *theValue,
+  CLIPSString sv)
+  {
+   theValue->value = EnvAddSymbol(theValue->environment,sv);
+   theValue->bitType = SYMBOL_TYPE;
+   theValue->type = SYMBOL;
+  }
+
+/*********************/
+/* CVSetInstanceName */
+/*********************/
+void CVSetInstanceName(
+  CLIPSValue *theValue,
+  CLIPSString sv)
+  {
+   theValue->value = EnvAddSymbol(theValue->environment,sv);
+   theValue->bitType = INSTANCE_NAME_TYPE;
+   theValue->type = INSTANCE_NAME;
+  }
+
+/********************/
+/* CVSetFactAddress */
+/********************/
+void CVSetFactAddress(
+  CLIPSValue *theValue,
+  Fact *fv)
+  {
+   theValue->value = fv;
+   theValue->bitType = FACT_ADDRESS_TYPE;
+   theValue->type = FACT_ADDRESS;
+  }
+
+/************************/
+/* CVSetInstanceAddress */
+/************************/
+void CVSetInstanceAddress(
+  CLIPSValue *theValue,
+  Instance *iv)
+  {
+   theValue->value = iv;
+   theValue->bitType = INSTANCE_ADDRESS_TYPE;
+   theValue->type = INSTANCE_ADDRESS;
+  }
+
+/****************/
+/* CVSetBoolean */
+/****************/
+void CVSetBoolean(
+  CLIPSValue *theValue,
+  bool bv)
+  {
+   if (bv)
+     { theValue->value = SymbolData(theValue->environment)->TrueSymbolHN; }
+   else
+     { theValue->value = SymbolData(theValue->environment)->FalseSymbolHN; }
+   theValue->bitType = (SYMBOL_TYPE | BOOLEAN_TYPE);
+   theValue->type = SYMBOL;
+  }
+
+/******************/
+/* PrintCAddress: */
+/******************/
 static void PrintCAddress(
   void *theEnv,
   const char *logicalName,
@@ -1197,9 +1320,9 @@ static void NewCAddress(
       
    if (numberOfArguments != 1)
      {
-      PrintErrorID(theEnv,"NEW",1,FALSE);
+      PrintErrorID(theEnv,"NEW",1,false);
       EnvPrintRouter(theEnv,WERROR,"Function new expected no additional arguments for the C external language type.\n");
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       return;
      }
 
@@ -1207,40 +1330,17 @@ static void NewCAddress(
    SetpValue(rv,EnvAddExternalAddress(theEnv,NULL,0));
   }
 
-/*******************************************************/
+/*******************************/
 /* DiscardCAddress: TBD Remove */
-/*******************************************************/
+/*******************************/
 /*
-static intBool DiscardCAddress(
+static bool DiscardCAddress(
   void *theEnv,
   void *theValue)
   {
    EnvPrintRouter(theEnv,WDISPLAY,"Discarding C Address\n");
    
-   return TRUE;
+   return true;
   }
 */
-
-/*##################################*/
-/* Additional Environment Functions */
-/*##################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle void SetMultifieldErrorValue(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
-  {
-   EnvSetMultifieldErrorValue(GetCurrentEnvironment(),returnValue);
-  }
-
-globle int FunctionCall(
-  const char *name,
-  const char *args,
-  DATA_OBJECT *result)
-  {
-   return EnvFunctionCall(GetCurrentEnvironment(),name,args,result);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 

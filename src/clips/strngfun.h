@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             STRING FUNCTIONS HEADER FILE            */
    /*******************************************************/
@@ -40,42 +40,27 @@
 
 #ifndef _H_strngfun
 
+#pragma once
+
 #define _H_strngfun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _STRNGFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-   LOCALE int                            Build(const char *);
-   LOCALE int                            Eval(const char *,DATA_OBJECT_PTR);
-#endif
-
-   LOCALE int                            EnvBuild(void *,const char *);
-   LOCALE int                            EnvEval(void *,const char *,DATA_OBJECT_PTR);
-   LOCALE void                           StringFunctionDefinitions(void *);
-   LOCALE void                           StrCatFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           SymCatFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      StrLengthFunction(void *);
-   LOCALE void                           UpcaseFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           LowcaseFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      StrCompareFunction(void *);
-   LOCALE void                          *SubStringFunction(void *);
-   LOCALE void                           StrIndexFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EvalFunction(void *,DATA_OBJECT_PTR);
-   LOCALE int                            BuildFunction(void *);
-   LOCALE void                           StringToFieldFunction(void *,DATA_OBJECT *);
-   LOCALE void                           StringToField(void *,const char *,DATA_OBJECT *);
+   bool                           EnvBuild(void *,const char *);
+   bool                           EnvEval(void *,const char *,DATA_OBJECT_PTR);
+   void                           StringFunctionDefinitions(void *);
+   void                           StrCatFunction(UDFContext *,CLIPSValue *);
+   void                           SymCatFunction(UDFContext *,CLIPSValue *);
+   void                           StrLengthFunction(UDFContext *,CLIPSValue *);
+   void                           UpcaseFunction(UDFContext *,CLIPSValue *);
+   void                           LowcaseFunction(UDFContext *,CLIPSValue *);
+   void                           StrCompareFunction(UDFContext *,CLIPSValue *);
+   void                           SubStringFunction(UDFContext *,CLIPSValue *);
+   void                           StrIndexFunction(UDFContext *,CLIPSValue *);
+   void                           EvalFunction(UDFContext *,CLIPSValue *);
+   void                           BuildFunction(UDFContext *,CLIPSValue *);
+   void                           StringToFieldFunction(UDFContext *,CLIPSValue *);
+   void                           StringToField(void *,const char *,DATA_OBJECT *);
 
 #endif /* _H_strngfun */
 

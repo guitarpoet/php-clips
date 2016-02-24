@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*          RULE DELETION MODULE HEADER FILE           */
    /*******************************************************/
@@ -35,20 +35,12 @@
 
 #ifndef _H_ruledlt
 
+#pragma once
+
 #define _H_ruledlt
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEDLT_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           ReturnDefrule(void *,void *);
-   LOCALE void                           DestroyDefrule(void *,void *);
+   void                           ReturnDefrule(void *,void *);
+   void                           DestroyDefrule(void *,void *);
 
 #endif /* _H_ruledlt */
 

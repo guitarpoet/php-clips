@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*        FACT RETE ACCESS FUNCTIONS HEADER FILE       */
    /*******************************************************/
@@ -32,36 +32,26 @@
 
 #ifndef _H_factrete
 
+#pragma once
+
 #define _H_factrete
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTRETE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                        FactPNGetVar1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNGetVar2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNGetVar3(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactJNGetVar1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactJNGetVar2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactJNGetVar3(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactSlotLength(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactJNCompVars1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactJNCompVars2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactPNCompVars1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNConstant1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNConstant2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactStoreMultifield(void *,void *,DATA_OBJECT_PTR);
-   LOCALE unsigned short                 AdjustFieldPosition(void *,struct multifieldMarker *,
+   bool                           FactPNGetVar1(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactPNGetVar2(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactPNGetVar3(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactJNGetVar1(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactJNGetVar2(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactJNGetVar3(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactSlotLength(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactJNCompVars1(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactJNCompVars2(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactPNCompVars1(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactPNConstant1(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactPNConstant2(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactStoreMultifield(void *,void *,DATA_OBJECT_PTR);
+   unsigned short                 AdjustFieldPosition(void *,struct multifieldMarker *,
                                                              unsigned short,unsigned short,int *);
 
 #endif

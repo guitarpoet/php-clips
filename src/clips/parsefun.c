@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               PARSING FUNCTIONS MODULE              */
    /*******************************************************/
@@ -34,9 +34,10 @@
 /*            Fixed function declaration issue when          */
 /*            BLOAD_ONLY compiler flag is set to 1.          */
 /*                                                           */
+/*      6.40: Changed check-syntax router name because of    */
+/*            a conflict with another error-capture router.  */
+/*                                                           */
 /*************************************************************/
-
-#define _PARSEFUN_SOURCE_
 
 #include "setup.h"
 
@@ -46,7 +47,6 @@
 #include "cstrcpsr.h"
 #include "envrnmnt.h"
 #include "exprnpsr.h"
-#include "extnfunc.h"
 #include "memalloc.h"
 #include "multifld.h"
 #include "prcdrpsr.h"
@@ -75,7 +75,7 @@ struct parseFunctionData
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static int                     FindErrorCapture(void *,const char *);
+   static bool                    FindErrorCapture(void *,const char *);
    static int                     PrintErrorCapture(void *,const char *,const char *);
    static void                    DeactivateErrorCapture(void *);
    static void                    SetErrorCaptureValues(void *,DATA_OBJECT_PTR);
@@ -85,13 +85,13 @@ struct parseFunctionData
 /* ParseFunctionDefinitions: Initializes */
 /*   the parsing related functions.      */
 /*****************************************/
-globle void ParseFunctionDefinitions(
+void ParseFunctionDefinitions(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,PARSEFUN_DATA,sizeof(struct parseFunctionData),NULL);
 
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"check-syntax",'u',PTIEF CheckSyntaxFunction,"CheckSyntaxFunction","11s");
+   EnvAddUDF(theEnv,"check-syntax","ym", CheckSyntaxFunction,"CheckSyntaxFunction",1,1,"s",NULL);
 #endif
   }
 
@@ -100,45 +100,31 @@ globle void ParseFunctionDefinitions(
 /* CheckSyntaxFunction: H/L access routine */
 /*   for the check-syntax function.        */
 /*******************************************/
-globle void CheckSyntaxFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
+void CheckSyntaxFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT theArg;
-
-   /*===============================*/
-   /* Set up a default return value */
-   /* (TRUE for problems found).    */
-   /*===============================*/
-
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvTrueSymbol(theEnv));
-
-   /*=====================================================*/
-   /* Function check-syntax expects exactly one argument. */
-   /*=====================================================*/
-
-   if (EnvArgCountCheck(theEnv,"check-syntax",EXACTLY,1) == -1) return;
+   CLIPSValue theArg;
 
    /*========================================*/
    /* The argument should be of type STRING. */
    /*========================================*/
 
-   if (EnvArgTypeCheck(theEnv,"check-syntax",1,STRING,&theArg) == FALSE)
+   if (! UDFFirstArgument(context,STRING_TYPE,&theArg))
      { return; }
 
    /*===================*/
    /* Check the syntax. */
    /*===================*/
 
-   CheckSyntax(theEnv,DOToString(theArg),returnValue);
+   CheckSyntax(UDFContextEnvironment(context),mCVToString(&theArg),returnValue);
   }
 
 /*********************************/
 /* CheckSyntax: C access routine */
 /*   for the build function.     */
 /*********************************/
-globle int CheckSyntax(
+bool CheckSyntax(
   void *theEnv,
   const char *theString,
   DATA_OBJECT_PTR returnValue)
@@ -146,15 +132,14 @@ globle int CheckSyntax(
    const char *name;
    struct token theToken;
    struct expr *top;
-   short rv;
+   bool rv;
 
    /*==============================*/
    /* Set the default return value */
    /* (TRUE for problems found).   */
    /*==============================*/
 
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvTrueSymbol(theEnv));
+   mCVSetBoolean(returnValue,true);
 
    /*===========================================*/
    /* Create a string source router so that the */
@@ -162,7 +147,7 @@ globle int CheckSyntax(
    /*===========================================*/
 
    if (OpenStringSource(theEnv,"check-syntax",theString,0) == 0)
-     { return(TRUE); }
+     { return(true); }
 
    /*=================================*/
    /* Only expressions and constructs */
@@ -174,8 +159,8 @@ globle int CheckSyntax(
    if (theToken.type != LPAREN)
      {
       CloseStringSource(theEnv,"check-syntax");
-      SetpValue(returnValue,EnvAddSymbol(theEnv,"MISSING-LEFT-PARENTHESIS"));
-      return(TRUE);
+      mCVSetSymbol(returnValue,"MISSING-LEFT-PARENTHESIS");
+      return(true);
      }
 
    /*========================================*/
@@ -187,8 +172,8 @@ globle int CheckSyntax(
    if (theToken.type != SYMBOL)
      {
       CloseStringSource(theEnv,"check-syntax");
-      SetpValue(returnValue,EnvAddSymbol(theEnv,"EXPECTED-SYMBOL-AFTER-LEFT-PARENTHESIS"));
-      return(TRUE);
+      mCVSetSymbol(returnValue,"EXPECTED-SYMBOL-AFTER-LEFT-PARENTHESIS");
+      return(true);
      }
 
    name = ValueToString(theToken.value);
@@ -197,9 +182,9 @@ globle int CheckSyntax(
    /* Set up a router to capture the error output. */
    /*==============================================*/
 
-   EnvAddRouter(theEnv,"error-capture",40,
-              FindErrorCapture, PrintErrorCapture,
-              NULL, NULL, NULL);
+   EnvAddRouter(theEnv,"cs-error-capture",40,
+                FindErrorCapture, PrintErrorCapture,
+                NULL, NULL, NULL);
 
    /*================================*/
    /* Determine if it's a construct. */
@@ -207,10 +192,10 @@ globle int CheckSyntax(
 
    if (FindConstruct(theEnv,name))
      {
-      ConstructData(theEnv)->CheckSyntaxMode = TRUE;
+      ConstructData(theEnv)->CheckSyntaxMode = true;
       rv = (short) ParseConstruct(theEnv,name,"check-syntax");
       GetToken(theEnv,"check-syntax",&theToken);
-      ConstructData(theEnv)->CheckSyntaxMode = FALSE;
+      ConstructData(theEnv)->CheckSyntaxMode = false;
 
       if (rv)
         {
@@ -223,24 +208,23 @@ globle int CheckSyntax(
 
       CloseStringSource(theEnv,"check-syntax");
 
-      if ((rv != FALSE) || (ParseFunctionData(theEnv)->WarningString != NULL))
+      if ((rv != false) || (ParseFunctionData(theEnv)->WarningString != NULL))
         {
          SetErrorCaptureValues(theEnv,returnValue);
          DeactivateErrorCapture(theEnv);
-         return(TRUE);
+         return(true);
         }
 
       if (theToken.type != STOP)
         {
          SetpValue(returnValue,EnvAddSymbol(theEnv,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS"));
          DeactivateErrorCapture(theEnv);
-         return(TRUE);
+         return(true);
         }
 
-      SetpType(returnValue,SYMBOL);
-      SetpValue(returnValue,EnvFalseSymbol(theEnv));
+      mCVSetBoolean(returnValue,false);
       DeactivateErrorCapture(theEnv);
-      return(FALSE);
+      return(false);
      }
 
    /*=======================*/
@@ -256,23 +240,22 @@ globle int CheckSyntax(
      {
       SetErrorCaptureValues(theEnv,returnValue);
       DeactivateErrorCapture(theEnv);
-      return(TRUE);
+      return(true);
      }
 
    if (theToken.type != STOP)
      {
-      SetpValue(returnValue,EnvAddSymbol(theEnv,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS"));
+      mCVSetSymbol(returnValue,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS");
       DeactivateErrorCapture(theEnv);
       ReturnExpression(theEnv,top);
-      return(TRUE);
+      return(true);
      }
 
    DeactivateErrorCapture(theEnv);
 
    ReturnExpression(theEnv,top);
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
-   return(FALSE);
+   mCVSetBoolean(returnValue,false);
+   return(false);
   }
 
 /**************************************************/
@@ -300,17 +283,17 @@ static void DeactivateErrorCapture(
    ParseFunctionData(theEnv)->WarningCurrentPosition = 0;
    ParseFunctionData(theEnv)->WarningMaximumPosition = 0;
 
-   EnvDeleteRouter(theEnv,"error-capture");
+   EnvDeleteRouter(theEnv,"cs-error-capture");
   }
 
-/******************************************************************/
-/* SetErrorCaptureValues: Stores the error/warnings captured when */
-/*   parsing an expression or construct into a multifield value.  */
-/*   The first field contains the output sent to the WERROR       */
-/*   logical name and the second field contains the output sent   */
-/*   to the WWARNING logical name. FALSE is stored in either      */
-/*   position if no output was sent to those logical names.       */
-/******************************************************************/
+/*******************************************************************/
+/* SetErrorCaptureValues: Stores the error/warnings captured when  */
+/*   parsing an expression or construct into a multifield value.   */
+/*   The first field contains the output sent to the WERROR        */
+/*   logical name and the second field contains the output sent    */
+/*   to the WWARNING logical name. The symbol FALSE is stored in   */
+/*   either position if no output was sent to those logical names. */
+/*******************************************************************/
 static void SetErrorCaptureValues(
   void *theEnv,
   DATA_OBJECT_PTR returnValue)
@@ -351,7 +334,7 @@ static void SetErrorCaptureValues(
 /* FindErrorCapture: Find routine */
 /*   for the check-syntax router. */
 /**********************************/
-static int FindErrorCapture(
+static bool FindErrorCapture(
   void *theEnv,
   const char *logicalName)
   {
@@ -361,9 +344,9 @@ static int FindErrorCapture(
 
    if ((strcmp(logicalName,WERROR) == 0) ||
        (strcmp(logicalName,WWARNING) == 0))
-     { return(TRUE); }
+     { return(true); }
 
-   return(FALSE);
+   return(false);
   }
 
 /************************************/
@@ -396,11 +379,11 @@ static int PrintErrorCapture(
 /* CheckSyntaxFunction: This is the non-functional  */
 /*   stub provided for use with a run-time version. */
 /****************************************************/
-globle void CheckSyntaxFunction(
+void CheckSyntaxFunction(
   void *theEnv,
   DATA_OBJECT *returnValue)
   {
-   PrintErrorID(theEnv,"PARSEFUN",1,FALSE);
+   PrintErrorID(theEnv,"PARSEFUN",1,false);
    EnvPrintRouter(theEnv,WERROR,"Function check-syntax does not work in run time modules.\n");
    SetpType(returnValue,SYMBOL);
    SetpValue(returnValue,EnvTrueSymbol(theEnv));
@@ -410,16 +393,16 @@ globle void CheckSyntaxFunction(
 /* CheckSyntax: This is the non-functional stub */
 /*   provided for use with a run-time version.  */
 /************************************************/
-globle int CheckSyntax(
+bool CheckSyntax(
   void *theEnv,
   const char *theString,
   DATA_OBJECT_PTR returnValue)
   {
-   PrintErrorID(theEnv,"PARSEFUN",1,FALSE);
+   PrintErrorID(theEnv,"PARSEFUN",1,false);
    EnvPrintRouter(theEnv,WERROR,"Function check-syntax does not work in run time modules.\n");
    SetpType(returnValue,SYMBOL);
    SetpValue(returnValue,EnvTrueSymbol(theEnv));
-   return(TRUE);
+   return(true);
   }
 
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) */

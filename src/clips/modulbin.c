@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             DEFMODULE BSAVE/BLOAD MODULE            */
    /*******************************************************/
@@ -22,21 +22,18 @@
 /*                                                           */
 /*************************************************************/
 
-#define _MODULBIN_SOURCE_
-
 #include "setup.h"
 
 #if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "constrct.h"
-#include "moduldef.h"
 #include "bload.h"
 #include "bsave.h"
+#include "constrct.h"
 #include "envrnmnt.h"
+#include "memalloc.h"
+#include "moduldef.h"
 
 #include "modulbin.h"
 
@@ -59,7 +56,7 @@
 /* DefmoduleBinarySetup: Installs the binary */
 /*   save/load feature for defmodules.       */
 /*********************************************/
-globle void DefmoduleBinarySetup(
+void DefmoduleBinarySetup(
   void *theEnv)
   {
    AddBeforeBloadFunction(theEnv,"defmodule",RemoveAllDefmodules,2000);
@@ -84,7 +81,7 @@ globle void DefmoduleBinarySetup(
 /* UpdateDefmoduleItemHeader: Updates the values in defmodule */
 /*   item headers for the loaded binary image.                */
 /**************************************************************/
-globle void UpdateDefmoduleItemHeader(
+void UpdateDefmoduleItemHeader(
   void *theEnv,
   struct bsaveDefmoduleItemHeader *theBsaveHeader,
   struct defmoduleItemHeader *theHeader,
@@ -116,7 +113,7 @@ globle void UpdateDefmoduleItemHeader(
 /* AssignBsaveDefmdlItemHdrVals: Assigns the appropriate */
 /*   values to a bsave defmodule item header record.     */
 /*********************************************************/
-globle void AssignBsaveDefmdlItemHdrVals(
+void AssignBsaveDefmdlItemHdrVals(
   struct bsaveDefmoduleItemHeader *theBsaveHeader,
   struct defmoduleItemHeader *theHeader)
   {
@@ -180,7 +177,7 @@ static void BsaveFind(
       /* as being a needed symbol. */
       /*===========================*/
 
-      defmodulePtr->name->neededSymbol = TRUE;
+      defmodulePtr->name->neededSymbol = true;
 
       /*==============================================*/
       /* Loop through each of the port items in the   */
@@ -195,11 +192,11 @@ static void BsaveFind(
         {
          DefmoduleData(theEnv)->NumberOfPortItems++;
          if (theList->moduleName != NULL)
-           { theList->moduleName->neededSymbol = TRUE; }
+           { theList->moduleName->neededSymbol = true; }
          if (theList->constructType != NULL)
-           { theList->constructType->neededSymbol = TRUE; }
+           { theList->constructType->neededSymbol = true; }
          if (theList->constructName != NULL)
-           { theList->constructName->neededSymbol = TRUE; }
+           { theList->constructName->neededSymbol = true; }
         }
 
       /*==============================================*/
@@ -215,11 +212,11 @@ static void BsaveFind(
         {
          DefmoduleData(theEnv)->NumberOfPortItems++;
          if (theList->moduleName != NULL)
-           { theList->moduleName->neededSymbol = TRUE; }
+           { theList->moduleName->neededSymbol = true; }
          if (theList->constructType != NULL)
-           { theList->constructType->neededSymbol = TRUE; }
+           { theList->constructType->neededSymbol = true; }
          if (theList->constructName != NULL)
-           { theList->constructName->neededSymbol = TRUE; }
+           { theList->constructName->neededSymbol = true; }
         }
      }
   }
@@ -601,7 +598,7 @@ static void ClearBload(
 
    SetListOfDefmodules(theEnv,NULL);
    CreateMainModule(theEnv);
-   DefmoduleData(theEnv)->MainModuleRedefinable = TRUE;
+   DefmoduleData(theEnv)->MainModuleRedefinable = true;
   }
 
 #endif /*  (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME) */

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                OBJECT SYSTEM DEFINITIONS            */
    /*******************************************************/
@@ -24,6 +24,9 @@
 /*************************************************************/
 
 #ifndef _H_object
+
+#pragma once
+
 #define _H_object
 
 typedef struct defclassModule DEFCLASS_MODULE;
@@ -34,6 +37,7 @@ typedef struct slotName SLOT_NAME;
 typedef struct slotDescriptor SLOT_DESC;
 typedef struct messageHandler HANDLER;
 typedef struct instance INSTANCE_TYPE;
+typedef struct instance Instance;
 typedef struct instanceSlot INSTANCE_SLOT;
 
 /* Maximum # of simultaneous class hierarchy traversals

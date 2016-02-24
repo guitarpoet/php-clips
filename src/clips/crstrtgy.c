@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*         CONFLICT RESOLUTION STRATEGY MODULE         */
    /*******************************************************/
@@ -41,23 +41,20 @@
 /*                                                           */
 /*************************************************************/
 
-#define _CRSTRTGY_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT
 
-#include "constant.h"
-#include "pattern.h"
-#include "reteutil.h"
-#include "argacces.h"
 #include "agenda.h"
+#include "argacces.h"
+#include "constant.h"
 #include "envrnmnt.h"
 #include "memalloc.h"
+#include "pattern.h"
+#include "reteutil.h"
 
 #include "crstrtgy.h"
 
@@ -83,7 +80,7 @@
 /* PlaceActivation: Coordinates placement of an activation on the */
 /*   Agenda based on the current conflict resolution strategy.    */
 /******************************************************************/
-globle void PlaceActivation(
+void PlaceActivation(
   void *theEnv,
   ACTIVATION **whichAgenda,
   ACTIVATION *newActivation,
@@ -96,7 +93,7 @@ globle void PlaceActivation(
    /* been made to the agenda.                       */
    /*================================================*/
 
-   EnvSetAgendaChanged(theEnv,TRUE);
+   EnvSetAgendaChanged(theEnv,true);
 
    /*=============================================*/
    /* Determine the location where the activation */
@@ -425,7 +422,7 @@ static ACTIVATION *PlaceMEAActivation(
    ACTIVATION *lastAct, *actPtr;
    int flag;
    long long cWhoset = 0, oWhoset = 0;
-   intBool cSet, oSet;
+   bool cSet, oSet;
 
    /*============================================*/
    /* Set up initial information for the search. */
@@ -448,24 +445,24 @@ static ACTIVATION *PlaceMEAActivation(
       if (GetMatchingItem(newActivation,0) != NULL)
         { 
          cWhoset = GetMatchingItem(newActivation,0)->timeTag; 
-         cSet = TRUE;
+         cSet = true;
         }
       else
-        { cSet = FALSE; }
+        { cSet = false; }
         
       if (GetMatchingItem(actPtr,0) != NULL)
         {
          oWhoset = GetMatchingItem(actPtr,0)->timeTag; 
-         oSet = TRUE;
+         oSet = true;
         }
       else
-        { oSet = FALSE; }
+        { oSet = false; }
         
-      if ((cSet == FALSE) && (oSet == FALSE))  
+      if ((cSet == false) && (oSet == false))
         { flag = ComparePartialMatches(theEnv,actPtr,newActivation); }
-      else if ((cSet == TRUE) && (oSet == FALSE))
+      else if ((cSet == true) && (oSet == false))
         { flag = GREATER_THAN; }
-      else if ((cSet == FALSE) && (oSet == TRUE))
+      else if ((cSet == false) && (oSet == true))
         { flag = LESS_THAN; }
       else if (oWhoset < cWhoset)
         { flag = GREATER_THAN; }
@@ -799,7 +796,7 @@ static unsigned long long *SortPartialMatch(
   {
    unsigned long long *nbinds;
    unsigned long long temp;
-   int flag;
+   bool flag;
    unsigned j, k;
 
    /*====================================================*/
@@ -823,11 +820,11 @@ static unsigned long long *SortPartialMatch(
    /* Sort the array. */
    /*=================*/
 
-   for (flag = TRUE, k = binds->bcount - 1;
-        flag == TRUE;
+   for (flag = true, k = binds->bcount - 1;
+        flag == true;
         k--)
      {
-      flag = FALSE;
+      flag = false;
       for (j = 0 ; j < k ; j++)
         {
          if (nbinds[j] < nbinds[j + 1])
@@ -835,7 +832,7 @@ static unsigned long long *SortPartialMatch(
             temp = nbinds[j];
             nbinds[j] = nbinds[j+1];
             nbinds[j+1] = temp;
-            flag = TRUE;
+            flag = true;
            }
         }
      }
@@ -944,7 +941,7 @@ static int ComparePartialMatches(
 /* EnvSetStrategy: C access routine */
 /*   for the set-strategy command.  */
 /************************************/
-globle int EnvSetStrategy(
+int EnvSetStrategy(
   void *theEnv,
   int value)
   {
@@ -962,7 +959,7 @@ globle int EnvSetStrategy(
 /* EnvGetStrategy: C access routine */
 /*   for the get-strategy command.  */
 /************************************/
-globle int EnvGetStrategy(
+int EnvGetStrategy(
   void *theEnv)
   {
    return(AgendaData(theEnv)->Strategy);
@@ -972,42 +969,47 @@ globle int EnvGetStrategy(
 /* GetStrategyCommand: H/L access routine   */
 /*   for the get-strategy command.          */
 /********************************************/
-globle void *GetStrategyCommand(
-  void *theEnv)
+void GetStrategyCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EnvArgCountCheck(theEnv,"get-strategy",EXACTLY,0);
-
-   return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv))));
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   mCVSetSymbol(returnValue,GetStrategyName(EnvGetStrategy(theEnv)));
   }
 
 /********************************************/
 /* SetStrategyCommand: H/L access routine   */
 /*   for the set-strategy command.          */
 /********************************************/
-globle void *SetStrategyCommand(
-  void *theEnv)
+void SetStrategyCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT argPtr;
+   CLIPSValue theArg;
    const char *argument;
    int oldStrategy;
+   Environment *theEnv = UDFContextEnvironment(context);
    
-   oldStrategy = AgendaData(theEnv)->Strategy;
+   /*=======================*/
+   /* Set the return value. */
+   /*=======================*/
+   
+   oldStrategy = EnvGetStrategy(theEnv);
+   mCVSetSymbol(returnValue,GetStrategyName(oldStrategy));
 
-   /*=====================================================*/
-   /* Check for the correct number and type of arguments. */
-   /*=====================================================*/
+   /*=========================================*/
+   /* Check for the correct type of argument. */
+   /*=========================================*/
 
-   if (EnvArgCountCheck(theEnv,"set-strategy",EXACTLY,1) == -1)
-     { return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv)))); }
-
-   if (EnvArgTypeCheck(theEnv,"set-strategy",1,SYMBOL,&argPtr) == FALSE)
-     { return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv)))); }
-
-   argument = DOToString(argPtr);
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg))
+     { return; }
 
    /*=============================================*/
    /* Set the strategy to the specified strategy. */
    /*=============================================*/
+
+   argument = mCVToString(&theArg);
 
    if (strcmp(argument,"depth") == 0)
      { EnvSetStrategy(theEnv,DEPTH_STRATEGY); }
@@ -1025,16 +1027,9 @@ globle void *SetStrategyCommand(
      { EnvSetStrategy(theEnv,RANDOM_STRATEGY); }
    else
      {
-      ExpectedTypeError1(theEnv,"set-strategy",1,
-      "symbol with value depth, breadth, lex, mea, complexity, simplicity, or random");
-      return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv))));
+      UDFInvalidArgumentMessage(context,
+         "symbol with value depth, breadth, lex, mea, complexity, simplicity, or random");
      }
-
-   /*=======================================*/
-   /* Return the old value of the strategy. */
-   /*=======================================*/
-
-   return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(oldStrategy)));
   }
 
 /**********************************************************/
@@ -1077,25 +1072,6 @@ static const char *GetStrategyName(
 
    return(sname);
   }
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle int SetStrategy(
-  int value)
-  {
-   return EnvSetStrategy(GetCurrentEnvironment(),value);
-  }
-
-globle int GetStrategy()
-  {
-   return EnvGetStrategy(GetCurrentEnvironment());
-  }
-
-#endif
 
 #endif /* DEFRULE_CONSTRUCT */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/20/16             */
    /*                                                     */
    /*             BASIC MATH FUNCTIONS MODULE             */
    /*******************************************************/
@@ -18,6 +18,7 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
@@ -26,12 +27,17 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Auto-float-dividend always enabled.            */
+/*                                                           */
 /*************************************************************/
 
-#define _BMATHFUN_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
@@ -42,42 +48,24 @@
 
 #include "bmathfun.h"
 
-#define BMATHFUN_DATA 6
-
-struct basicMathFunctionData
-  { 
-   intBool AutoFloatDividend;
-  };
-
-#define BasicMathFunctionData(theEnv) ((struct basicMathFunctionData *) GetEnvironmentData(theEnv,BMATHFUN_DATA))
-
 /***************************************************************/
 /* BasicMathFunctionDefinitions: Defines basic math functions. */
 /***************************************************************/
-globle void BasicMathFunctionDefinitions(
+void BasicMathFunctionDefinitions(
   void *theEnv)
-  {   
-   AllocateEnvironmentData(theEnv,BMATHFUN_DATA,sizeof(struct basicMathFunctionData),NULL);
-   
-   BasicMathFunctionData(theEnv)->AutoFloatDividend = TRUE;
-
+  {
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"+", 'n',PTIEF AdditionFunction, "AdditionFunction", "2*n");
-   EnvDefineFunction2(theEnv,"*", 'n', PTIEF MultiplicationFunction, "MultiplicationFunction", "2*n");
-   EnvDefineFunction2(theEnv,"-", 'n', PTIEF SubtractionFunction, "SubtractionFunction", "2*n");
-    
-   EnvDefineFunction2(theEnv,"/", 'n', PTIEF DivisionFunction, "DivisionFunction", "2*n");
-   EnvDefineFunction2(theEnv,"div", 'g', PTIEF DivFunction, "DivFunction", "2*n");
-   EnvDefineFunction2(theEnv,"set-auto-float-dividend", 'b',
-                   SetAutoFloatDividendCommand, "SetAutoFloatDividendCommand", "11");
-   EnvDefineFunction2(theEnv,"get-auto-float-dividend", 'b',
-                  GetAutoFloatDividendCommand, "GetAutoFloatDividendCommand", "00");
-
-   EnvDefineFunction2(theEnv,"integer", 'g', PTIEF IntegerFunction, "IntegerFunction", "11n");
-   EnvDefineFunction2(theEnv,"float", 'd', PTIEF FloatFunction, "FloatFunction", "11n");
-   EnvDefineFunction2(theEnv,"abs", 'n', PTIEF AbsFunction, "AbsFunction", "11n");
-   EnvDefineFunction2(theEnv,"min", 'n', PTIEF MinFunction, "MinFunction", "2*n");
-   EnvDefineFunction2(theEnv,"max", 'n', PTIEF MaxFunction, "MaxFunction", "2*n");
+   EnvAddUDF(theEnv,"+",        "ld", AdditionFunction, "AdditionFunction", 2,UNBOUNDED, "ld" ,NULL);
+   EnvAddUDF(theEnv, "*",       "ld", MultiplicationFunction, "MultiplicationFunction",  2,UNBOUNDED, "ld", NULL);
+   EnvAddUDF(theEnv, "-",       "ld", SubtractionFunction, "SubtractionFunction",  2,UNBOUNDED, "ld", NULL);
+   EnvAddUDF(theEnv, "/",       "d",  DivisionFunction, "DivisionFunction", 2,UNBOUNDED, "ld", NULL);
+   EnvAddUDF(theEnv, "div",     "l",  DivFunction, "DivFunction",  2,UNBOUNDED, "ld", NULL);
+   
+   EnvAddUDF(theEnv, "integer", "l",  IntegerFunction,"IntegerFunction",1,1,"ld",NULL);
+   EnvAddUDF(theEnv, "float",   "d",  FloatFunction,"FloatFunction",1,1,"ld",NULL);
+   EnvAddUDF(theEnv, "abs",     "ld", AbsFunction,"AbsFunction",1,1,"ld",NULL);
+   EnvAddUDF(theEnv, "min",     "ld", MinFunction,"MinFunction",1,UNBOUNDED,"ld",NULL);
+   EnvAddUDF(theEnv, "max",     "ld", MaxFunction,"MaxFunction",1,UNBOUNDED,"ld",NULL);
 #endif
   }
 
@@ -85,16 +73,14 @@ globle void BasicMathFunctionDefinitions(
 /* AdditionFunction: H/L access   */
 /*   routine for the + function.  */
 /**********************************/
-globle void AdditionFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void AdditionFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double ftotal = 0.0;
-   long long ltotal = 0LL;
-   intBool useFloatTotal = FALSE;
-   EXPRESSION *theExpression;
-   DATA_OBJECT theArgument;
-   int pos = 1;
+   CLIPSFloat ftotal = 0.0;
+   CLIPSInteger ltotal = 0LL;
+   bool useFloatTotal = false;
+   CLIPSValue theArg;
 
    /*=================================================*/
    /* Loop through each of the arguments adding it to */
@@ -103,27 +89,23 @@ globle void AdditionFunction(
    /* using floating point values.                    */
    /*=================================================*/
 
-   theExpression = GetFirstArgument();
-
-   while (theExpression != NULL)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theExpression,"+",&theArgument,useFloatTotal,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
+      if (! UDFNextArgument(context,NUMBER_TYPES,&theArg))
+        { return; }
 
       if (useFloatTotal)
-        { ftotal += ValueToDouble(theArgument.value); }
+        { ftotal += mCVToFloat(&theArg); }
       else
         {
-         if (theArgument.type == INTEGER)
-           { ltotal += ValueToLong(theArgument.value); }
+         if (mCVIsType(&theArg,INTEGER_TYPE))
+           { ltotal += mCVToInteger(&theArg); }
          else
            {
-            ftotal = (double) ltotal + ValueToDouble(theArgument.value);
-            useFloatTotal = TRUE;
+            ftotal = ((CLIPSFloat) ltotal) + mCVToFloat(&theArg);
+            useFloatTotal = true;
            }
         }
-
-      pos++;
      }
 
    /*======================================================*/
@@ -132,31 +114,23 @@ globle void AdditionFunction(
    /*======================================================*/
 
    if (useFloatTotal)
-     {
-      returnValue->type = FLOAT;
-      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
-     }
+     { mCVSetFloat(returnValue,ftotal); }
    else
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
-     }
+     { mCVSetInteger(returnValue,ltotal); }
   }
 
 /****************************************/
 /* MultiplicationFunction: CLIPS access */
 /*   routine for the * function.        */
 /****************************************/
-globle void MultiplicationFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void MultiplicationFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double ftotal = 1.0;
-   long long ltotal = 1LL;
-   intBool useFloatTotal = FALSE;
-   EXPRESSION *theExpression;
-   DATA_OBJECT theArgument;
-   int pos = 1;
+   CLIPSFloat ftotal = 1.0;
+   CLIPSInteger ltotal = 1LL;
+   bool useFloatTotal = false;
+   CLIPSValue theArg;
 
    /*===================================================*/
    /* Loop through each of the arguments multiplying it */
@@ -165,26 +139,23 @@ globle void MultiplicationFunction(
    /* using floating point values.                      */
    /*===================================================*/
 
-   theExpression = GetFirstArgument();
-
-   while (theExpression != NULL)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theExpression,"*",&theArgument,useFloatTotal,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
+      if (! UDFNextArgument(context,NUMBER_TYPES,&theArg))
+        { return; }
 
       if (useFloatTotal)
-        { ftotal *= ValueToDouble(theArgument.value); }
+        { ftotal *= mCVToFloat(&theArg); }
       else
         {
-         if (theArgument.type == INTEGER)
-           { ltotal *= ValueToLong(theArgument.value); }
+         if (mCVIsType(&theArg,INTEGER_TYPE))
+           { ltotal *= mCVToInteger(&theArg); }
          else
            {
-            ftotal = (double) ltotal * ValueToDouble(theArgument.value);
-            useFloatTotal = TRUE;
+            ftotal = ((CLIPSFloat) ltotal) * mCVToFloat(&theArg);
+            useFloatTotal = true;
            }
         }
-      pos++;
      }
 
    /*======================================================*/
@@ -193,31 +164,23 @@ globle void MultiplicationFunction(
    /*======================================================*/
 
    if (useFloatTotal)
-     {
-      returnValue->type = FLOAT;
-      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
-     }
+     { mCVSetFloat(returnValue,ftotal); }
    else
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
-     }
+     { mCVSetInteger(returnValue,ltotal); }
   }
 
 /*************************************/
 /* SubtractionFunction: CLIPS access */
 /*   routine for the - function.     */
 /*************************************/
-globle void SubtractionFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void SubtractionFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double ftotal = 0.0;
-   long long ltotal = 0LL;
-   intBool useFloatTotal = FALSE;
-   EXPRESSION *theExpression;
-   DATA_OBJECT theArgument;
-   int pos = 1;
+   CLIPSFloat ftotal = 0.0;
+   CLIPSInteger ltotal = 0LL;
+   bool useFloatTotal = false;
+   CLIPSValue theArg;
 
    /*=================================================*/
    /* Get the first argument. This number which will  */
@@ -225,20 +188,15 @@ globle void SubtractionFunction(
    /* arguments will subtracted.                      */
    /*=================================================*/
 
-   theExpression = GetFirstArgument();
-   if (theExpression != NULL)
-     {
-      if (! GetNumericArgument(theEnv,theExpression,"-",&theArgument,useFloatTotal,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&theArg))
+     { return; }
 
-      if (theArgument.type == INTEGER)
-        { ltotal = ValueToLong(theArgument.value); }
-      else
-        {
-         ftotal = ValueToDouble(theArgument.value);
-         useFloatTotal = TRUE;
-        }
-      pos++;
+   if (mCVIsType(&theArg,INTEGER_TYPE))
+     { ltotal = mCVToInteger(&theArg); }
+   else
+     {
+      ftotal = mCVToFloat(&theArg);
+      useFloatTotal = true;
      }
 
    /*===================================================*/
@@ -248,24 +206,23 @@ globle void SubtractionFunction(
    /* using floating point values.                      */
    /*===================================================*/
 
-   while (theExpression != NULL)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theExpression,"-",&theArgument,useFloatTotal,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
+      if (! UDFNextArgument(context,NUMBER_TYPES,&theArg))
+        { return; }
 
       if (useFloatTotal)
-        { ftotal -= ValueToDouble(theArgument.value); }
+        { ftotal -= mCVToFloat(&theArg); }
       else
         {
-         if (theArgument.type == INTEGER)
-           { ltotal -= ValueToLong(theArgument.value); }
+         if (mCVIsType(&theArg,INTEGER_TYPE))
+           { ltotal -= mCVToInteger(&theArg); }
          else
            {
-            ftotal = (double) ltotal - ValueToDouble(theArgument.value);
-            useFloatTotal = TRUE;
+            ftotal = ((CLIPSFloat) ltotal) - mCVToFloat(&theArg);
+            useFloatTotal = true;
            }
         }
-      pos++;
      }
 
    /*======================================================*/
@@ -274,33 +231,23 @@ globle void SubtractionFunction(
    /*======================================================*/
 
    if (useFloatTotal)
-     {
-      returnValue->type = FLOAT;
-      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
-     }
+     { mCVSetFloat(returnValue,ftotal); }
    else
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
-     }
+     { mCVSetInteger(returnValue,ltotal); }
   }
 
 /***********************************/
 /* DivisionFunction:  CLIPS access */
 /*   routine for the / function.   */
 /***********************************/
-globle void DivisionFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void DivisionFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double ftotal = 1.0;
-   long long ltotal = 1LL;
-   intBool useFloatTotal;
-   EXPRESSION *theExpression;
-   DATA_OBJECT theArgument;
-   int pos = 1;
-
-   useFloatTotal = BasicMathFunctionData(theEnv)->AutoFloatDividend;
+   CLIPSFloat ftotal = 1.0;
+   CLIPSFloat theNumber;
+   CLIPSValue theArg;
+   Environment *theEnv = UDFContextEnvironment(context);
    
    /*===================================================*/
    /* Get the first argument. This number which will be */
@@ -310,21 +257,10 @@ globle void DivisionFunction(
    /* to a float if it is an integer.                   */
    /*===================================================*/
 
-   theExpression = GetFirstArgument();
-   if (theExpression != NULL)
-     {
-      if (! GetNumericArgument(theEnv,theExpression,"/",&theArgument,useFloatTotal,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&theArg))
+     { return; }
 
-      if (theArgument.type == INTEGER)
-        { ltotal = ValueToLong(theArgument.value); }
-      else
-        {
-         ftotal = ValueToDouble(theArgument.value);
-         useFloatTotal = TRUE;
-        }
-      pos++;
-     }
+   ftotal = mCVToFloat(&theArg);
 
    /*====================================================*/
    /* Loop through each of the arguments dividing it     */
@@ -334,35 +270,22 @@ globle void DivisionFunction(
    /* checked to prevent a divide by zero error.         */
    /*====================================================*/
 
-   while (theExpression != NULL)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theExpression,"/",&theArgument,useFloatTotal,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
-
-      if ((theArgument.type == INTEGER) ? (ValueToLong(theArgument.value) == 0L) :
-                                 ((theArgument.type == FLOAT) ? ValueToDouble(theArgument.value) == 0.0 : FALSE))
+      if (! UDFNextArgument(context,NUMBER_TYPES,&theArg))
+        { return; }
+        
+      theNumber = mCVToFloat(&theArg);
+      
+      if (theNumber == 0.0)
         {
          DivideByZeroErrorMessage(theEnv,"/");
-         SetHaltExecution(theEnv,TRUE);
-         SetEvaluationError(theEnv,TRUE);
-         returnValue->type = FLOAT;
-         returnValue->value = (void *) EnvAddDouble(theEnv,1.0);
+         EnvSetEvaluationError(theEnv,true);
+         mCVSetFloat(returnValue,1.0);
          return;
         }
 
-      if (useFloatTotal)
-        { ftotal /= ValueToDouble(theArgument.value); }
-      else
-        {
-         if (theArgument.type == INTEGER)
-           { ltotal /= ValueToLong(theArgument.value); }
-         else
-           {
-            ftotal = (double) ltotal / ValueToDouble(theArgument.value);
-            useFloatTotal = TRUE;
-           }
-        }
-      pos++;
+      ftotal /= theNumber;
      }
 
    /*======================================================*/
@@ -370,30 +293,21 @@ globle void DivisionFunction(
    /* then return a float, otherwise return an integer.    */
    /*======================================================*/
 
-   if (useFloatTotal)
-     {
-      returnValue->type = FLOAT;
-      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
-     }
-   else
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
-     }
+   mCVSetFloat(returnValue,ftotal);
   }
 
 /*************************************/
 /* DivFunction: H/L access routine   */
 /*   for the div function.           */
 /*************************************/
-globle long long DivFunction(
-  void *theEnv)
+void DivFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   long long total = 1LL;
-   EXPRESSION *theExpression;
-   DATA_OBJECT theArgument;
-   int pos = 1;
-   long long theNumber;
+   CLIPSInteger total = 1LL;
+   DATA_OBJECT theArg;
+   CLIPSInteger theNumber;
+   void *theEnv = UDFContextEnvironment(context);
 
    /*===================================================*/
    /* Get the first argument. This number which will be */
@@ -401,18 +315,9 @@ globle long long DivFunction(
    /* arguments will divide.                            */
    /*===================================================*/
 
-   theExpression = GetFirstArgument();
-   if (theExpression != NULL)
-     {
-      if (! GetNumericArgument(theEnv,theExpression,"div",&theArgument,FALSE,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
-
-      if (theArgument.type == INTEGER)
-        { total = ValueToLong(theArgument.value); }
-      else
-        { total = (long long) ValueToDouble(theArgument.value); }
-      pos++;
-     }
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&theArg))
+     { return; }
+   total = mCVToInteger(&theArg);
 
    /*=====================================================*/
    /* Loop through each of the arguments dividing it into */
@@ -421,348 +326,173 @@ globle long long DivFunction(
    /* zero error.                                         */
    /*=====================================================*/
 
-   while (theExpression != NULL)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theExpression,"div",&theArgument,FALSE,pos)) theExpression = NULL;
-      else theExpression = GetNextArgument(theExpression);
+      if (! UDFNextArgument(context,NUMBER_TYPES,&theArg))
+        { return; }
 
-      if (theArgument.type == INTEGER) theNumber = ValueToLong(theArgument.value);
-      else if (theArgument.type == FLOAT) theNumber = (long long) ValueToDouble(theArgument.value);
-      else theNumber = 1;
+      theNumber = mCVToInteger(&theArg);
 
       if (theNumber == 0LL)
         {
          DivideByZeroErrorMessage(theEnv,"div");
-         SetHaltExecution(theEnv,TRUE);
-         SetEvaluationError(theEnv,TRUE);
-         return(1L);
+         EnvSetEvaluationError(theEnv,true);
+         mCVSetInteger(returnValue,1L);
+         return;
         }
-
-      if (theArgument.type == INTEGER)
-        { total /= ValueToLong(theArgument.value); }
-      else
-        { total = total / (long long) ValueToDouble(theArgument.value); }
-
-      pos++;
+        
+      total /= theNumber;
      }
 
    /*======================================================*/
    /* The result of the div function is always an integer. */
    /*======================================================*/
 
-   return(total);
-  }
-
-/*****************************************************/
-/* SetAutoFloatDividendCommand: H/L access routine   */
-/*   for the set-auto-float-dividend command.        */
-/*****************************************************/
-globle int SetAutoFloatDividendCommand(
-  void *theEnv)
-  {
-   int oldValue;
-   DATA_OBJECT theArgument;
-
-   /*===============================*/
-   /* Remember the present setting. */
-   /*===============================*/
-
-   oldValue = BasicMathFunctionData(theEnv)->AutoFloatDividend;
-
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   if (EnvArgCountCheck(theEnv,"set-auto-float-dividend",EXACTLY,1) == -1)
-     { return(oldValue); }
-
-   EnvRtnUnknown(theEnv,1,&theArgument);
-
-   /*============================================================*/
-   /* The symbol FALSE disables the auto float dividend feature. */
-   /*============================================================*/
-
-   if ((theArgument.value == EnvFalseSymbol(theEnv)) && (theArgument.type == SYMBOL))
-     { BasicMathFunctionData(theEnv)->AutoFloatDividend = FALSE; }
-   else
-     { BasicMathFunctionData(theEnv)->AutoFloatDividend = TRUE; }
-
-   /*======================================*/
-   /* Return the old value of the feature. */
-   /*======================================*/
-
-   return(oldValue);
-  }
-
-/*****************************************************/
-/* GetAutoFloatDividendCommand: H/L access routine   */
-/*   for the get-auto-float-dividend command.        */
-/*****************************************************/
-globle int GetAutoFloatDividendCommand(
-  void *theEnv)
-  {
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   EnvArgCountCheck(theEnv,"get-auto-float-dividend",EXACTLY,0);
-
-   /*=============================*/
-   /* Return the current setting. */
-   /*=============================*/
-
-   return(BasicMathFunctionData(theEnv)->AutoFloatDividend);
-  }
-
-/*************************************************/
-/* EnvGetAutoFloatDividend: C access routine for */
-/*   the get-auto-float-dividend command.        */
-/*************************************************/
-globle intBool EnvGetAutoFloatDividend(
-  void *theEnv)
-  {
-   return(BasicMathFunctionData(theEnv)->AutoFloatDividend);
-  }
-
-/*************************************************/
-/* EnvSetAutoFloatDividend: C access routine for */
-/*   the set-auto-float-dividend command.        */
-/*************************************************/
-globle intBool EnvSetAutoFloatDividend(
-  void *theEnv,
-  int value)
-  {
-   int ov;
-
-   ov = BasicMathFunctionData(theEnv)->AutoFloatDividend;
-   BasicMathFunctionData(theEnv)->AutoFloatDividend = value;
-   return(ov);
+   mCVSetInteger(returnValue,total);
   }
 
 /*****************************************/
 /* IntegerFunction: H/L access routine   */
 /*   for the integer function.           */
 /*****************************************/
-globle long long IntegerFunction(
-  void *theEnv)
+void IntegerFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT valstruct;
+   /*======================================*/
+   /* Check that the argument is a number. */
+   /*======================================*/
+
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,returnValue))
+     { return; }
 
    /*============================================*/
-   /* Check for the correct number of arguments. */
+   /* Convert a float type to integer, otherwise */
+   /* return the argument unchanged.             */
    /*============================================*/
 
-   if (EnvArgCountCheck(theEnv,"integer",EXACTLY,1) == -1) return(0LL);
-
-   /*================================================================*/
-   /* Check for the correct type of argument. Note that ArgTypeCheck */
-   /* will convert floats to integers when an integer is requested   */
-   /* (which is the purpose of the integer function).                */
-   /*================================================================*/
-
-   if (EnvArgTypeCheck(theEnv,"integer",1,INTEGER,&valstruct) == FALSE) return(0LL);
-
-   /*===================================================*/
-   /* Return the numeric value converted to an integer. */
-   /*===================================================*/
-
-   return(ValueToLong(valstruct.value));
+   if (mCVIsType(returnValue,FLOAT_TYPE))
+     { mCVSetInteger(returnValue,mCVToInteger(returnValue)); }
   }
 
 /***************************************/
 /* FloatFunction: H/L access routine   */
 /*   for the float function.           */
 /***************************************/
-globle double FloatFunction(
-  void *theEnv)
+void FloatFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT valstruct;
+   /*======================================*/
+   /* Check that the argument is a number. */
+   /*======================================*/
 
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,returnValue))
+     { return; }
 
-   if (EnvArgCountCheck(theEnv,"float",EXACTLY,1) == -1) return(0.0);
+   /*=============================================*/
+   /* Convert an integer type to float, otherwise */
+   /* return the argument unchanged.              */
+   /*=============================================*/
 
-   /*================================================================*/
-   /* Check for the correct type of argument. Note that ArgTypeCheck */
-   /* will convert integers to floats when a float is requested      */
-   /* (which is the purpose of the float function).                  */
-   /*================================================================*/
-
-   if (EnvArgTypeCheck(theEnv,"float",1,FLOAT,&valstruct) == FALSE) return(0.0);
-
-   /*================================================*/
-   /* Return the numeric value converted to a float. */
-   /*================================================*/
-
-   return(ValueToDouble(valstruct.value));
+   if (mCVIsType(returnValue,INTEGER_TYPE))
+     { mCVSetFloat(returnValue,mCVToFloat(returnValue)); }
   }
 
 /*************************************/
 /* AbsFunction: H/L access routine   */
 /*   for the abs function.           */
 /*************************************/
-globle void AbsFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void AbsFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   if (EnvArgCountCheck(theEnv,"abs",EXACTLY,1) == -1)
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
-
    /*======================================*/
    /* Check that the argument is a number. */
    /*======================================*/
 
-   if (EnvArgTypeCheck(theEnv,"abs",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,returnValue))
+     { return; }
 
    /*==========================================*/
    /* Return the absolute value of the number. */
    /*==========================================*/
 
-   if (returnValue->type == INTEGER)
+   if (mCVIsType(returnValue,INTEGER_TYPE))
      {
-      if (ValueToLong(returnValue->value) < 0L)
-        { returnValue->value = (void *) EnvAddLong(theEnv,- ValueToLong(returnValue->value)); }
+      CLIPSInteger lv = mCVToInteger(returnValue);
+      if (lv < 0L) mCVSetInteger(returnValue,-lv);
      }
-   else if (ValueToDouble(returnValue->value) < 0.0)
-     { returnValue->value = (void *) EnvAddDouble(theEnv,- ValueToDouble(returnValue->value)); }
+   else
+     {
+      CLIPSFloat dv = mCVToFloat(returnValue);
+      if (dv < 0.0) mCVSetFloat(returnValue,-dv);
+     }
   }
 
 /*************************************/
 /* MinFunction: H/L access routine   */
 /*   for the min function.           */
 /*************************************/
-globle void MinFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void MinFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT argValue;
-   int numberOfArguments, i;
-
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   if ((numberOfArguments = EnvArgCountCheck(theEnv,"min",AT_LEAST,1)) == -1)
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
+   CLIPSValue nextPossible;
 
    /*============================================*/
    /* Check that the first argument is a number. */
    /*============================================*/
 
-   if (EnvArgTypeCheck(theEnv,"min",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
-
+   if (! UDFFirstArgument(context,NUMBER_TYPES,returnValue))
+     { return; }
+    
    /*===========================================================*/
    /* Loop through the remaining arguments, first checking each */
    /* argument to see that it is a number, and then determining */
    /* if the argument is less than the previous arguments and   */
-   /* is thus the minimum value.                                */
+   /* is thus the maximum value.                                */
    /*===========================================================*/
 
-   for (i = 2 ; i <= numberOfArguments ; i++)
+   while (UDFHasNextArgument(context))
      {
-      if (EnvArgTypeCheck(theEnv,"min",i,INTEGER_OR_FLOAT,&argValue) == FALSE) return;
-
-      if (returnValue->type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&nextPossible))
+        { return; }
+      
+      /*=============================================*/
+      /* If either argument is a float, convert both */
+      /* to floats. Otherwise compare two integers.  */
+      /*=============================================*/
+      
+      if (mCVIsType(returnValue,FLOAT_TYPE) || mCVIsType(&nextPossible,FLOAT_TYPE))
         {
-         if (argValue.type == INTEGER)
-           {
-            if (ValueToLong(returnValue->value) > ValueToLong(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
-         else
-           {
-            if ((double) ValueToLong(returnValue->value) >
-                         ValueToDouble(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
+         if (mCVToFloat(returnValue) > mCVToFloat(&nextPossible))
+           { CVSetCLIPSValue(returnValue,&nextPossible); }
         }
       else
         {
-         if (argValue.type == INTEGER)
-           {
-            if (ValueToDouble(returnValue->value) >
-                (double) ValueToLong(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
-         else
-           {
-            if (ValueToDouble(returnValue->value) > ValueToDouble(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
+         if (mCVToInteger(returnValue) > mCVToInteger(&nextPossible))
+           { CVSetCLIPSValue(returnValue,&nextPossible); }
         }
      }
-
-   return;
   }
 
 /*************************************/
 /* MaxFunction: H/L access routine   */
 /*   for the max function.           */
 /*************************************/
-globle void MaxFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void MaxFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT argValue;
-   int numberOfArguments, i;
-
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   if ((numberOfArguments = EnvArgCountCheck(theEnv,"max",AT_LEAST,1)) == -1)
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
-
+   CLIPSValue nextPossible;
+   
    /*============================================*/
    /* Check that the first argument is a number. */
    /*============================================*/
 
-   if (EnvArgTypeCheck(theEnv,"max",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
-     {
-      returnValue->type = INTEGER;
-      returnValue->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
+   if (! UDFFirstArgument(context,NUMBER_TYPES,returnValue))
+     { return; }
 
    /*===========================================================*/
    /* Loop through the remaining arguments, first checking each */
@@ -771,66 +501,26 @@ globle void MaxFunction(
    /* and is thus the maximum value.                            */
    /*===========================================================*/
 
-   for (i = 2 ; i <= numberOfArguments ; i++)
+   while (UDFHasNextArgument(context))
      {
-      if (EnvArgTypeCheck(theEnv,"max",i,INTEGER_OR_FLOAT,&argValue) == FALSE) return;
-
-      if (returnValue->type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&nextPossible))
+        { return; }
+      
+      /*=============================================*/
+      /* If either argument is a float, convert both */
+      /* to floats. Otherwise compare two integers.  */
+      /*=============================================*/
+      
+      if (mCVIsType(returnValue,FLOAT_TYPE) || mCVIsType(&nextPossible,FLOAT_TYPE))
         {
-         if (argValue.type == INTEGER)
-           {
-            if (ValueToLong(returnValue->value) < ValueToLong(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
-         else
-           {
-            if ((double) ValueToLong(returnValue->value) <
-                         ValueToDouble(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
+         if (mCVToFloat(returnValue) < mCVToFloat(&nextPossible))
+           { CVSetCLIPSValue(returnValue,&nextPossible); }
         }
       else
         {
-         if (argValue.type == INTEGER)
-           {
-            if (ValueToDouble(returnValue->value) <
-                (double) ValueToLong(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
-         else
-           {
-            if (ValueToDouble(returnValue->value) < ValueToDouble(argValue.value))
-              {
-               returnValue->type = argValue.type;
-               returnValue->value = argValue.value;
-              }
-           }
+         if (mCVToInteger(returnValue) < mCVToInteger(&nextPossible))
+           { CVSetCLIPSValue(returnValue,&nextPossible); }
         }
      }
-
-   return;
   }
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool GetAutoFloatDividend()
-  {
-   return EnvGetAutoFloatDividend(GetCurrentEnvironment());
-  }
-
-globle intBool SetAutoFloatDividend(
-  int value)
-  {
-   return EnvSetAutoFloatDividend(GetCurrentEnvironment(),value);
-  }
-
-#endif

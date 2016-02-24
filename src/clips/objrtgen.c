@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*    INFERENCE ENGINE OBJECT PARSING ROUTINES MODULE  */
    /*******************************************************/
@@ -38,16 +38,12 @@
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM && (! RUN_TIME) && (! BLOAD_ONLY)
 
-#ifndef _STDIO_INCLUDED_
 #include <stdio.h>
-#define _STDIO_INCLUDED_
-#endif
 
 #include "classfun.h"
 #include "envrnmnt.h"
 #include "objrtfnx.h"
 
-#define _OBJRTGEN_SOURCE_
 #include "objrtgen.h"
 
 /* =========================================
@@ -56,9 +52,9 @@
    =========================================
    ***************************************** */
 
-static void GenObjectGetVar(void *,int,EXPRESSION *,struct lhsParseNode *,int);
-static intBool IsSimpleSlotVariable(struct lhsParseNode *);
-static EXPRESSION *GenerateSlotComparisonTest(void *,int,int,struct lhsParseNode *,struct lhsParseNode *);
+static void GenObjectGetVar(void *,bool,EXPRESSION *,struct lhsParseNode *,int);
+static bool IsSimpleSlotVariable(struct lhsParseNode *);
+static EXPRESSION *GenerateSlotComparisonTest(void *,bool,bool,struct lhsParseNode *,struct lhsParseNode *);
 
 /* =========================================
    *****************************************
@@ -70,16 +66,16 @@ static EXPRESSION *GenerateSlotComparisonTest(void *,int,int,struct lhsParseNode
   Build functions used by AddPatternParser() to
   provide object access to the join nertwork
  **********************************************/
-globle void ReplaceGetJNObjectValue(
+void ReplaceGetJNObjectValue(
   void *theEnv,
   EXPRESSION *theItem,
   struct lhsParseNode *theNode,
   int side)
   {
-   GenObjectGetVar(theEnv,TRUE,theItem,theNode,side);
+   GenObjectGetVar(theEnv,true,theItem,theNode,side);
   }
 
-globle EXPRESSION *GenGetJNObjectValue(
+EXPRESSION *GenGetJNObjectValue(
   void *theEnv,
   struct lhsParseNode *theNode,
   int side)
@@ -87,24 +83,24 @@ globle EXPRESSION *GenGetJNObjectValue(
    EXPRESSION *theItem;
 
    theItem = GenConstant(theEnv,0,NULL);
-   GenObjectGetVar(theEnv,TRUE,theItem,theNode,side);
+   GenObjectGetVar(theEnv,true,theItem,theNode,side);
    return(theItem);
   }
 
-globle EXPRESSION *ObjectJNVariableComparison(
+EXPRESSION *ObjectJNVariableComparison(
   void *theEnv,
   struct lhsParseNode *selfNode,
   struct lhsParseNode *referringNode,
-  int isNand)
+  bool isNand)
   { 
-   return(GenerateSlotComparisonTest(theEnv,TRUE,isNand,selfNode,referringNode));
+   return(GenerateSlotComparisonTest(theEnv,true,isNand,selfNode,referringNode));
   }
 
 /**********************************************
   Build functions used by AddPatternParser() to
   provide object access to the pattern network
  **********************************************/
-globle EXPRESSION *GenObjectPNConstantCompare(
+EXPRESSION *GenObjectPNConstantCompare(
   void *theEnv,
   struct lhsParseNode *theNode)
   {
@@ -130,16 +126,16 @@ globle EXPRESSION *GenObjectPNConstantCompare(
      hack.fail = 1;
    else
      hack.pass = 1;
-   if (((theNode->withinMultifieldSlot == FALSE) ||
+   if (((theNode->withinMultifieldSlot == false) ||
         (theNode->multiFieldsAfter == 0) ||
         (theNode->multiFieldsBefore == 0)) &&
        (theNode->slotNumber != ISA_ID) && (theNode->slotNumber != NAME_ID))
      {
-      if (theNode->withinMultifieldSlot == FALSE)
-        hack.fromBeginning = TRUE;
+      if (theNode->withinMultifieldSlot == false)
+        hack.fromBeginning = true;
       else if (theNode->multiFieldsBefore == 0)
         {
-         hack.fromBeginning = TRUE;
+         hack.fromBeginning = true;
          hack.offset = theNode->singleFieldsBefore;
         }
       else
@@ -156,38 +152,38 @@ globle EXPRESSION *GenObjectPNConstantCompare(
       theExp->argList = GenConstant(theEnv,0,NULL);
       tmpType = theNode->type;
       theNode->type = SF_VARIABLE;
-      GenObjectGetVar(theEnv,FALSE,theExp->argList,theNode,-1);
+      GenObjectGetVar(theEnv,false,theExp->argList,theNode,-1);
       theNode->type = tmpType;
       theExp->argList->nextArg = GenConstant(theEnv,theNode->type,theNode->value);
      }
    return(theExp);
   }
 
-globle void ReplaceGetPNObjectValue(
+void ReplaceGetPNObjectValue(
   void *theEnv,
   EXPRESSION *theItem,
   struct lhsParseNode *theNode)
   {
-   GenObjectGetVar(theEnv,FALSE,theItem,theNode,-1);
+   GenObjectGetVar(theEnv,false,theItem,theNode,-1);
   }
 
-globle EXPRESSION *GenGetPNObjectValue(
+EXPRESSION *GenGetPNObjectValue(
   void *theEnv,
   struct lhsParseNode *theNode)
   {
    EXPRESSION *theItem;
 
    theItem = GenConstant(theEnv,0,NULL);
-   GenObjectGetVar(theEnv,FALSE,theItem,theNode,-1);
+   GenObjectGetVar(theEnv,false,theItem,theNode,-1);
    return(theItem);
   }
 
-globle EXPRESSION *ObjectPNVariableComparison(
+EXPRESSION *ObjectPNVariableComparison(
   void *theEnv,
   struct lhsParseNode *selfNode,
   struct lhsParseNode *referringNode)
   {
-   return(GenerateSlotComparisonTest(theEnv,FALSE,FALSE,selfNode,referringNode));
+   return(GenerateSlotComparisonTest(theEnv,false,false,selfNode,referringNode));
   }
 
 /****************************************************
@@ -201,7 +197,7 @@ globle EXPRESSION *ObjectPNVariableComparison(
                  modified to include the length test
   NOTES        : None
  ****************************************************/
-globle void GenObjectLengthTest(
+void GenObjectLengthTest(
   void *theEnv,
   struct lhsParseNode *theNode)
   {
@@ -247,7 +243,7 @@ globle void GenObjectLengthTest(
                  modified to include the length test
   NOTES        : None
  ****************************************************/
-globle void GenObjectZeroLengthTest(
+void GenObjectZeroLengthTest(
   void *theEnv,
   struct lhsParseNode *theNode)
   {
@@ -289,7 +285,7 @@ globle void GenObjectZeroLengthTest(
  ***************************************************/
 static void GenObjectGetVar(
   void *theEnv,
-  int joinReference,
+  bool joinReference,
   EXPRESSION *theItem,
   struct lhsParseNode *theNode,
   int side)
@@ -348,7 +344,7 @@ static void GenObjectGetVar(
        (theNode->singleFieldsAfter == 0) &&
        (theNode->multiFieldsBefore == 0) &&
        (theNode->multiFieldsAfter == 0) &&
-       ((theNode->withinMultifieldSlot == FALSE) ||
+       ((theNode->withinMultifieldSlot == false) ||
         (theNode->type == MF_VARIABLE) ||
         (theNode->type == MF_WILDCARD)))
      {
@@ -414,27 +410,27 @@ static void GenObjectGetVar(
                  use of multifield markers
                  (Object addresses are not simple variables)
   INPUTS       : The intermediate parse node
-  RETURNS      : TRUE if the variable is simple,
-                 FALSE otherwise
+  RETURNS      : true if the variable is simple,
+                 false otherwise
   SIDE EFFECTS : None
   NOTES        : None
  ****************************************************************/
-static intBool IsSimpleSlotVariable(
+static bool IsSimpleSlotVariable(
   struct lhsParseNode *node)
   {
    if ((node->type == MF_WILDCARD) || (node->type == MF_VARIABLE))
-     return(FALSE);
+     return(false);
    if ((node->slotNumber < 0) ||
        (node->slotNumber == ISA_ID) ||
        (node->slotNumber == NAME_ID))
-     return(FALSE);
-   if (node->withinMultifieldSlot == FALSE)
-     return(TRUE);
-   if (node->multifieldSlot == TRUE)
-     return(FALSE);
+     return(false);
+   if (node->withinMultifieldSlot == false)
+     return(true);
+   if (node->multifieldSlot == true)
+     return(false);
    if ((node->multiFieldsBefore == 0) || (node->multiFieldsAfter == 0))
-     return(TRUE);
-   return(FALSE);
+     return(true);
+   return(false);
   }
 
 /***************************************************************
@@ -470,8 +466,8 @@ static intBool IsSimpleSlotVariable(
  ***************************************************************/
 static EXPRESSION *GenerateSlotComparisonTest(
   void *theEnv,
-  int joinTest,
-  int isNand,
+  bool joinTest,
+  bool isNand,
   struct lhsParseNode *selfNode,
   struct lhsParseNode *referringNode)
   {
@@ -500,8 +496,8 @@ static EXPRESSION *GenerateSlotComparisonTest(
       /* ==============================
          Compare two single-field slots
          ============================== */
-      if ((firstNode->withinMultifieldSlot == FALSE) &&
-          (referringNode->withinMultifieldSlot == FALSE))
+      if ((firstNode->withinMultifieldSlot == false) &&
+          (referringNode->withinMultifieldSlot == false))
         {
          ClearBitString((void *) &phack1,(int) sizeof(struct ObjectCmpPNSingleSlotVars1));
          ClearBitString((void *) &jhack1,(int) sizeof(struct ObjectCmpJoinSingleSlotVars1));
@@ -519,8 +515,8 @@ static EXPRESSION *GenerateSlotComparisonTest(
             else
               { jhack1.firstPattern = 0; }
             
-            jhack1.firstPatternRHS = TRUE;
-            jhack1.secondPatternLHS = TRUE;
+            jhack1.firstPatternRHS = true;
+            jhack1.secondPatternLHS = true;
               
             jhack1.secondPattern = (unsigned short) referringNode->joinDepth; 
             
@@ -536,8 +532,8 @@ static EXPRESSION *GenerateSlotComparisonTest(
          single-field in a multifield slot (make sure
          the multifield slot reference is first
          ============================================ */
-      else if ((firstNode->withinMultifieldSlot == FALSE) ||
-               (referringNode->withinMultifieldSlot == FALSE))
+      else if ((firstNode->withinMultifieldSlot == false) ||
+               (referringNode->withinMultifieldSlot == false))
         {
          ClearBitString((void *) &phack2,(int) sizeof(struct ObjectCmpPNSingleSlotVars2));
          ClearBitString((void *) &jhack2,(int) sizeof(struct ObjectCmpJoinSingleSlotVars2));
@@ -547,7 +543,7 @@ static EXPRESSION *GenerateSlotComparisonTest(
          else
            phack2.pass = jhack2.pass = 1;
 
-         if (firstNode->withinMultifieldSlot == TRUE)
+         if (firstNode->withinMultifieldSlot == true)
            {
             phack2.firstSlot = jhack2.firstSlot = (unsigned short) firstNode->slotNumber;
             phack2.secondSlot = jhack2.secondSlot = (unsigned short) referringNode->slotNumber;
@@ -558,8 +554,8 @@ static EXPRESSION *GenerateSlotComparisonTest(
                else
                  { jhack2.firstPattern = 0; }
                
-               jhack2.firstPatternRHS = TRUE;
-               jhack2.secondPatternLHS = TRUE;
+               jhack2.firstPatternRHS = true;
+               jhack2.secondPatternLHS = true;
                jhack2.secondPattern = (unsigned short) referringNode->joinDepth; 
               }
               
@@ -582,8 +578,8 @@ static EXPRESSION *GenerateSlotComparisonTest(
                else
                  { jhack2.secondPattern = 0; }
                  
-               jhack2.secondPatternRHS = TRUE;
-               jhack2.firstPatternLHS = TRUE;
+               jhack2.secondPatternRHS = true;
+               jhack2.firstPatternLHS = true;
                
                jhack2.firstPattern = (unsigned short) referringNode->joinDepth; 
               }
@@ -644,8 +640,8 @@ static EXPRESSION *GenerateSlotComparisonTest(
             else
               { jhack3.firstPattern = 0; }
             
-            jhack3.firstPatternRHS = TRUE;
-            jhack3.secondPatternLHS = TRUE;
+            jhack3.firstPatternRHS = true;
+            jhack3.secondPatternLHS = true;
             jhack3.secondPattern = (unsigned short) referringNode->joinDepth; 
 
             theExp = GenConstant(theEnv,OBJ_JN_CMP3,EnvAddBitMap(theEnv,(void *) &jhack3,

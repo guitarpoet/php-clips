@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                PRINT UTILITY MODULE                 */
    /*******************************************************/
@@ -45,30 +45,30 @@
 /*            Fixed linkage issue when BLOAD_ONLY compiler   */
 /*            flag is set to 1.                              */
 /*                                                           */
+/*      6.31: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
 /*************************************************************/
 
-#define _PRNTUTIL_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "setup.h"
 
-#include "constant.h"
-#include "envrnmnt.h"
-#include "symbol.h"
-#include "utility.h"
-#include "evaluatn.h"
 #include "argacces.h"
-#include "router.h"
-#include "multifun.h"
-#include "factmngr.h"
+#include "constant.h"
 #include "cstrcpsr.h"
+#include "envrnmnt.h"
+#include "evaluatn.h"
+#include "factmngr.h"
 #include "inscom.h"
 #include "insmngr.h"
 #include "memalloc.h"
+#include "multifun.h"
+#include "router.h"
+#include "symbol.h"
 #include "sysdep.h"
+#include "utility.h"
 
 #include "prntutil.h"
 
@@ -76,7 +76,7 @@
 /* InitializePrintUtilityData: Allocates environment */
 /*    data for print utility routines.               */
 /*****************************************************/
-globle void InitializePrintUtilityData(
+void InitializePrintUtilityData(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,PRINT_UTILITY_DATA,sizeof(struct printUtilityData),NULL);
@@ -87,7 +87,7 @@ globle void InitializePrintUtilityData(
 /*   systems which have a limit on the maximum size of a   */
 /*   string which can be printed.                          */
 /***********************************************************/
-globle void PrintInChunks(
+void PrintInChunks(
   void *theEnv,
   const char *logicalName,
   const char *bigString)
@@ -126,7 +126,7 @@ globle void PrintInChunks(
 /************************************************************/
 /* PrintFloat: Controls printout of floating point numbers. */
 /************************************************************/
-globle void PrintFloat(
+void PrintFloat(
   void *theEnv,
   const char *fileid,
   double number)
@@ -140,7 +140,7 @@ globle void PrintFloat(
 /****************************************************/
 /* PrintLongInteger: Controls printout of integers. */
 /****************************************************/
-globle void PrintLongInteger(
+void PrintLongInteger(
   void *theEnv,
   const char *logicalName,
   long long number)
@@ -154,7 +154,7 @@ globle void PrintLongInteger(
 /**************************************/
 /* PrintAtom: Prints an atomic value. */
 /**************************************/
-globle void PrintAtom(
+void PrintAtom(
   void *theEnv,
   const char *logicalName,
   int type,
@@ -247,7 +247,7 @@ globle void PrintAtom(
 /*   of items that have been displayed. Used by functions */
 /*   such as list-defrules.                               */
 /**********************************************************/
-globle void PrintTally(
+void PrintTally(
   void *theEnv,
   const char *logicalName,
   long long count,
@@ -270,11 +270,11 @@ globle void PrintTally(
 /* PrintErrorID: Prints the module name and */
 /*   error ID for an error message.         */
 /********************************************/
-globle void PrintErrorID(
+void PrintErrorID(
   void *theEnv,
   const char *module,
   int errorID,
-  int printCR)
+  bool printCR)
   {
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    FlushParsingMessages(theEnv);
@@ -292,11 +292,11 @@ globle void PrintErrorID(
 /* PrintWarningID: Prints the module name and */
 /*   warning ID for a warning message.        */
 /**********************************************/
-globle void PrintWarningID(
+void PrintWarningID(
   void *theEnv,
   const char *module,
   int warningID,
-  int printCR)
+  bool printCR)
   {
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    FlushParsingMessages(theEnv);
@@ -314,12 +314,12 @@ globle void PrintWarningID(
 /* CantFindItemErrorMessage: Generic error message */
 /*  when an "item" can not be found.               */
 /***************************************************/
-globle void CantFindItemErrorMessage(
+void CantFindItemErrorMessage(
   void *theEnv,
   const char *itemType,
   const char *itemName)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",1,FALSE);
+   PrintErrorID(theEnv,"PRNTUTIL",1,false);
    EnvPrintRouter(theEnv,WERROR,"Unable to find ");
    EnvPrintRouter(theEnv,WERROR,itemType);
    EnvPrintRouter(theEnv,WERROR," ");
@@ -331,13 +331,13 @@ globle void CantFindItemErrorMessage(
 /* CantFindItemInFunctionErrorMessage: Generic error */
 /*  message when an "item" can not be found.         */
 /*****************************************************/
-globle void CantFindItemInFunctionErrorMessage(
+void CantFindItemInFunctionErrorMessage(
   void *theEnv,
   const char *itemType,
   const char *itemName,
   const char *func)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",1,FALSE);
+   PrintErrorID(theEnv,"PRNTUTIL",1,false);
    EnvPrintRouter(theEnv,WERROR,"Unable to find ");
    EnvPrintRouter(theEnv,WERROR,itemType);
    EnvPrintRouter(theEnv,WERROR," ");
@@ -351,12 +351,12 @@ globle void CantFindItemInFunctionErrorMessage(
 /* CantDeleteItemErrorMessage: Generic error message */
 /*  when an "item" can not be deleted.               */
 /*****************************************************/
-globle void CantDeleteItemErrorMessage(
+void CantDeleteItemErrorMessage(
   void *theEnv,
   const char *itemType,
   const char *itemName)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",4,FALSE);
+   PrintErrorID(theEnv,"PRNTUTIL",4,false);
    EnvPrintRouter(theEnv,WERROR,"Unable to delete ");
    EnvPrintRouter(theEnv,WERROR,itemType);
    EnvPrintRouter(theEnv,WERROR," ");
@@ -368,12 +368,12 @@ globle void CantDeleteItemErrorMessage(
 /* AlreadyParsedErrorMessage: Generic error message */
 /*  when an "item" has already been parsed.         */
 /****************************************************/
-globle void AlreadyParsedErrorMessage(
+void AlreadyParsedErrorMessage(
   void *theEnv,
   const char *itemType,
   const char *itemName)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",5,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",5,true);
    EnvPrintRouter(theEnv,WERROR,"The ");
    if (itemType != NULL) EnvPrintRouter(theEnv,WERROR,itemType);
    if (itemName != NULL) EnvPrintRouter(theEnv,WERROR,itemName);
@@ -383,11 +383,11 @@ globle void AlreadyParsedErrorMessage(
 /*********************************************************/
 /* SyntaxErrorMessage: Generalized syntax error message. */
 /*********************************************************/
-globle void SyntaxErrorMessage(
+void SyntaxErrorMessage(
   void *theEnv,
   const char *location)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",2,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",2,true);
    EnvPrintRouter(theEnv,WERROR,"Syntax Error");
    if (location != NULL)
      {
@@ -396,7 +396,7 @@ globle void SyntaxErrorMessage(
      }
 
    EnvPrintRouter(theEnv,WERROR,".\n");
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetEvaluationError(theEnv,true);
   }
 
 /****************************************************/
@@ -404,11 +404,11 @@ globle void SyntaxErrorMessage(
 /*  when a local variable is accessed by an "item"  */
 /*  which can not access local variables.           */
 /****************************************************/
-globle void LocalVariableErrorMessage(
+void LocalVariableErrorMessage(
   void *theEnv,
   const char *byWhat)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",6,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",6,true);
    EnvPrintRouter(theEnv,WERROR,"Local variables can not be accessed by ");
    EnvPrintRouter(theEnv,WERROR,byWhat);
    EnvPrintRouter(theEnv,WERROR,".\n");
@@ -418,12 +418,12 @@ globle void LocalVariableErrorMessage(
 /* SystemError: Generalized error message */
 /*   for major internal errors.           */
 /******************************************/
-globle void SystemError(
+void SystemError(
   void *theEnv,
   const char *module,
   int errorID)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",3,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",3,true);
 
    EnvPrintRouter(theEnv,WERROR,"\n*** ");
    EnvPrintRouter(theEnv,WERROR,APPLICATION_NAME);
@@ -444,11 +444,11 @@ globle void SystemError(
 /* DivideByZeroErrorMessage: Generalized error message */
 /*   for when a function attempts to divide by zero.   */
 /*******************************************************/
-globle void DivideByZeroErrorMessage(
+void DivideByZeroErrorMessage(
   void *theEnv,
   const char *functionName)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",7,FALSE);
+   PrintErrorID(theEnv,"PRNTUTIL",7,false);
    EnvPrintRouter(theEnv,WERROR,"Attempt to divide by zero in ");
    EnvPrintRouter(theEnv,WERROR,functionName);
    EnvPrintRouter(theEnv,WERROR," function.\n");
@@ -457,7 +457,7 @@ globle void DivideByZeroErrorMessage(
 /*******************************************************/
 /* FloatToString: Converts number to KB string format. */
 /*******************************************************/
-globle const char *FloatToString(
+const char *FloatToString(
   void *theEnv,
   double number)
   {
@@ -486,7 +486,7 @@ globle const char *FloatToString(
 /*******************************************************************/
 /* LongIntegerToString: Converts long integer to KB string format. */
 /*******************************************************************/
-globle const char *LongIntegerToString(
+const char *LongIntegerToString(
   void *theEnv,
   long long number)
   {
@@ -502,7 +502,7 @@ globle const char *LongIntegerToString(
 /*******************************************************************/
 /* DataObjectToString: Converts a DATA_OBJECT to KB string format. */
 /*******************************************************************/
-globle const char *DataObjectToString(
+const char *DataObjectToString(
   void *theEnv,
   DATA_OBJECT *theDO)
   {
@@ -606,12 +606,12 @@ globle const char *DataObjectToString(
 /* SalienceInformationError: Error message for errors which */
 /*   occur during the evaluation of a salience value.       */
 /************************************************************/
-globle void SalienceInformationError(
+void SalienceInformationError(
   void *theEnv,
   const char *constructType,
   const char *constructName)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",8,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",8,true);
    EnvPrintRouter(theEnv,WERROR,"This error occurred while evaluating the salience");
    if (constructName != NULL)
      {
@@ -628,12 +628,12 @@ globle void SalienceInformationError(
 /*   a salience value does not fall between the minimum   */
 /*   and maximum salience values.                         */
 /**********************************************************/
-globle void SalienceRangeError(
+void SalienceRangeError(
   void *theEnv,
   int min,
   int max)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",9,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",9,true);
    EnvPrintRouter(theEnv,WERROR,"Salience value out of range ");
    PrintLongInteger(theEnv,WERROR,(long int) min);
    EnvPrintRouter(theEnv,WERROR," to ");
@@ -645,10 +645,10 @@ globle void SalienceRangeError(
 /* SalienceNonIntegerError: Error message that is printed when */
 /*   a rule's salience does not evaluate to an integer.        */
 /***************************************************************/
-globle void SalienceNonIntegerError(
+void SalienceNonIntegerError(
   void *theEnv)
   {
-   PrintErrorID(theEnv,"PRNTUTIL",10,TRUE);
+   PrintErrorID(theEnv,"PRNTUTIL",10,true);
    EnvPrintRouter(theEnv,WERROR,"Salience value must be an integer value.\n");
   }
 
@@ -658,16 +658,16 @@ globle void SalienceNonIntegerError(
 /*   function. Input to the function is the slot   */
 /*   name and the function name.                   */
 /***************************************************/
-globle void SlotExistError(
+void SlotExistError(
   void *theEnv,
   const char *sname,
   const char *func)
   {
-   PrintErrorID(theEnv,"INSFUN",3,FALSE);
+   PrintErrorID(theEnv,"INSFUN",3,false);
    EnvPrintRouter(theEnv,WERROR,"No such slot ");
    EnvPrintRouter(theEnv,WERROR,sname);
    EnvPrintRouter(theEnv,WERROR," in function ");
    EnvPrintRouter(theEnv,WERROR,func);
    EnvPrintRouter(theEnv,WERROR,".\n");
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetEvaluationError(theEnv,true);
   }

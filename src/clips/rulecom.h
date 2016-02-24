@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             DEFRULE COMMANDS HEADER FILE            */
    /*******************************************************/
@@ -50,21 +50,12 @@
 /*************************************************************/
 
 #ifndef _H_rulecom
+
+#pragma once
+
 #define _H_rulecom
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULECOM_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct joinInformation
   {
@@ -81,39 +72,27 @@ struct joinInformation
 #define SUCCINCT 1
 #define TERSE    2
 
-   LOCALE intBool                        EnvGetBetaMemoryResizing(void *);
-   LOCALE intBool                        EnvSetBetaMemoryResizing(void *,intBool);
-   LOCALE int                            GetBetaMemoryResizingCommand(void *);
-   LOCALE int                            SetBetaMemoryResizingCommand(void *);
-
-   LOCALE void                           EnvMatches(void *,void *,int,DATA_OBJECT *);
-   LOCALE void                           EnvJoinActivity(void *,void *,int,DATA_OBJECT *);
-   LOCALE void                           DefruleCommands(void *);
-   LOCALE void                           MatchesCommand(void *,DATA_OBJECT *);
-   LOCALE void                           JoinActivityCommand(void *,DATA_OBJECT *);
-   LOCALE long long                      TimetagFunction(void *);
-   LOCALE long                           EnvAlphaJoinCount(void *,void *);
-   LOCALE long                           EnvBetaJoinCount(void *,void *);
-   LOCALE struct joinInformation        *EnvCreateJoinArray(void *,long);
-   LOCALE void                           EnvFreeJoinArray(void *,struct joinInformation *,long);
-   LOCALE void                           EnvAlphaJoins(void *,void *,long,struct joinInformation *);
-   LOCALE void                           EnvBetaJoins(void *,void *,long,struct joinInformation *);
-   LOCALE void                           JoinActivityResetCommand(void *);
+   bool                           EnvGetBetaMemoryResizing(void *);
+   bool                           EnvSetBetaMemoryResizing(void *,bool);
+   void                           GetBetaMemoryResizingCommand(UDFContext *,CLIPSValue *);
+   void                           SetBetaMemoryResizingCommand(UDFContext *,CLIPSValue *);
+   void                           EnvMatches(void *,void *,int,DATA_OBJECT *);
+   void                           EnvJoinActivity(void *,void *,int,DATA_OBJECT *);
+   void                           DefruleCommands(void *);
+   void                           MatchesCommand(UDFContext *,CLIPSValue *);
+   void                           JoinActivityCommand(UDFContext *,CLIPSValue *);
+   void                           TimetagFunction(UDFContext *,CLIPSValue *);
+   long                           EnvAlphaJoinCount(void *,void *);
+   long                           EnvBetaJoinCount(void *,void *);
+   struct joinInformation        *EnvCreateJoinArray(void *,long);
+   void                           EnvFreeJoinArray(void *,struct joinInformation *,long);
+   void                           EnvAlphaJoins(void *,void *,long,struct joinInformation *);
+   void                           EnvBetaJoins(void *,void *,long,struct joinInformation *);
+   void                           JoinActivityResetCommand(UDFContext *,CLIPSValue *);
 #if DEVELOPER
-   LOCALE void                           ShowJoinsCommand(void *);
-   LOCALE long                           RuleComplexityCommand(void *);
-   LOCALE void                           ShowAlphaHashTable(void *);
+   void                           ShowJoinsCommand(UDFContext *,CLIPSValue *);
+   void                           RuleComplexityCommand(UDFContext *,CLIPSValue *);
+   void                           ShowAlphaHashTable(UDFContext *,CLIPSValue *);
 #endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           Matches(void *,int,DATA_OBJECT *);
-   LOCALE void                           JoinActivity(void *,int,DATA_OBJECT *);
-#endif
-   LOCALE intBool                        GetBetaMemoryResizing(void);
-   LOCALE intBool                        SetBetaMemoryResizing(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_rulecom */

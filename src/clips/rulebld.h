@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               RULE BUILD HEADER FILE                */
    /*******************************************************/
@@ -34,26 +34,14 @@
 
 #ifndef _H_rulebld
 
+#pragma once
+
 #define _H_rulebld
 
-#ifndef _H_reorder
-#include "reorder.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
+#include "reorder.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEBLD_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct joinNode               *ConstructJoins(void *,int,struct lhsParseNode *,int,struct joinNode *,int,int);
+   struct joinNode               *ConstructJoins(void *,int,struct lhsParseNode *,int,struct joinNode *,bool,bool);
 
 #endif /* _H_rulebld */
 

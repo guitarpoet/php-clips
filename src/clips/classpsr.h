@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -38,24 +38,17 @@
 /*************************************************************/
 
 #ifndef _H_classpsr
+
+#pragma once
+
 #define _H_classpsr
 
 #if OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME)
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CLASSPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-LOCALE int ParseDefclass(void *,const char *);
+bool ParseDefclass(void *,const char *);
 
 #if DEFMODULE_CONSTRUCT
-LOCALE void *CreateClassScopeMap(void *,DEFCLASS *);
+void *CreateClassScopeMap(void *,DEFCLASS *);
 #endif
 
 #endif

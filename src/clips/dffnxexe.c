@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -36,11 +36,7 @@
 
 #if DEFFUNCTION_CONSTRUCT
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
-
 #include <string.h>
 
 #include "constrct.h"
@@ -52,7 +48,6 @@
 #include "utility.h"
 #include "watch.h"
 
-#define _DFFNXEXE_SOURCE_
 #include "dffnxexe.h"
 
 /* =========================================
@@ -92,7 +87,7 @@ static void WatchDeffunction(void *,const char *);
                  stored in data object buffer
   NOTES        : Used in EvaluateExpression(theEnv,)
  ****************************************************/
-globle void CallDeffunction(
+void CallDeffunction(
   void *theEnv,
   DEFFUNCTION *dptr,
   EXPRESSION *args,
@@ -100,25 +95,21 @@ globle void CallDeffunction(
   {
    int oldce;
    DEFFUNCTION *previouslyExecutingDeffunction;
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
+   struct CLIPSBlock gcBlock;
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
 
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
-   EvaluationData(theEnv)->EvaluationError = FALSE;
+   EvaluationData(theEnv)->EvaluationError = false;
    if (EvaluationData(theEnv)->HaltExecution)
      return;
      
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   newGarbageFrame.priorFrame = oldGarbageFrame;
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
-
+   CLIPSBlockStart(theEnv,&gcBlock);
+   
    oldce = ExecutingConstruct(theEnv);
-   SetExecutingConstruct(theEnv,TRUE);
+   SetExecutingConstruct(theEnv,true);
    previouslyExecutingDeffunction = DeffunctionData(theEnv)->ExecutingDeffunction;
    DeffunctionData(theEnv)->ExecutingDeffunction = dptr;
    EvaluationData(theEnv)->CurrentEvaluationDepth++;
@@ -131,7 +122,7 @@ globle void CallDeffunction(
       DeffunctionData(theEnv)->ExecutingDeffunction = previouslyExecutingDeffunction;
       EvaluationData(theEnv)->CurrentEvaluationDepth--;
       
-      RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+      CLIPSBlockEnd(theEnv,&gcBlock,result);
       CallPeriodicTasks(theEnv);
 
       SetExecutingConstruct(theEnv,oldce);
@@ -161,14 +152,14 @@ globle void CallDeffunction(
    if (dptr->trace)
      WatchDeffunction(theEnv,END_TRACE);
 #endif
-   ProcedureFunctionData(theEnv)->ReturnFlag = FALSE;
+   ProcedureFunctionData(theEnv)->ReturnFlag = false;
 
    dptr->executing--;
    PopProcParameters(theEnv);
    DeffunctionData(theEnv)->ExecutingDeffunction = previouslyExecutingDeffunction;
    EvaluationData(theEnv)->CurrentEvaluationDepth--;
    
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+   CLIPSBlockEnd(theEnv,&gcBlock,result);
    CallPeriodicTasks(theEnv);
    
    SetExecutingConstruct(theEnv,oldce);

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              FACT FUNCTIONS HEADER FILE             */
    /*******************************************************/
@@ -37,47 +37,28 @@
 /*************************************************************/
 
 #ifndef _H_factfun
+
+#pragma once
+
 #define _H_factfun
 
-#ifndef _H_factmngr
 #include "factmngr.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FactFunctionDefinitions(void *);
-   LOCALE void                          *FactRelationFunction(void *);
-   LOCALE void                          *FactRelation(void *);
-   LOCALE void                          *EnvFactDeftemplate(void *,void *);
-   LOCALE int                            FactExistpFunction(void *);
-   LOCALE int                            EnvFactExistp(void *,void *);
-   LOCALE void                           FactSlotValueFunction(void *,DATA_OBJECT *);
-   LOCALE void                           FactSlotValue(void *,void *,const char *,DATA_OBJECT *);
-   LOCALE void                           FactSlotNamesFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvFactSlotNames(void *,void *,DATA_OBJECT *);
-   LOCALE void                           GetFactListFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvGetFactList(void *,DATA_OBJECT *,void *);
-   LOCALE void                           PPFactFunction(void *);
-   LOCALE void                           EnvPPFact(void *,void *,const char *,int);
-   LOCALE struct fact                   *GetFactAddressOrIndexArgument(void *,const char *,int,int);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *FactDeftemplate(void *);
-   LOCALE int                            FactExistp(void *);
-   LOCALE void                           FactSlotNames(void *,DATA_OBJECT *);
-   LOCALE void                           GetFactList(DATA_OBJECT_PTR,void *);
-   LOCALE void                           PPFact(void *,const char *,int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           FactFunctionDefinitions(void *);
+   void                           FactRelationFunction(UDFContext *,CLIPSValue *);
+   void                          *FactRelation(void *);
+   void                          *EnvFactDeftemplate(void *,void *);
+   void                           FactExistpFunction(UDFContext *,CLIPSValue *);
+   bool                           EnvFactExistp(void *,void *);
+   void                           FactSlotValueFunction(UDFContext *,CLIPSValue *);
+   void                           FactSlotValue(void *,void *,const char *,CLIPSValue *);
+   void                           FactSlotNamesFunction(UDFContext *,CLIPSValue *);
+   void                           EnvFactSlotNames(void *,void *,DATA_OBJECT *);
+   void                           GetFactListFunction(UDFContext *,CLIPSValue *);
+   void                           EnvGetFactList(void *,DATA_OBJECT *,void *);
+   void                           PPFactFunction(UDFContext *,CLIPSValue *);
+   void                           EnvPPFact(void *,void *,const char *,bool);
+   struct fact                   *GetFactAddressOrIndexArgument(UDFContext *,bool);
 
 #endif /* _H_factfun */
 

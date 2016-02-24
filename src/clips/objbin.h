@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -28,11 +28,12 @@
 /*************************************************************/
 
 #ifndef _H_objbin
+
+#pragma once
+
 #define _H_objbin
 
-#ifndef _H_object
 #include "object.h"
-#endif
 
 #define OBJECTBIN_DATA 33
 
@@ -62,18 +63,8 @@ struct objectBinaryData
 #define DefclassPointer(i) (((i) == -1L) ? NULL : (DEFCLASS *) &ObjectBinaryData(theEnv)->DefclassArray[i])
 #define DefclassIndex(cls) (((cls) == NULL) ? -1 : ((struct constructHeader *) cls)->bsaveID)
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    SetupObjectsBload(void *);
-   LOCALE void                   *BloadDefclassModuleReference(void *,int);
+   void                    SetupObjectsBload(void *);
+   void                   *BloadDefclassModuleReference(void *,int);
 
 #endif /* _H_objbin */
 

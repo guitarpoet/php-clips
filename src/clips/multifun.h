@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           MULTIFIELD FUNCTIONS HEADER FILE          */
    /*******************************************************/
@@ -43,55 +43,46 @@
 /*************************************************************/
 
 #ifndef _H_multifun
+
+#pragma once
+
 #define _H_multifun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MULTIFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    MultifieldFunctionDefinitions(void *);
+   void                    MultifieldFunctionDefinitions(void *);
 #if MULTIFIELD_FUNCTIONS
-   LOCALE void                    DeleteFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MVDeleteFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ReplaceFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MVReplaceFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    DeleteMemberFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ReplaceMemberFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    InsertFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ExplodeFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                   *ImplodeFunction(void *);
-   LOCALE void                    SubseqFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MVSubseqFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    FirstFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    RestFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    NthFunction(void *,DATA_OBJECT_PTR);
-   LOCALE intBool                 SubsetpFunction(void *);
-   LOCALE void                    MemberFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MultifieldPrognFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ForeachFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    GetMvPrognField(void *,DATA_OBJECT_PTR);
-   LOCALE long                    GetMvPrognIndex(void *);
-   LOCALE intBool                 FindDOsInSegment(DATA_OBJECT_PTR,int,DATA_OBJECT_PTR,
+   void                    DeleteFunction(UDFContext *,CLIPSValue *);
+   void                    MVDeleteFunction(void *,DATA_OBJECT_PTR);
+   void                    ReplaceFunction(UDFContext *,CLIPSValue *);
+   void                    MVReplaceFunction(void *,DATA_OBJECT_PTR);
+   void                    DeleteMemberFunction(UDFContext *,CLIPSValue *);
+   void                    ReplaceMemberFunction(UDFContext *,CLIPSValue *);
+   void                    InsertFunction(UDFContext *,CLIPSValue *);
+   void                    ExplodeFunction(UDFContext *,CLIPSValue *);
+   void                    ImplodeFunction(UDFContext *,CLIPSValue *);
+   void                    SubseqFunction(UDFContext *,CLIPSValue *);
+   void                    MVSubseqFunction(void *,DATA_OBJECT_PTR);
+   void                    FirstFunction(UDFContext *,CLIPSValue *);
+   void                    RestFunction(UDFContext *,CLIPSValue *);
+   void                    NthFunction(UDFContext *,CLIPSValue *);
+   void                    SubsetpFunction(UDFContext *,CLIPSValue *);
+   void                    MemberFunction(UDFContext *,CLIPSValue *);
+   void                    MultifieldPrognFunction(UDFContext *,CLIPSValue *);
+   void                    ForeachFunction(UDFContext *,CLIPSValue *);
+   void                    GetMvPrognField(UDFContext *,CLIPSValue *);
+   void                    GetMvPrognIndex(UDFContext *,CLIPSValue *);
+   bool                    FindDOsInSegment(DATA_OBJECT_PTR,int,DATA_OBJECT_PTR,
                                                    long *,long *,long *,int);
 #endif
-   LOCALE int                     ReplaceMultiValueField(void *,struct dataObject *,
+   bool                    ReplaceMultiValueField(void *,struct dataObject *,
                                                          struct dataObject *,
                                                          long,long,
                                                          struct dataObject *,const char *);
-   LOCALE int                     InsertMultiValueField(void *,struct dataObject *,
+   bool                    InsertMultiValueField(void *,struct dataObject *,
                                                         struct dataObject *,
                                                         long,struct dataObject *,const char *);
-   LOCALE int                     DeleteMultiValueField(void *,struct dataObject *,struct dataObject *,
+   bool                    DeleteMultiValueField(void *,struct dataObject *,struct dataObject *,
                                                         long,long,const char *);
 
 #endif /* _H_multifun */

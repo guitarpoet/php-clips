@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             DEFFACTS BSAVE/BLOAD MODULE             */
    /*******************************************************/
@@ -22,21 +22,18 @@
 /*                                                           */
 /*************************************************************/
 
-#define _DFFCTBIN_SOURCE_
-
 #include "setup.h"
 
 #if DEFFACTS_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "dffctdef.h"
-#include "moduldef.h"
 #include "bload.h"
 #include "bsave.h"
+#include "dffctdef.h"
 #include "envrnmnt.h"
+#include "memalloc.h"
+#include "moduldef.h"
 
 #include "dffctbin.h"
 
@@ -61,7 +58,7 @@
 /* DeffactsBinarySetup: Installs the binary */
 /*   save/load feature for deffacts.        */
 /********************************************/
-globle void DeffactsBinarySetup(
+void DeffactsBinarySetup(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,DFFCTBIN_DATA,sizeof(struct deffactsBinaryData),DeallocateDeffactsBloadData);
@@ -463,7 +460,7 @@ static void ClearBload(
 /* BloadDeffactsModuleReference: Returns the deffacts */
 /*   module pointer for use with the bload function.  */
 /******************************************************/
-globle void *BloadDeffactsModuleReference(
+void *BloadDeffactsModuleReference(
   void *theEnv,
   int theIndex)
   {

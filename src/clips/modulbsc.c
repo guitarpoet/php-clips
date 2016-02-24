@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*         DEFMODULE BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -30,24 +30,21 @@
 /*                                                           */
 /*************************************************************/
 
-#define _MODULBSC_SOURCE_
-
 #include "setup.h"
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
-#include "constrct.h"
-#include "extnfunc.h"
-#include "modulbin.h"
-#include "prntutil.h"
-#include "modulcmp.h"
-#include "router.h"
 #include "argacces.h"
 #include "bload.h"
-#include "multifld.h"
+#include "constrct.h"
 #include "envrnmnt.h"
+#include "extnfunc.h"
+#include "modulbin.h"
+#include "modulcmp.h"
+#include "multifld.h"
+#include "prntutil.h"
+#include "router.h"
 
 #include "modulbsc.h"
 
@@ -63,7 +60,7 @@
 /*****************************************************************/
 /* DefmoduleBasicCommands: Initializes basic defmodule commands. */
 /*****************************************************************/
-globle void DefmoduleBasicCommands(
+void DefmoduleBasicCommands(
   void *theEnv)
   {
    EnvAddClearFunction(theEnv,"defmodule",ClearDefmodules,2000);
@@ -72,11 +69,11 @@ globle void DefmoduleBasicCommands(
    AddSaveFunction(theEnv,"defmodule",SaveDefmodules,1100);
 
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"get-defmodule-list",'m',PTIEF EnvGetDefmoduleList,"EnvGetDefmoduleList","00");
+   EnvAddUDF(theEnv,"get-defmodule-list","m", EnvGetDefmoduleListFunction,"EnvGetDefmoduleListFunction",0,0,NULL,NULL);
 
 #if DEBUGGING_FUNCTIONS
-   EnvDefineFunction2(theEnv,"list-defmodules",'v', PTIEF ListDefmodulesCommand,"ListDefmodulesCommand","00");
-   EnvDefineFunction2(theEnv,"ppdefmodule",'v',PTIEF PPDefmoduleCommand,"PPDefmoduleCommand","11w");
+   EnvAddUDF(theEnv,"list-defmodules","v", ListDefmodulesCommand,"ListDefmodulesCommand",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"ppdefmodule","v",PPDefmoduleCommand,"PPDefmoduleCommand",1,1,"y",NULL);
 #endif
 #endif
 #endif
@@ -98,13 +95,13 @@ static void ClearDefmodules(
   void *theEnv)
   {
 #if (BLOAD || BLOAD_AND_BSAVE || BLOAD_ONLY) && (! RUN_TIME)
-   if (Bloaded(theEnv) == TRUE) return;
+   if (Bloaded(theEnv) == true) return;
 #endif
 #if (! RUN_TIME)
    RemoveAllDefmodules(theEnv);
 
    CreateMainModule(theEnv);
-   DefmoduleData(theEnv)->MainModuleRedefinable = TRUE;
+   DefmoduleData(theEnv)->MainModuleRedefinable = true;
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -132,14 +129,25 @@ static void SaveDefmodules(
       EnvPrintRouter(theEnv,logicalName,"\n");
      }
   }
+  
+/***************************************************/
+/* EnvGetDefmoduleListFunction: H/L access routine */
+/*   for the get-defmodule-list function.          */
+/***************************************************/
+void EnvGetDefmoduleListFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   EnvGetDefmoduleList(UDFContextEnvironment(context),returnValue);
+  }
 
 /*************************************************/
 /* EnvGetDefmoduleList: H/L and C access routine */
 /*   for the get-defmodule-list function.        */
 /*************************************************/
-globle void EnvGetDefmoduleList(
+void EnvGetDefmoduleList(
   void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+  CLIPSValue *returnValue)
   {
    void *theConstruct;
    unsigned long count = 0;
@@ -174,7 +182,7 @@ globle void EnvGetDefmoduleList(
         theConstruct != NULL;
         theConstruct = EnvGetNextDefmodule(theEnv,theConstruct), count++)
      {
-      if (EvaluationData(theEnv)->HaltExecution == TRUE)
+      if (EvaluationData(theEnv)->HaltExecution == true)
         {
          EnvSetMultifieldErrorValue(theEnv,returnValue);
          return;
@@ -190,12 +198,14 @@ globle void EnvGetDefmoduleList(
 /* PPDefmoduleCommand: H/L access routine   */
 /*   for the ppdefmodule command.           */
 /********************************************/
-globle void PPDefmoduleCommand(
-  void *theEnv)
+void PPDefmoduleCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *defmoduleName;
+   void *theEnv = UDFContextEnvironment(context);
 
-   defmoduleName = GetConstructName(theEnv,"ppdefmodule","defmodule name");
+   defmoduleName = GetConstructName(context,"ppdefmodule","defmodule name");
    if (defmoduleName == NULL) return;
 
    PPDefmodule(theEnv,defmoduleName,WDISPLAY);
@@ -207,7 +217,7 @@ globle void PPDefmoduleCommand(
 /* PPDefmodule: C access routine for */
 /*   the ppdefmodule command.        */
 /*************************************/
-globle int PPDefmodule(
+bool PPDefmodule(
   void *theEnv,
   const char *defmoduleName,
   const char *logicalName)
@@ -218,31 +228,30 @@ globle int PPDefmodule(
    if (defmodulePtr == NULL)
      {
       CantFindItemErrorMessage(theEnv,"defmodule",defmoduleName);
-      return(FALSE);
+      return(false);
      }
 
-   if (EnvGetDefmodulePPForm(theEnv,defmodulePtr) == NULL) return(TRUE);
+   if (EnvGetDefmodulePPForm(theEnv,defmodulePtr) == NULL) return(true);
    PrintInChunks(theEnv,logicalName,EnvGetDefmodulePPForm(theEnv,defmodulePtr));
-   return(TRUE);
+   return(true);
   }
 
 /***********************************************/
 /* ListDefmodulesCommand: H/L access routine   */
 /*   for the list-defmodules command.          */
 /***********************************************/
-globle void ListDefmodulesCommand(
-  void *theEnv)
+void ListDefmodulesCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   if (EnvArgCountCheck(theEnv,"list-defmodules",EXACTLY,0) == -1) return;
-
-   EnvListDefmodules(theEnv,WDISPLAY);
+   EnvListDefmodules(UDFContextEnvironment(context),WDISPLAY);
   }
 
 /***************************************/
 /* EnvListDefmodules: C access routine */
 /*   for the list-defmodules command.  */
 /***************************************/
-globle void EnvListDefmodules(
+void EnvListDefmodules(
   void *theEnv,
   const char *logicalName)
   {
@@ -262,30 +271,6 @@ globle void EnvListDefmodules(
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle void GetDefmoduleList(
-  DATA_OBJECT_PTR returnValue)
-  {
-   EnvGetDefmoduleList(GetCurrentEnvironment(),returnValue);
-  }
-
-#if DEBUGGING_FUNCTIONS
-
-globle void ListDefmodules(
-  const char *logicalName)
-  {
-   EnvListDefmodules(GetCurrentEnvironment(),logicalName);
-  }
-
-#endif /* DEBUGGING_FUNCTIONS */
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFMODULE_CONSTRUCT */
 

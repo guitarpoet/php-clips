@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
-   /*            DEFTEMPLATE BSAVE/BLOAD MODULE           */
+   /*           DEFTEMPLATE BSAVE/BLOAD MODULE            */
    /*******************************************************/
 
 /*************************************************************/
@@ -25,27 +25,26 @@
 /*                                                           */
 /*            Support for deftemplate slot facets.           */
 /*                                                           */
+/*      6.40: Removed initial-fact support.                  */
+/*                                                           */
 /*************************************************************/
-
-#define  _TMPLTBIN_SOURCE_
 
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
 #include "bload.h"
 #include "bsave.h"
-#include "factbin.h"
 #include "cstrnbin.h"
-#include "factmngr.h"
-#include "tmpltpsr.h"
-#include "tmpltdef.h"
-#include "tmpltutl.h"
 #include "envrnmnt.h"
+#include "factbin.h"
+#include "factmngr.h"
+#include "memalloc.h"
+#include "tmpltdef.h"
+#include "tmpltpsr.h"
+#include "tmpltutl.h"
 
 #include "tmpltbin.h"
 
@@ -70,7 +69,7 @@
 /* DeftemplateBinarySetup: Installs the binary */
 /*   save/load feature for deftemplates.       */
 /***********************************************/
-globle void DeftemplateBinarySetup(
+void DeftemplateBinarySetup(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,TMPLTBIN_DATA,sizeof(struct deftemplateBinaryData),DeallocateDeftemplateBloadData);
@@ -181,7 +180,7 @@ static void BsaveFind(
               theSlot = theSlot->next)
            {
             DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots++;
-            theSlot->slotName->neededSymbol = TRUE;
+            theSlot->slotName->neededSymbol = true;
            }
         }
 
@@ -497,7 +496,7 @@ static void UpdateDeftemplate(
 #if DEBUGGING_FUNCTIONS
    theDeftemplate->watch = FactData(theEnv)->WatchFacts;
 #endif
-   theDeftemplate->inScope = FALSE;
+   theDeftemplate->inScope = false;
    theDeftemplate->numberOfSlots = (unsigned short) bdtPtr->numberOfSlots;
    theDeftemplate->factList = NULL;
    theDeftemplate->lastFact = NULL;
@@ -583,22 +582,14 @@ static void ClearBload(
 
    space =  DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots * sizeof(struct templateSlot);
    if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->SlotArray,space);
-   DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots = 0;
-   
-   /*======================================*/
-   /* Create the initial-fact deftemplate. */
-   /*======================================*/
-
-#if (! BLOAD_ONLY)
-   CreateImpliedDeftemplate(theEnv,(SYMBOL_HN *) EnvAddSymbol(theEnv,"initial-fact"),FALSE);
-#endif
+   DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots = 0;   
   }
 
 /************************************************************/
 /* BloadDeftemplateModuleReference: Returns the deftemplate */
 /*   module pointer for use with the bload function.        */
 /************************************************************/
-globle void *BloadDeftemplateModuleReference(
+void *BloadDeftemplateModuleReference(
   void *theEnv,
   int theIndex)
   {

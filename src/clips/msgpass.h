@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -40,13 +40,14 @@
 /*************************************************************/
 
 #ifndef _H_msgpass
+
+#pragma once
+
 #define _H_msgpass
 
 #define GetActiveInstance(theEnv) ((INSTANCE_TYPE *) GetNthMessageArgument(theEnv,0)->value)
 
-#ifndef _H_object
 #include "object.h"
-#endif
 
 typedef struct messageHandlerLink
   {
@@ -55,42 +56,28 @@ typedef struct messageHandlerLink
    struct messageHandlerLink *nxtInStack;
   } HANDLER_LINK;
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MSGPASS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool          DirectMessage(void *,SYMBOL_HN *,INSTANCE_TYPE *,
+   bool             DirectMessage(void *,SYMBOL_HN *,INSTANCE_TYPE *,
                                          DATA_OBJECT *,EXPRESSION *);
-   LOCALE void             EnvSend(void *,DATA_OBJECT *,const char *,const char *,DATA_OBJECT *);
-   LOCALE void             DestroyHandlerLinks(void *,HANDLER_LINK *);
-   LOCALE void             SendCommand(void *,DATA_OBJECT *);
-   LOCALE DATA_OBJECT     *GetNthMessageArgument(void *,int);
+   void             EnvSend(void *,DATA_OBJECT *,const char *,const char *,DATA_OBJECT *);
+   void             DestroyHandlerLinks(void *,HANDLER_LINK *);
+   void             SendCommand(UDFContext *,CLIPSValue *);
+   DATA_OBJECT     *GetNthMessageArgument(void *,int);
 
-   LOCALE int              NextHandlerAvailable(void *);
-   LOCALE void             CallNextHandler(void *,DATA_OBJECT *);
+   bool             NextHandlerAvailable(void *);
+   void             NextHandlerAvailableFunction(UDFContext *,CLIPSValue *);
 
-   LOCALE void             FindApplicableOfName(void *,DEFCLASS *,HANDLER_LINK *[],
+   void             CallNextHandler(UDFContext *,CLIPSValue *);
+
+   void             FindApplicableOfName(void *,DEFCLASS *,HANDLER_LINK *[],
                                                 HANDLER_LINK *[],SYMBOL_HN *);
-   LOCALE HANDLER_LINK    *JoinHandlerLinks(void *,HANDLER_LINK *[],HANDLER_LINK *[],SYMBOL_HN *);
+   HANDLER_LINK    *JoinHandlerLinks(void *,HANDLER_LINK *[],HANDLER_LINK *[],SYMBOL_HN *);
 
-   LOCALE void             PrintHandlerSlotGetFunction(void *,const char *,void *);
-   LOCALE intBool          HandlerSlotGetFunction(void *,void *,DATA_OBJECT *);
-   LOCALE void             PrintHandlerSlotPutFunction(void *,const char *,void *);
-   LOCALE intBool          HandlerSlotPutFunction(void *,void *,DATA_OBJECT *);
-   LOCALE void             DynamicHandlerGetSlot(void *,DATA_OBJECT *);
-   LOCALE void             DynamicHandlerPutSlot(void *,DATA_OBJECT *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void             Send(DATA_OBJECT *,const char *,const char *,DATA_OBJECT *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void             PrintHandlerSlotGetFunction(void *,const char *,void *);
+   bool             HandlerSlotGetFunction(void *,void *,DATA_OBJECT *);
+   void             PrintHandlerSlotPutFunction(void *,const char *,void *);
+   bool             HandlerSlotPutFunction(void *,void *,DATA_OBJECT *);
+   void             DynamicHandlerGetSlot(UDFContext *,CLIPSValue *);
+   void             DynamicHandlerPutSlot(UDFContext *,CLIPSValue *);
 
 #endif /* _H_object */
 

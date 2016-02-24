@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                 SCANNER HEADER FILE                 */
    /*******************************************************/
@@ -31,23 +31,14 @@
 /*************************************************************/
 
 #ifndef _H_scanner
+
+#pragma once
+
 #define _H_scanner
 
 struct token;
 
-#ifndef _H_pprint
 #include "pprint.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _SCANNER_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct token
   {
@@ -64,19 +55,19 @@ struct scannerData
    size_t GlobalMax;
    size_t GlobalPos;
    long LineCount;
-   int IgnoreCompletionErrors;
+   bool IgnoreCompletionErrors;
   };
 
 #define ScannerData(theEnv) ((struct scannerData *) GetEnvironmentData(theEnv,SCANNER_DATA))
 
-   LOCALE void                           InitializeScannerData(void *);
-   LOCALE void                           GetToken(void *,const char *,struct token *);
-   LOCALE void                           CopyToken(struct token *,struct token *);
-   LOCALE void                           ResetLineCount(void *);
-   LOCALE long                           GetLineCount(void *);
-   LOCALE long                           SetLineCount(void *,long);
-   LOCALE void                           IncrementLineCount(void *);
-   LOCALE void                           DecrementLineCount(void *);
+   void                           InitializeScannerData(void *);
+   void                           GetToken(void *,const char *,struct token *);
+   void                           CopyToken(struct token *,struct token *);
+   void                           ResetLineCount(void *);
+   long                           GetLineCount(void *);
+   long                           SetLineCount(void *,long);
+   void                           IncrementLineCount(void *);
+   void                           DecrementLineCount(void *);
 
 #endif /* _H_scanner */
 

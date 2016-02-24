@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/20/16             */
    /*                                                     */
    /*                 CONSTRAINT MODULE                   */
    /*******************************************************/
@@ -34,12 +34,11 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Static constraint checking is always enabled.  */
+/*                                                           */
 /*************************************************************/
 
-#define _CONSTRNT_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 
 #include "setup.h"
@@ -61,7 +60,7 @@
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    static void                     InstallConstraintRecord(void *,CONSTRAINT_RECORD *);
-   static int                      ConstraintCompare(struct constraintRecord *,struct constraintRecord *);
+   static bool                     ConstraintCompare(struct constraintRecord *,struct constraintRecord *);
 #endif
 #if (! RUN_TIME)
    static void                     ReturnConstraintRecord(void *,CONSTRAINT_RECORD *);
@@ -74,7 +73,7 @@
 /*   hash table to NULL and defines the static and   */
 /*   dynamic constraint access functions.            */
 /*****************************************************/
-globle void InitializeConstraints(
+void InitializeConstraints(
   void *theEnv)
   {
 #if (! RUN_TIME) && (! BLOAD_ONLY)
@@ -82,9 +81,7 @@ globle void InitializeConstraints(
 #endif
 
    AllocateEnvironmentData(theEnv,CONSTRAINT_DATA,sizeof(struct constraintData),DeallocateConstraintData);
-   
-   ConstraintData(theEnv)->StaticConstraintChecking = TRUE;
-   
+      
 #if (! RUN_TIME) && (! BLOAD_ONLY)
 
     ConstraintData(theEnv)->ConstraintHashtable = (struct constraintRecord **)
@@ -97,11 +94,8 @@ globle void InitializeConstraints(
 #endif
 
 #if (! RUN_TIME)
-   EnvDefineFunction2(theEnv,"get-dynamic-constraint-checking",'b',GDCCommand,"GDCCommand", "00");
-   EnvDefineFunction2(theEnv,"set-dynamic-constraint-checking",'b',SDCCommand,"SDCCommand", "11");
-
-   EnvDefineFunction2(theEnv,"get-static-constraint-checking",'b',GSCCommand,"GSCCommand", "00");
-   EnvDefineFunction2(theEnv,"set-static-constraint-checking",'b',SSCCommand,"SSCCommand", "11");
+   EnvAddUDF(theEnv,"get-dynamic-constraint-checking","b", GDCCommand,"GDCCommand", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"set-dynamic-constraint-checking","b", SDCCommand,"SDCCommand", 1,1,NULL,NULL);
 #endif
   }
   
@@ -149,7 +143,7 @@ static void DeallocateConstraintData(
 /*************************************************************/
 /* ReturnConstraintRecord: Frees the data structures used by */
 /*   a constraint record. If the returnOnlyFields argument   */
-/*   is FALSE, then the constraint record is also freed.     */
+/*   is false, then the constraint record is also freed.     */
 /*************************************************************/
 static void ReturnConstraintRecord(
   void *theEnv,
@@ -208,7 +202,7 @@ static void DeinstallConstraintRecord(
 /* RemoveConstraint: Removes a constraint */
 /*   from the constraint hash table.      */
 /******************************************/
-globle void RemoveConstraint(
+void RemoveConstraint(
   void *theEnv,
   struct constraintRecord *theConstraint)
   {
@@ -266,7 +260,7 @@ globle void RemoveConstraint(
 /* HashConstraint: Returns a hash  */
 /*   value for a given constraint. */
 /***********************************/
-globle unsigned long HashConstraint(
+unsigned long HashConstraint(
   struct constraintRecord *theConstraint)
   {
    int i = 0;
@@ -326,10 +320,10 @@ globle unsigned long HashConstraint(
 
 /**********************************************/
 /* ConstraintCompare: Compares two constraint */
-/*   records and returns TRUE if they are     */
-/*   identical, otherwise FALSE.              */
+/*   records and returns true if they are     */
+/*   identical, otherwise false.              */
 /**********************************************/
-static int ConstraintCompare(
+static bool ConstraintCompare(
   struct constraintRecord *constraint1,
   struct constraintRecord *constraint2)
   {
@@ -354,67 +348,67 @@ static int ConstraintCompare(
        (constraint1->integerRestriction != constraint2->integerRestriction) ||
        (constraint1->classRestriction != constraint2->classRestriction) ||
        (constraint1->instanceNameRestriction != constraint2->instanceNameRestriction))
-     { return(FALSE); }
+     { return(false); }
 
    for (tmpPtr1 = constraint1->classList, tmpPtr2 = constraint2->classList;
         (tmpPtr1 != NULL) && (tmpPtr2 != NULL);
         tmpPtr1 = tmpPtr1->nextArg, tmpPtr2 = tmpPtr2->nextArg)
      {
       if ((tmpPtr1->type != tmpPtr2->type) || (tmpPtr1->value != tmpPtr2->value))
-        { return(FALSE); }
+        { return(false); }
      }
-   if (tmpPtr1 != tmpPtr2) return(FALSE);
+   if (tmpPtr1 != tmpPtr2) return(false);
 
    for (tmpPtr1 = constraint1->restrictionList, tmpPtr2 = constraint2->restrictionList;
         (tmpPtr1 != NULL) && (tmpPtr2 != NULL);
         tmpPtr1 = tmpPtr1->nextArg, tmpPtr2 = tmpPtr2->nextArg)
      {
       if ((tmpPtr1->type != tmpPtr2->type) || (tmpPtr1->value != tmpPtr2->value))
-        { return(FALSE); }
+        { return(false); }
      }
-   if (tmpPtr1 != tmpPtr2) return(FALSE);
+   if (tmpPtr1 != tmpPtr2) return(false);
 
    for (tmpPtr1 = constraint1->minValue, tmpPtr2 = constraint2->minValue;
         (tmpPtr1 != NULL) && (tmpPtr2 != NULL);
         tmpPtr1 = tmpPtr1->nextArg, tmpPtr2 = tmpPtr2->nextArg)
      {
       if ((tmpPtr1->type != tmpPtr2->type) || (tmpPtr1->value != tmpPtr2->value))
-        { return(FALSE); }
+        { return(false); }
      }
-   if (tmpPtr1 != tmpPtr2) return(FALSE);
+   if (tmpPtr1 != tmpPtr2) return(false);
 
    for (tmpPtr1 = constraint1->maxValue, tmpPtr2 = constraint2->maxValue;
         (tmpPtr1 != NULL) && (tmpPtr2 != NULL);
         tmpPtr1 = tmpPtr1->nextArg, tmpPtr2 = tmpPtr2->nextArg)
      {
       if ((tmpPtr1->type != tmpPtr2->type) || (tmpPtr1->value != tmpPtr2->value))
-        { return(FALSE); }
+        { return(false); }
      }
-   if (tmpPtr1 != tmpPtr2) return(FALSE);
+   if (tmpPtr1 != tmpPtr2) return(false);
 
    for (tmpPtr1 = constraint1->minFields, tmpPtr2 = constraint2->minFields;
         (tmpPtr1 != NULL) && (tmpPtr2 != NULL);
         tmpPtr1 = tmpPtr1->nextArg, tmpPtr2 = tmpPtr2->nextArg)
      {
       if ((tmpPtr1->type != tmpPtr2->type) || (tmpPtr1->value != tmpPtr2->value))
-        { return(FALSE); }
+        { return(false); }
      }
-   if (tmpPtr1 != tmpPtr2) return(FALSE);
+   if (tmpPtr1 != tmpPtr2) return(false);
 
    for (tmpPtr1 = constraint1->maxFields, tmpPtr2 = constraint2->maxFields;
         (tmpPtr1 != NULL) && (tmpPtr2 != NULL);
         tmpPtr1 = tmpPtr1->nextArg, tmpPtr2 = tmpPtr2->nextArg)
      {
       if ((tmpPtr1->type != tmpPtr2->type) || (tmpPtr1->value != tmpPtr2->value))
-        { return(FALSE); }
+        { return(false); }
      }
-   if (tmpPtr1 != tmpPtr2) return(FALSE);
+   if (tmpPtr1 != tmpPtr2) return(false);
 
    if (((constraint1->multifield == NULL) && (constraint2->multifield != NULL)) ||
        ((constraint1->multifield != NULL) && (constraint2->multifield == NULL)))
-     { return(FALSE); }
+     { return(false); }
    else if (constraint1->multifield == constraint2->multifield)
-     { return(TRUE); }
+     { return(true); }
 
    return(ConstraintCompare(constraint1->multifield,constraint2->multifield));
   }
@@ -423,7 +417,7 @@ static int ConstraintCompare(
 /* AddConstraint: Adds a constraint */
 /*   to the constraint hash table.  */
 /************************************/
-globle struct constraintRecord *AddConstraint(
+struct constraintRecord *AddConstraint(
   void *theEnv,
   struct constraintRecord *theConstraint)
   {
@@ -499,95 +493,42 @@ static void InstallConstraintRecord(
 /* SDCCommand: H/L access routine for the     */
 /*   set-dynamic-constraint-checking command. */
 /**********************************************/
-globle int SDCCommand(
-  void *theEnv)
+void SDCCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int oldValue;
-   DATA_OBJECT arg_ptr;
+   CLIPSValue theArg;
+   Environment *theEnv = UDFContextEnvironment(context);
 
-   oldValue = EnvGetDynamicConstraintChecking(theEnv);
+   mCVSetBoolean(returnValue,EnvGetDynamicConstraintChecking(theEnv));
 
-   if (EnvArgCountCheck(theEnv,"set-dynamic-constraint-checking",EXACTLY,1) == -1)
-     { return(oldValue); }
+   if (! UDFFirstArgument(context,ANY_TYPE,&theArg))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&arg_ptr);
-
-   if ((arg_ptr.value == EnvFalseSymbol(theEnv)) && (arg_ptr.type == SYMBOL))
-     { EnvSetDynamicConstraintChecking(theEnv,FALSE); }
-   else
-     { EnvSetDynamicConstraintChecking(theEnv,TRUE); }
-
-   return(oldValue);
+   EnvSetDynamicConstraintChecking(theEnv,! CVIsFalseSymbol(&theArg));
   }
 
 /**********************************************/
 /* GDCCommand: H/L access routine for the     */
 /*   get-dynamic-constraint-checking command. */
 /**********************************************/
-globle int GDCCommand(
-  void *theEnv)
+void GDCCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int oldValue;
-
-   oldValue = EnvGetDynamicConstraintChecking(theEnv);
-
-   if (EnvArgCountCheck(theEnv,"get-dynamic-constraint-checking",EXACTLY,0) == -1)
-     { return(oldValue); }
-
-   return(oldValue);
-  }
-
-/*********************************************/
-/* SSCCommand: H/L access routine for the    */
-/*   set-static-constraint-checking command. */
-/*********************************************/
-globle int SSCCommand(
-  void *theEnv)
-  {
-   int oldValue;
-   DATA_OBJECT arg_ptr;
-
-   oldValue = EnvGetStaticConstraintChecking(theEnv);
-
-   if (EnvArgCountCheck(theEnv,"set-static-constraint-checking",EXACTLY,1) == -1)
-     { return(oldValue); }
-
-   EnvRtnUnknown(theEnv,1,&arg_ptr);
-
-   if ((arg_ptr.value == EnvFalseSymbol(theEnv)) && (arg_ptr.type == SYMBOL))
-     { EnvSetStaticConstraintChecking(theEnv,FALSE); }
-   else
-     { EnvSetStaticConstraintChecking(theEnv,TRUE); }
-
-   return(oldValue);
-  }
-
-/*********************************************/
-/* GSCCommand: H/L access routine for the    */
-/*   get-static-constraint-checking command. */
-/*********************************************/
-globle int GSCCommand(
-  void *theEnv)
-  {
-   int oldValue;
-
-   oldValue = EnvGetStaticConstraintChecking(theEnv);
-
-   if (EnvArgCountCheck(theEnv,"get-static-constraint-checking",EXACTLY,0) == -1)
-     { return(oldValue); }
-
-   return(oldValue);
+   Environment *theEnv = UDFContextEnvironment(context);
+   mCVSetBoolean(returnValue,EnvGetDynamicConstraintChecking(theEnv));
   }
 
 /******************************************************/
 /* EnvSetDynamicConstraintChecking: C access routine  */
 /*   for the set-dynamic-constraint-checking command. */
 /******************************************************/
-globle intBool EnvSetDynamicConstraintChecking(
+bool EnvSetDynamicConstraintChecking(
   void *theEnv,
-  int value)
+  bool value)
   {
-   int ov;
+   bool ov;
    ov = ConstraintData(theEnv)->DynamicConstraintChecking;
    ConstraintData(theEnv)->DynamicConstraintChecking = value;
    return(ov);
@@ -597,63 +538,9 @@ globle intBool EnvSetDynamicConstraintChecking(
 /* EnvGetDynamicConstraintChecking: C access routine  */
 /*   for the get-dynamic-constraint-checking command. */
 /******************************************************/
-globle intBool EnvGetDynamicConstraintChecking(
+bool EnvGetDynamicConstraintChecking(
   void *theEnv)
   { 
    return(ConstraintData(theEnv)->DynamicConstraintChecking); 
   }
 
-/*****************************************************/
-/* EnvSetStaticConstraintChecking: C access routine  */
-/*   for the set-static-constraint-checking command. */
-/*****************************************************/
-globle intBool EnvSetStaticConstraintChecking(
-  void *theEnv,
-  int value)
-  {
-   int ov;
-
-   ov = ConstraintData(theEnv)->StaticConstraintChecking;
-   ConstraintData(theEnv)->StaticConstraintChecking = value;
-   return(ov);
-  }
-
-/*****************************************************/
-/* EnvGetStaticConstraintChecking: C access routine  */
-/*   for the get-static-constraint-checking command. */
-/*****************************************************/
-globle intBool EnvGetStaticConstraintChecking(
-  void *theEnv)
-  {    
-   return(ConstraintData(theEnv)->StaticConstraintChecking); 
-  }
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool SetDynamicConstraintChecking(
-  int value)
-  {
-   return EnvSetDynamicConstraintChecking(GetCurrentEnvironment(),value);
-  }
-
-globle intBool GetDynamicConstraintChecking()
-  { 
-   return EnvGetDynamicConstraintChecking(GetCurrentEnvironment());
-  }
-
-globle intBool SetStaticConstraintChecking(
-  int value)
-  {
-   return EnvSetStaticConstraintChecking(GetCurrentEnvironment(),value);
-  }
-
-globle intBool GetStaticConstraintChecking()
-  {    
-   return EnvGetStaticConstraintChecking(GetCurrentEnvironment());
-  }
-
-#endif

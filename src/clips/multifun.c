@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*             MULTIFIELD FUNCTIONS MODULE             */
    /*******************************************************/
@@ -47,16 +47,22 @@
 /*            Fixed linkage issue when DEFMODULE_CONSTRUCT   */
 /*            compiler flag is set to 0.                     */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Removed mv-replace, mv-subseq, and  mv-delete  */
+/*            functions.                                     */
+/*                                                           */
 /*************************************************************/
-
-#define _MULTIFUN_SOURCE_
 
 #include "setup.h"
 
 #if MULTIFIELD_FUNCTIONS || OBJECT_SYSTEM
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "argacces.h"
@@ -65,6 +71,9 @@
 #include "memalloc.h"
 #include "multifld.h"
 #include "multifun.h"
+#if OBJECT_SYSTEM
+#include "object.h"
+#endif
 #include "prcdrpsr.h"
 #include "prcdrfun.h"
 #include "router.h"
@@ -72,10 +81,6 @@
 #include "scanner.h"
 #endif
 #include "utility.h"
-
-#if OBJECT_SYSTEM
-#include "object.h"
-#endif
 
 /**************/
 /* STRUCTURES */
@@ -94,7 +99,7 @@ typedef struct fieldVarStack
 /***************************************/
 
 #if MULTIFIELD_FUNCTIONS
-   static intBool                 MVRangeCheck(long,long,long *,int);
+   static bool                    MVRangeCheck(long,long,long *,int);
    static void                    MultifieldPrognDriver(void *,DATA_OBJECT_PTR,const char *);
 #if (! BLOAD_ONLY) && (! RUN_TIME)
    static struct expr            *MultifieldPrognParser(void *,struct expr *,const char *);
@@ -124,43 +129,42 @@ struct multiFunctionData
 /* MultifieldFunctionDefinitions: Initializes */
 /*   the multifield functions.                */
 /**********************************************/
-globle void MultifieldFunctionDefinitions(
+void MultifieldFunctionDefinitions(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,MULTIFUN_DATA,sizeof(struct multiFunctionData),NULL);
 
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"first$", 'm', PTIEF FirstFunction, "FirstFunction", "11m");
-   EnvDefineFunction2(theEnv,"rest$", 'm', PTIEF RestFunction, "RestFunction", "11m");
-   EnvDefineFunction2(theEnv,"subseq$", 'm', PTIEF SubseqFunction, "SubseqFunction", "33im");
-   EnvDefineFunction2(theEnv,"delete-member$", 'm', PTIEF DeleteMemberFunction, "DeleteMemberFunction", "2*um");
-   EnvDefineFunction2(theEnv,"replace-member$", 'm', PTIEF ReplaceMemberFunction, "ReplaceMemberFunction","3*um");
-   EnvDefineFunction2(theEnv,"delete$", 'm', PTIEF DeleteFunction, "DeleteFunction", "33im");
-   EnvDefineFunction2(theEnv,"replace$", 'm', PTIEF ReplaceFunction, "ReplaceFunction","4**mii");
-   EnvDefineFunction2(theEnv,"insert$", 'm', PTIEF InsertFunction, "InsertFunction", "3**mi");
-   EnvDefineFunction2(theEnv,"explode$", 'm', PTIEF ExplodeFunction, "ExplodeFunction", "11s");
-   EnvDefineFunction2(theEnv,"implode$", 's', PTIEF ImplodeFunction, "ImplodeFunction", "11m");
-   EnvDefineFunction2(theEnv,"nth$", 'u', PTIEF NthFunction, "NthFunction", "22*im");
-   EnvDefineFunction2(theEnv,"member$", 'u', PTIEF MemberFunction, "MemberFunction", "22*um");
-   EnvDefineFunction2(theEnv,"subsetp", 'b', PTIEF SubsetpFunction, "SubsetpFunction", "22*mm");
-   EnvDefineFunction2(theEnv,"progn$", 'u', PTIEF MultifieldPrognFunction, "MultifieldPrognFunction", NULL);
-   EnvDefineFunction2(theEnv,"foreach", 'u', PTIEF ForeachFunction, "ForeachFunction", NULL);
-   EnvDefineFunction2(theEnv,"str-implode", 's', PTIEF ImplodeFunction, "ImplodeFunction", "11m");
-   EnvDefineFunction2(theEnv,"str-explode", 'm', PTIEF ExplodeFunction, "ExplodeFunction", "11s");
-   EnvDefineFunction2(theEnv,"subset", 'b', PTIEF SubsetpFunction, "SubsetpFunction", "22*mm");
-   EnvDefineFunction2(theEnv,"nth", 'u', PTIEF NthFunction, "NthFunction", "22*im");
-   EnvDefineFunction2(theEnv,"mv-replace", 'm', PTIEF MVReplaceFunction, "MVReplaceFunction","33*im");
-   EnvDefineFunction2(theEnv,"member", 'u', PTIEF MemberFunction, "MemberFunction", "22*um");
-   EnvDefineFunction2(theEnv,"mv-subseq", 'm', PTIEF MVSubseqFunction, "MVSubseqFunction", "33*iim");
-   EnvDefineFunction2(theEnv,"mv-delete", 'm', PTIEF MVDeleteFunction,"MVDeleteFunction", "22*im");
+   EnvAddUDF(theEnv,"first$",          "m",  FirstFunction, "FirstFunction", 1,1,"m",NULL);
+   EnvAddUDF(theEnv,"rest$",           "m",  RestFunction, "RestFunction",1,1,"m",NULL);
+   EnvAddUDF(theEnv,"subseq$",         "m",  SubseqFunction, "SubseqFunction", 3,3,"l;m",NULL);
+   EnvAddUDF(theEnv,"delete-member$",  "m",  DeleteMemberFunction, "DeleteMemberFunction", 2,UNBOUNDED,"*;m",NULL);
+   EnvAddUDF(theEnv,"replace-member$", "m",  ReplaceMemberFunction, "x",3,UNBOUNDED,"*;m",NULL);
+   EnvAddUDF(theEnv,"delete$",         "m",  DeleteFunction, "DeleteFunction", 3,3,"l;m",NULL);
+   EnvAddUDF(theEnv,"replace$",        "m",  ReplaceFunction, "ReplaceFunction",4,UNBOUNDED,"*;m;l;l",NULL);
+   EnvAddUDF(theEnv,"insert$",         "m",  InsertFunction, "InsertFunction", 3,UNBOUNDED,"*;m;l",NULL);
+   EnvAddUDF(theEnv,"explode$",        "m", ExplodeFunction, "ExplodeFunction", 1,1,"s",NULL);
+   EnvAddUDF(theEnv,"implode$",        "s", ImplodeFunction, "ImplodeFunction", 1,1,"m",NULL);
+   EnvAddUDF(theEnv,"nth$",     "synldife", NthFunction, "NthFunction", 2,2,";l;m",NULL);
+   EnvAddUDF(theEnv,"member$",       "blm",
+                    MemberFunction, "MemberFunction", 2,2,";*;m",NULL);
+   EnvAddUDF(theEnv,"member", "blm",
+                    MemberFunction, "MemberFunction", 2,2, ";*;m",NULL);
+   EnvAddUDF(theEnv,"subsetp",     "b",  SubsetpFunction, "SubsetpFunction", 2,2,";m;m",NULL);
+   EnvAddUDF(theEnv,"progn$",      "*", MultifieldPrognFunction, "MultifieldPrognFunction",  0,UNBOUNDED,NULL,NULL);
+   EnvAddUDF(theEnv,"foreach",     "*", ForeachFunction, "ForeachFunction", 0,UNBOUNDED,NULL,NULL);
+   EnvAddUDF(theEnv,"str-implode", "s",  ImplodeFunction, "ImplodeFunction",1,1,"m",NULL);
+   EnvAddUDF(theEnv,"str-explode", "m",  ExplodeFunction, "ExplodeFunction",1,1,"s",NULL);
+   EnvAddUDF(theEnv,"subset",      "b",  SubsetpFunction, "SubsetpFunction", 2,2,";m;m",NULL);
+   EnvAddUDF(theEnv,"nth", "synldife",  NthFunction, "NthFunction", 2,2,";l;m",NULL);
 #if ! BLOAD_ONLY
    AddFunctionParser(theEnv,"progn$",MultifieldPrognParser);
    AddFunctionParser(theEnv,"foreach",ForeachParser);
 #endif
-   FuncSeqOvlFlags(theEnv,"progn$",FALSE,FALSE);
-   FuncSeqOvlFlags(theEnv,"foreach",FALSE,FALSE);
-   EnvDefineFunction2(theEnv,"(get-progn$-field)", 'u', PTIEF GetMvPrognField, "GetMvPrognField", "00");
-   EnvDefineFunction2(theEnv,"(get-progn$-index)", 'l', PTIEF GetMvPrognIndex, "GetMvPrognIndex", "00");
+   FuncSeqOvlFlags(theEnv,"progn$",false,false);
+   FuncSeqOvlFlags(theEnv,"foreach",false,false);
+   EnvAddUDF(theEnv,"(get-progn$-field)", "*",  GetMvPrognField, "GetMvPrognField", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"(get-progn$-index)", "l", GetMvPrognIndex, "GetMvPrognIndex", 0,0,NULL,NULL);
 #endif
   }
 
@@ -168,67 +172,30 @@ globle void MultifieldFunctionDefinitions(
 /* DeleteFunction: H/L access routine   */
 /*   for the delete$ function.          */
 /****************************************/
-globle void DeleteFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void DeleteFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT value1, value2, value3;
+   CLIPSValue value1, value2, value3;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*=======================================*/
    /* Check for the correct argument types. */
    /*=======================================*/
 
-   if ((EnvArgTypeCheck(theEnv,"delete$",1,MULTIFIELD,&value1) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"delete$",2,INTEGER,&value2) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"delete$",3,INTEGER,&value3) == FALSE))
-     {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
+   if ((! UDFFirstArgument(context,MULTIFIELD_TYPE,&value1)) ||
+       (! UDFNextArgument(context,INTEGER_TYPE,&value2)) ||
+       (! UDFNextArgument(context,INTEGER_TYPE,&value3)))
+     { return; }
 
    /*=================================================*/
    /* Delete the section out of the multifield value. */
    /*=================================================*/
 
    if (DeleteMultiValueField(theEnv,returnValue,&value1,
-            (long) DOToLong(value2),(long) DOToLong(value3),"delete$") == FALSE)/* TBD */
+            mCVToInteger(&value2),mCVToInteger(&value3),"delete$") == false)/* TBD */
      {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-     }
-  }
-
-/******************************************/
-/* MVDeleteFunction: H/L access routine   */
-/*   for the mv-delete function.          */
-/******************************************/
-globle void MVDeleteFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
-  {
-   DATA_OBJECT value1, value2;
-
-   /*=======================================*/
-   /* Check for the correct argument types. */
-   /*=======================================*/
-
-   if ((EnvArgTypeCheck(theEnv,"mv-delete",1,INTEGER,&value1) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"mv-delete",2,MULTIFIELD,&value2) == FALSE))
-     {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
-
-   /*=================================================*/
-   /* Delete the section out of the multifield value. */
-   /*=================================================*/
-
-   if (DeleteMultiValueField(theEnv,returnValue,&value2,
-            (long) DOToLong(value1),(long) DOToLong(value1),"mv-delete") == FALSE) /* TBD */
-     {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
      }
   }
@@ -237,25 +204,22 @@ globle void MVDeleteFunction(
 /* ReplaceFunction: H/L access routine   */
 /*   for the replace$ function.          */
 /*****************************************/
-globle void ReplaceFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void ReplaceFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT value1, value2, value3, value4;
+   CLIPSValue value1, value2, value3, value4;
    EXPRESSION *fieldarg;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*=======================================*/
    /* Check for the correct argument types. */
    /*=======================================*/
 
-   if ((EnvArgTypeCheck(theEnv,"replace$",1,MULTIFIELD,&value1) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"replace$",2,INTEGER,&value2) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"replace$",3,INTEGER,&value3) == FALSE))
-     {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
+   if ((! UDFFirstArgument(context,MULTIFIELD_TYPE,&value1)) ||
+       (! UDFNextArgument(context,INTEGER_TYPE,&value2)) ||
+       (! UDFNextArgument(context,INTEGER_TYPE,&value3)))
+     { return; }
 
    /*===============================*/
    /* Create the replacement value. */
@@ -263,7 +227,7 @@ globle void ReplaceFunction(
 
    fieldarg = GetFirstArgument()->nextArg->nextArg->nextArg;
    if (fieldarg->nextArg != NULL)
-     { StoreInMultifield(theEnv,&value4,fieldarg,TRUE); }
+     { StoreInMultifield(theEnv,&value4,fieldarg,true); }
    else
      { EvaluateExpression(theEnv,fieldarg,&value4); }
 
@@ -272,49 +236,9 @@ globle void ReplaceFunction(
    /*==============================================*/
 
    if (ReplaceMultiValueField(theEnv,returnValue,&value1,(long) DOToLong(value2),
-                   (long) DOToLong(value3),&value4,"replace$") == FALSE) /* TBD */
+                   (long) DOToLong(value3),&value4,"replace$") == false) /* TBD */
      {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-     }
-  }
-
-/*******************************************/
-/* MVReplaceFunction: H/L access routine   */
-/*   for the mv-replace function.          */
-/*******************************************/
-globle void MVReplaceFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
-  {
-   DATA_OBJECT value1, value2, value3;
-
-   /*=======================================*/
-   /* Check for the correct argument types. */
-   /*=======================================*/
-
-   if ((EnvArgTypeCheck(theEnv,"mv-replace",1,INTEGER,&value1) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"mv-replace",2,MULTIFIELD,&value2) == FALSE))
-     {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
-
-   /*===============================*/
-   /* Create the replacement value. */
-   /*===============================*/
-
-   EvaluateExpression(theEnv,GetFirstArgument()->nextArg->nextArg,&value3);
-
-   /*==============================================*/
-   /* Replace the section in the multifield value. */
-   /*==============================================*/
-
-   if (ReplaceMultiValueField(theEnv,returnValue,&value2,(long) DOToLong(value1),
-                   (long) DOToLong(value1),&value3,"mv-replace") == FALSE) /* TBD */
-     {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
      }
   }
@@ -323,14 +247,15 @@ globle void MVReplaceFunction(
 /* DeleteMemberFunction: H/L access routine   */
 /*   for the delete-member$ function.         */
 /**********************************************/
-globle void DeleteMemberFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void DeleteMemberFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT resultValue,*delVals,tmpVal;
    int i,argCnt;
    unsigned delSize;
    long j,k;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*============================================*/
    /* Check for the correct number of arguments. */
@@ -339,7 +264,7 @@ globle void DeleteMemberFunction(
    argCnt = EnvArgCountCheck(theEnv,"delete-member$",AT_LEAST,2);
    if (argCnt == -1)
      {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
@@ -347,9 +272,9 @@ globle void DeleteMemberFunction(
    /*=======================================*/
    /* Check for the correct argument types. */
    /*=======================================*/
-   if (EnvArgTypeCheck(theEnv,"delete-member$",1,MULTIFIELD,&resultValue) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"delete-member$",1,MULTIFIELD,&resultValue) == false)
      {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
@@ -365,7 +290,7 @@ globle void DeleteMemberFunction(
       if (!EnvRtnUnknown(theEnv,i,&delVals[i-2]))
         {
          rm(theEnv,(void *) delVals,delSize);
-         SetEvaluationError(theEnv,TRUE);
+         EnvSetEvaluationError(theEnv,true);
          EnvSetMultifieldErrorValue(theEnv,returnValue);
          return;
         }
@@ -374,10 +299,10 @@ globle void DeleteMemberFunction(
    while (FindDOsInSegment(delVals,argCnt-1,&resultValue,&j,&k,NULL,0))
      {
       if (DeleteMultiValueField(theEnv,&tmpVal,&resultValue,
-                                j,k,"delete-member$") == FALSE)
+                                j,k,"delete-member$") == false)
         {
          rm(theEnv,(void *) delVals,delSize);
-         SetEvaluationError(theEnv,TRUE);
+         EnvSetEvaluationError(theEnv,true);
          EnvSetMultifieldErrorValue(theEnv,returnValue);
          return;
         }
@@ -391,15 +316,16 @@ globle void DeleteMemberFunction(
 /* ReplaceMemberFunction: H/L access routine   */
 /*   for the replace-member$ function.         */
 /***********************************************/
-globle void ReplaceMemberFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void ReplaceMemberFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT resultValue,replVal,*delVals,tmpVal;
    int i,argCnt;
    unsigned delSize;
    long j,k,mink[2],*minkp;
    long replLen = 1L;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*============================================*/
    /* Check for the correct number of arguments. */
@@ -407,7 +333,7 @@ globle void ReplaceMemberFunction(
    argCnt = EnvArgCountCheck(theEnv,"replace-member$",AT_LEAST,3);
    if (argCnt == -1)
      {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
@@ -415,16 +341,16 @@ globle void ReplaceMemberFunction(
    /*=======================================*/
    /* Check for the correct argument types. */
    /*=======================================*/
-   if (EnvArgTypeCheck(theEnv,"replace-member$",1,MULTIFIELD,&resultValue) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"replace-member$",1,MULTIFIELD,&resultValue) == false)
      {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
 
    if (!EnvRtnUnknown(theEnv,2,&replVal))
      {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
@@ -443,7 +369,7 @@ globle void ReplaceMemberFunction(
       if (!EnvRtnUnknown(theEnv,i,&delVals[i-3]))
         {
          rm(theEnv,(void *) delVals,delSize);
-         SetEvaluationError(theEnv,TRUE);
+         EnvSetEvaluationError(theEnv,true);
          EnvSetMultifieldErrorValue(theEnv,returnValue);
          return;
         }
@@ -452,10 +378,10 @@ globle void ReplaceMemberFunction(
    while (FindDOsInSegment(delVals,argCnt-2,&resultValue,&j,&k,minkp,minkp ? 1 : 0))
      {
       if (ReplaceMultiValueField(theEnv,&tmpVal,&resultValue,j,k,
-                                 &replVal,"replace-member$") == FALSE)
+                                 &replVal,"replace-member$") == false)
         {
          rm(theEnv,(void *) delVals,delSize);
-         SetEvaluationError(theEnv,TRUE);
+         EnvSetEvaluationError(theEnv,true);
          EnvSetMultifieldErrorValue(theEnv,returnValue);
          return;
         }
@@ -472,24 +398,21 @@ globle void ReplaceMemberFunction(
 /* InsertFunction: H/L access routine   */
 /*   for the insert$ function.          */
 /****************************************/
-globle void InsertFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void InsertFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT value1, value2, value3;
    EXPRESSION *fieldarg;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*=======================================*/
    /* Check for the correct argument types. */
    /*=======================================*/
 
-   if ((EnvArgTypeCheck(theEnv,"insert$",1,MULTIFIELD,&value1) == FALSE) ||
-       (EnvArgTypeCheck(theEnv,"insert$",2,INTEGER,&value2) == FALSE))
-     {
-      SetEvaluationError(theEnv,TRUE);
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
+   if ((! UDFFirstArgument(context,MULTIFIELD_TYPE,&value1)) ||
+       (! UDFNextArgument(context,INTEGER_TYPE,&value2)))
+     { return; }
 
    /*=============================*/
    /* Create the insertion value. */
@@ -497,7 +420,7 @@ globle void InsertFunction(
 
    fieldarg = GetFirstArgument()->nextArg->nextArg;
    if (fieldarg->nextArg != NULL)
-     StoreInMultifield(theEnv,&value3,fieldarg,TRUE);
+     StoreInMultifield(theEnv,&value3,fieldarg,true);
    else
      EvaluateExpression(theEnv,fieldarg,&value3);
 
@@ -506,9 +429,9 @@ globle void InsertFunction(
    /*===========================================*/
 
    if (InsertMultiValueField(theEnv,returnValue,&value1,(long) DOToLong(value2), /* TBD */
-                             &value3,"insert$") == FALSE)
+                             &value3,"insert$") == false)
      {
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
      }
   }
@@ -517,13 +440,14 @@ globle void InsertFunction(
 /* ExplodeFunction: H/L access routine   */
 /*   for the explode$ function.          */
 /*****************************************/
-globle void ExplodeFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void ExplodeFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT value;
    struct multifield *theMultifield;
    unsigned long end;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*=====================================*/
    /* Explode$ expects a single argument. */
@@ -531,8 +455,8 @@ globle void ExplodeFunction(
 
    if (EnvArgCountCheck(theEnv,"explode$",EXACTLY,1) == -1)
      {
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
@@ -541,10 +465,10 @@ globle void ExplodeFunction(
    /* The argument should be a string. */
    /*==================================*/
 
-   if (EnvArgTypeCheck(theEnv,"explode$",1,STRING,&value) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"explode$",1,STRING,&value) == false)
      {
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
@@ -577,79 +501,68 @@ globle void ExplodeFunction(
 /* ImplodeFunction: H/L access routine   */
 /*   for the implode$ function.          */
 /*****************************************/
-globle void *ImplodeFunction(
-  void *theEnv)
+void ImplodeFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT value;
-
-   /*=====================================*/
-   /* Implode$ expects a single argument. */
-   /*=====================================*/
-
-   if (EnvArgCountCheck(theEnv,"implode$",EXACTLY,1) == -1)
-     { return(EnvAddSymbol(theEnv,"")); }
+   CLIPSValue theArg;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*======================================*/
    /* The argument should be a multifield. */
    /*======================================*/
 
-   if (EnvArgTypeCheck(theEnv,"implode$",1,MULTIFIELD,&value) == FALSE)
-     { return(EnvAddSymbol(theEnv,"")); }
+   if (! UDFFirstArgument(context,MULTIFIELD_TYPE,&theArg))
+     { return; }
 
    /*====================*/
    /* Return the string. */
    /*====================*/
 
-   return(ImplodeMultifield(theEnv,&value));
+   CVSetCLIPSString(returnValue,ImplodeMultifield(theEnv,&theArg));
   }
 
 /****************************************/
 /* SubseqFunction: H/L access routine   */
 /*   for the subseq$ function.          */
 /****************************************/
-globle void SubseqFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR sub_value)
+void SubseqFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT value;
+   CLIPSValue theArg;
    struct multifield *theList;
    long long offset, start, end, length; /* 6.04 Bug Fix */
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*===================================*/
    /* Get the segment to be subdivided. */
    /*===================================*/
 
-   if (EnvArgTypeCheck(theEnv,"subseq$",1,MULTIFIELD,&value) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   theList = (struct multifield *) DOToPointer(value);
-   offset = GetDOBegin(value);
-   length = GetDOLength(value);
+   if (! UDFFirstArgument(context,MULTIFIELD_TYPE,&theArg))
+     { return; }
+     
+   theList = (struct multifield *) DOToPointer(theArg);
+   offset = GetDOBegin(theArg);
+   length = GetDOLength(theArg);
 
    /*=============================================*/
    /* Get range arguments. If they are not within */
    /* appropriate ranges, return a null segment.  */
    /*=============================================*/
 
-   if (EnvArgTypeCheck(theEnv,"subseq$",2,INTEGER,&value) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   start = DOToLong(value);
+   if (! UDFNextArgument(context,INTEGER_TYPE,&theArg))
+     { return; }
+     
+   start = DOToLong(theArg);
 
-   if (EnvArgTypeCheck(theEnv,"subseq$",3,INTEGER,&value) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   end = DOToLong(value);
+   if (! UDFNextArgument(context,INTEGER_TYPE,&theArg))
+     { return; }
+   end = DOToLong(theArg);
 
    if ((end < 1) || (end < start))
      {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
+      EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
 
@@ -659,7 +572,7 @@ globle void SubseqFunction(
 
    if (start > length)
      {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
+      EnvSetMultifieldErrorValue(theEnv,returnValue);
       return;
      }
    if (end > length) end = length;
@@ -669,106 +582,31 @@ globle void SubseqFunction(
    /* Return the new segment. */
    /*=========================*/
 
-   SetpType(sub_value,MULTIFIELD);
-   SetpValue(sub_value,theList);
-   SetpDOEnd(sub_value,offset + end - 1);
-   SetpDOBegin(sub_value,offset + start - 1);
-  }
-
-/******************************************/
-/* MVSubseqFunction: H/L access routine   */
-/*   for the mv-subseq function.          */
-/******************************************/
-globle void MVSubseqFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR sub_value)
-  {
-   DATA_OBJECT value;
-   struct multifield *theList;
-   long long offset, start, end, length; /* 6.04 Bug Fix */
-
-   /*=============================================*/
-   /* Get range arguments. If they are not within */
-   /* appropriate ranges, return a null segment.  */
-   /*=============================================*/
-
-   if (EnvArgTypeCheck(theEnv,"mv-subseq",1,INTEGER,&value) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   start = DOToLong(value);
-
-   if (EnvArgTypeCheck(theEnv,"mv-subseq",2,INTEGER,&value) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   end = DOToLong(value);
-
-   if ((end < 1) || (end < start))
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-
-   /*===================================*/
-   /* Get the segment to be subdivided. */
-   /*===================================*/
-
-   if (EnvArgTypeCheck(theEnv,"mv-subseq",3,MULTIFIELD,&value) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   theList = (struct multifield *) DOToPointer(value);
-   offset = GetDOBegin(value);
-
-   /*===================================================*/
-   /* Adjust lengths  to conform to segment boundaries. */
-   /*===================================================*/
-
-   length = GetDOLength(value);
-   if (start > length)
-     {
-      EnvSetMultifieldErrorValue(theEnv,sub_value);
-      return;
-     }
-   if (end > length) end = length;
-   if (start < 1) start = 1;
-
-   /*=========================*/
-   /* Return the new segment. */
-   /*=========================*/
-
-   SetpType(sub_value,MULTIFIELD);
-   SetpValue(sub_value,theList);
-   SetpDOEnd(sub_value,offset + end - 1);
-   SetpDOBegin(sub_value,offset + start - 1);
+   SetpType(returnValue,MULTIFIELD);
+   SetpValue(returnValue,theList);
+   SetpDOEnd(returnValue,offset + end - 1);
+   SetpDOBegin(returnValue,offset + start - 1);
   }
 
 /***************************************/
 /* FirstFunction: H/L access routine   */
 /*   for the first$ function.          */
 /***************************************/
-globle void FirstFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void FirstFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT theValue;
+   CLIPSValue theArg;
    struct multifield *theList;
 
    /*===================================*/
    /* Get the segment to be subdivided. */
    /*===================================*/
 
-   if (EnvArgTypeCheck(theEnv,"first$",1,MULTIFIELD,&theValue) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
+   if (! UDFFirstArgument(context,MULTIFIELD_TYPE,&theArg))
+     { return; }
 
-   theList = (struct multifield *) DOToPointer(theValue);
+   theList = (struct multifield *) DOToPointer(theArg);
 
    /*=========================*/
    /* Return the new segment. */
@@ -776,35 +614,32 @@ globle void FirstFunction(
 
    SetpType(returnValue,MULTIFIELD);
    SetpValue(returnValue,theList);
-   if (GetDOEnd(theValue) >= GetDOBegin(theValue))
-     { SetpDOEnd(returnValue,GetDOBegin(theValue)); }
+   if (GetDOEnd(theArg) >= GetDOBegin(theArg))
+     { SetpDOEnd(returnValue,GetDOBegin(theArg)); }
    else
-     { SetpDOEnd(returnValue,GetDOEnd(theValue)); }
-   SetpDOBegin(returnValue,GetDOBegin(theValue));
+     { SetpDOEnd(returnValue,GetDOEnd(theArg)); }
+   SetpDOBegin(returnValue,GetDOBegin(theArg));
   }
 
 /**************************************/
 /* RestFunction: H/L access routine   */
 /*   for the rest$ function.          */
 /**************************************/
-globle void RestFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+void RestFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT theValue;
+   CLIPSValue theArg;
    struct multifield *theList;
 
    /*===================================*/
    /* Get the segment to be subdivided. */
    /*===================================*/
 
-   if (EnvArgTypeCheck(theEnv,"rest$",1,MULTIFIELD,&theValue) == FALSE)
-     {
-      EnvSetMultifieldErrorValue(theEnv,returnValue);
-      return;
-     }
+   if (! UDFFirstArgument(context,MULTIFIELD_TYPE,&theArg))
+     { return; }
 
-   theList = (struct multifield *) DOToPointer(theValue);
+   theList = (struct multifield *) DOToPointer(theArg);
 
    /*=========================*/
    /* Return the new segment. */
@@ -812,51 +647,39 @@ globle void RestFunction(
 
    SetpType(returnValue,MULTIFIELD);
    SetpValue(returnValue,theList);
-   if (GetDOBegin(theValue) > GetDOEnd(theValue))
-     { SetpDOBegin(returnValue,GetDOBegin(theValue)); }
+   if (GetDOBegin(theArg) > GetDOEnd(theArg))
+     { SetpDOBegin(returnValue,GetDOBegin(theArg)); }
    else
-     { SetpDOBegin(returnValue,GetDOBegin(theValue) + 1); }
-   SetpDOEnd(returnValue,GetDOEnd(theValue));
+     { SetpDOBegin(returnValue,GetDOBegin(theArg) + 1); }
+   SetpDOEnd(returnValue,GetDOEnd(theArg));
   }
 
 /*************************************/
 /* NthFunction: H/L access routine   */
 /*   for the nth$ function.          */
 /*************************************/
-globle void NthFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR nth_value)
+void NthFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT value1, value2;
+   CLIPSValue value1, value2;
    struct multifield *elm_ptr;
    long long n; /* 6.04 Bug Fix */
 
-   if (EnvArgCountCheck(theEnv,"nth$",EXACTLY,2) == -1)
-	 {
-	  SetpType(nth_value,SYMBOL);
-	  SetpValue(nth_value,(void *) EnvAddSymbol(theEnv,"nil"));
-	  return;
-	 }
-
-   if ((EnvArgTypeCheck(theEnv,"nth$",1,INTEGER,&value1) == FALSE) ||
-	   (EnvArgTypeCheck(theEnv,"nth$",2,MULTIFIELD,&value2) == FALSE))
-	 {
-	  SetpType(nth_value,SYMBOL);
-	  SetpValue(nth_value,(void *) EnvAddSymbol(theEnv,"nil"));
-	  return;
-	 }
+   if ((! UDFFirstArgument(context,INTEGER_TYPE,&value1)) ||
+	   (! UDFNextArgument(context,MULTIFIELD_TYPE,&value2)))
+     { return; }
 
    n = DOToLong(value1); /* 6.04 Bug Fix */
    if ((n > GetDOLength(value2)) || (n < 1))
 	 {
-	  SetpType(nth_value,SYMBOL);
-	  SetpValue(nth_value,(void *) EnvAddSymbol(theEnv,"nil"));
+      mCVSetSymbol(returnValue,"nil");
 	  return;
 	 }
 
    elm_ptr = (struct multifield *) GetValue(value2);
-   SetpType(nth_value,GetMFType(elm_ptr,((long) n) + GetDOBegin(value2) - 1));
-   SetpValue(nth_value,GetMFValue(elm_ptr,((long) n) + GetDOBegin(value2) - 1));
+   SetpType(returnValue,GetMFType(elm_ptr,((long) n) + GetDOBegin(value2) - 1));
+   SetpValue(returnValue,GetMFValue(elm_ptr,((long) n) + GetDOBegin(value2) - 1));
   }
 
 /* ------------------------------------------------------------------
@@ -869,8 +692,8 @@ globle void NthFunction(
  *               multi-field variable, the second is the list to be
  *               compared to. Both should be of type MULTIFIELD.
  *
- *    OUTPUTS:   TRUE if the first list is a subset of the
- *               second, else FALSE
+ *    OUTPUTS:   true if the first list is a subset of the
+ *               second, else false
  *
  *    NOTES:     This function is called from H/L with the subset
  *               command. Repeated values in the sublist must also
@@ -878,23 +701,30 @@ globle void NthFunction(
  * ------------------------------------------------------------------
  */
 
-globle intBool SubsetpFunction(
-  void *theEnv)
+void SubsetpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT item1, item2, tmpItem;
    long i,j,k; 
 
-   if (EnvArgCountCheck(theEnv,"subsetp",EXACTLY,2) == -1)
-     return(FALSE);
+   if (! UDFFirstArgument(context,MULTIFIELD_TYPE,&item1))
+     { return; }
 
-   if (EnvArgTypeCheck(theEnv,"subsetp",1,MULTIFIELD,&item1) == FALSE)
-     return(FALSE);
-
-   if (EnvArgTypeCheck(theEnv,"subsetp",2,MULTIFIELD,&item2) == FALSE)
-     return(FALSE);
-
-   if (GetDOLength(item1) == 0) return(TRUE);
-   if (GetDOLength(item2) == 0) return(FALSE);
+   if (! UDFNextArgument(context,MULTIFIELD_TYPE,&item2))
+     { return; }
+ 
+   if (MFLength(&item1) == 0)
+     {
+      mCVSetBoolean(returnValue,true);
+      return;
+     }
+     
+   if (MFLength(&item2) == 0)
+     {
+      mCVSetBoolean(returnValue,false);
+      return;
+     }
 
    for (i = GetDOBegin(item1) ; i <= GetDOEnd(item1) ; i++)
      {
@@ -903,58 +733,58 @@ globle intBool SubsetpFunction(
 
 
       if (! FindDOsInSegment(&tmpItem,1,&item2,&j,&k,NULL,0))
-        { return(FALSE); }
+        {
+         mCVSetBoolean(returnValue,false);
+         return;
+        }
      }
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /****************************************/
 /* MemberFunction: H/L access routine   */
 /*   for the member$ function.          */
 /****************************************/
-globle void MemberFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR result)
+void MemberFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT item1, item2;
    long j, k;
+   Environment *theEnv = UDFContextEnvironment(context);
 
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
+   mCVSetBoolean(returnValue,false);
 
-   if (EnvArgCountCheck(theEnv,"member$",EXACTLY,2) == -1) return;
-
-   EnvRtnUnknown(theEnv,1,&item1);
-
-   if (EnvArgTypeCheck(theEnv,"member$",2,MULTIFIELD,&item2) == FALSE) return;
+   if (! UDFFirstArgument(context,ANY_TYPE,&item1)) return;
+   
+   if (! UDFNextArgument(context,MULTIFIELD_TYPE,&item2)) return;
 
    if (FindDOsInSegment(&item1,1,&item2,&j,&k,NULL,0))
      {
       if (j == k)
         {
-         result->type = INTEGER;
-         result->value = (void *) EnvAddLong(theEnv,j);
+         mCVSetInteger(returnValue,j);
         }
       else
         {
-         result->type = MULTIFIELD;
-         result->value = EnvCreateMultifield(theEnv,2);
-         SetMFType(result->value,1,INTEGER);
-         SetMFValue(result->value,1,EnvAddLong(theEnv,j));
-         SetMFType(result->value,2,INTEGER);
-         SetMFValue(result->value,2,EnvAddLong(theEnv,k));
-         SetpDOBegin(result,1);
-         SetpDOEnd(result,2);
+         returnValue->type = MULTIFIELD;
+         returnValue->value = EnvCreateMultifield(theEnv,2);
+         SetMFType(returnValue->value,1,INTEGER);
+         SetMFValue(returnValue->value,1,EnvAddLong(theEnv,j));
+         SetMFType(returnValue->value,2,INTEGER);
+         SetMFValue(returnValue->value,2,EnvAddLong(theEnv,k));
+         SetpDOBegin(returnValue,1);
+         SetpDOEnd(returnValue,2);
         }
      }
   }
 
-/***************************************/
-/* FindDOsInSegment:                  */
-/***************************************/
+/*********************/
+/* FindDOsInSegment: */
+/*********************/
 /* 6.05 Bug Fix */
-intBool FindDOsInSegment(
+bool FindDOsInSegment(
   DATA_OBJECT_PTR searchDOs,
   int scnt,
   DATA_OBJECT_PTR value,
@@ -986,7 +816,7 @@ intBool FindDOsInSegment(
                  {
                   *si = i + 1L;
                   *ei = i + slen;
-                  return(TRUE);
+                  return(true);
                  }
               }
            }
@@ -995,18 +825,18 @@ intBool FindDOsInSegment(
                   MVRangeCheck(i+1L,i+1L,excludes,epaircnt))
            {
             *si = *ei = i+1L;
-            return(TRUE);
+            return(true);
            }
         }
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /******************************************************/
 /* MVRangeCheck:  */
 /******************************************************/
-static intBool MVRangeCheck(
+static bool MVRangeCheck(
   long si,
   long ei,
   long *elist,
@@ -1015,13 +845,13 @@ static intBool MVRangeCheck(
   int i;
 
   if (!elist || !epaircnt)
-    return(TRUE);
+    return(true);
   for (i = 0 ; i < epaircnt ; i++)
     if (((si >= elist[i*2]) && (si <= elist[i*2+1])) ||
         ((ei >= elist[i*2]) && (ei <= elist[i*2+1])))
-    return(FALSE);
+    return(false);
 
-  return(TRUE);
+  return(true);
 }
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
@@ -1097,10 +927,10 @@ static struct expr *MultifieldPrognParser(
    oldBindList = GetParsedBindNames(theEnv);
    SetParsedBindNames(theEnv,NULL);
    IncrementIndentDepth(theEnv,3);
-   ExpressionData(theEnv)->BreakContext = TRUE;
+   ExpressionData(theEnv)->BreakContext = true;
    ExpressionData(theEnv)->ReturnContext = ExpressionData(theEnv)->svContexts->rtn;
    PPCRAndIndent(theEnv);
-   top->argList->nextArg = GroupActions(theEnv,infile,&tkn,TRUE,NULL,FALSE);
+   top->argList->nextArg = GroupActions(theEnv,infile,&tkn,true,NULL,false);
    DecrementIndentDepth(theEnv,3);
    PPBackup(theEnv);
    PPBackup(theEnv);
@@ -1120,12 +950,12 @@ static struct expr *MultifieldPrognParser(
    prev = NULL;
    while (newBindList != NULL)
      {
-      if ((fieldVar == NULL) ? FALSE :
+      if ((fieldVar == NULL) ? false :
           (strcmp(ValueToString(newBindList->name),ValueToString(fieldVar)) == 0))
         {
          ClearParsedBindNames(theEnv);
          SetParsedBindNames(theEnv,oldBindList);
-         PrintErrorID(theEnv,"MULTIFUN",2,FALSE);
+         PrintErrorID(theEnv,"MULTIFUN",2,false);
          EnvPrintRouter(theEnv,WERROR,"Cannot rebind field variable in function progn$.\n");
          ReturnExpression(theEnv,top);
          return(NULL);
@@ -1180,10 +1010,10 @@ static struct expr *ForeachParser(
    oldBindList = GetParsedBindNames(theEnv);
    SetParsedBindNames(theEnv,NULL);
    IncrementIndentDepth(theEnv,3);
-   ExpressionData(theEnv)->BreakContext = TRUE;
+   ExpressionData(theEnv)->BreakContext = true;
    ExpressionData(theEnv)->ReturnContext = ExpressionData(theEnv)->svContexts->rtn;
    PPCRAndIndent(theEnv);
-   top->argList->nextArg = GroupActions(theEnv,infile,&tkn,TRUE,NULL,FALSE);
+   top->argList->nextArg = GroupActions(theEnv,infile,&tkn,true,NULL,false);
    DecrementIndentDepth(theEnv,3);
    PPBackup(theEnv);
    PPBackup(theEnv);
@@ -1203,12 +1033,12 @@ static struct expr *ForeachParser(
    prev = NULL;
    while (newBindList != NULL)
      {
-      if ((fieldVar == NULL) ? FALSE :
+      if ((fieldVar == NULL) ? false :
           (strcmp(ValueToString(newBindList->name),ValueToString(fieldVar)) == 0))
         {
          ClearParsedBindNames(theEnv);
          SetParsedBindNames(theEnv,oldBindList);
-         PrintErrorID(theEnv,"MULTIFUN",2,FALSE);
+         PrintErrorID(theEnv,"MULTIFUN",2,false);
          EnvPrintRouter(theEnv,WERROR,"Cannot rebind field variable in function foreach.\n");
          ReturnExpression(theEnv,top);
          return(NULL);
@@ -1245,7 +1075,7 @@ static void ReplaceMvPrognFieldVars(
    flen = strlen(ValueToString(fieldVar));
    while (theExp != NULL)
      {
-      if ((theExp->type != SF_VARIABLE) ? FALSE :
+      if ((theExp->type != SF_VARIABLE) ? false :
           (strncmp(ValueToString(theExp->value),ValueToString(fieldVar),
                    (STD_SIZE) flen) == 0))
         {
@@ -1280,22 +1110,22 @@ static void ReplaceMvPrognFieldVars(
 /* MultifieldPrognFunction: H/L access   */
 /*   routine for the progn$ function.    */
 /*****************************************/
-globle void MultifieldPrognFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR result)
+void MultifieldPrognFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   MultifieldPrognDriver(theEnv,result,"progn$");
+   MultifieldPrognDriver(UDFContextEnvironment(context),returnValue,"progn$");
   }
 
 /***************************************/
 /* ForeachFunction: H/L access routine */
 /*   for the foreach function.         */
 /***************************************/
-globle void ForeachFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR result)
+void ForeachFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   MultifieldPrognDriver(theEnv,result,"foreach");
+   MultifieldPrognDriver(UDFContextEnvironment(context),returnValue,"foreach");
   }
     
 /*******************************************/
@@ -1311,9 +1141,8 @@ static void MultifieldPrognDriver(
    DATA_OBJECT argval;
    long i, end; /* 6.04 Bug Fix */
    FIELD_VAR_STACK *tmpField;
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
-     
+   struct CLIPSBlock gcBlock;
+   
    tmpField = get_struct(theEnv,fieldVarStack);
    tmpField->type = SYMBOL;
    tmpField->value = EnvFalseSymbol(theEnv);
@@ -1321,17 +1150,14 @@ static void MultifieldPrognDriver(
    MultiFunctionData(theEnv)->FieldVarStack = tmpField;
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
-   if (EnvArgTypeCheck(theEnv,functionName,1,MULTIFIELD,&argval) == FALSE)
+   if (EnvArgTypeCheck(theEnv,functionName,1,MULTIFIELD,&argval) == false)
      {
       MultiFunctionData(theEnv)->FieldVarStack = tmpField->nxt;
       rtn_struct(theEnv,fieldVarStack,tmpField);
       return;
      }
      
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   newGarbageFrame.priorFrame = oldGarbageFrame;
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
+   CLIPSBlockStart(theEnv,&gcBlock);
 
    end = GetDOEnd(argval);
    for (i = GetDOBegin(argval) ; i <= end ; i++)
@@ -1346,7 +1172,7 @@ static void MultifieldPrognDriver(
         
          if (EvaluationData(theEnv)->HaltExecution || ProcedureFunctionData(theEnv)->BreakFlag || ProcedureFunctionData(theEnv)->ReturnFlag)
            {
-            ProcedureFunctionData(theEnv)->BreakFlag = FALSE;
+            ProcedureFunctionData(theEnv)->BreakFlag = false;
             if (EvaluationData(theEnv)->HaltExecution)
               {
                result->type = SYMBOL;
@@ -1354,7 +1180,7 @@ static void MultifieldPrognDriver(
               }
             MultiFunctionData(theEnv)->FieldVarStack = tmpField->nxt;
             rtn_struct(theEnv,fieldVarStack,tmpField);
-            RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+            CLIPSBlockEnd(theEnv,&gcBlock,result);
             return;
            }
 
@@ -1371,23 +1197,24 @@ static void MultifieldPrognDriver(
         }
      }
      
-   ProcedureFunctionData(theEnv)->BreakFlag = FALSE;
+   ProcedureFunctionData(theEnv)->BreakFlag = false;
    MultiFunctionData(theEnv)->FieldVarStack = tmpField->nxt;
    rtn_struct(theEnv,fieldVarStack,tmpField);
    
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+   CLIPSBlockEnd(theEnv,&gcBlock,result);
    CallPeriodicTasks(theEnv);
   }
 
-/***************************************************/
-/* GetMvPrognField                                 */
-/***************************************************/
-globle void GetMvPrognField(
-  void *theEnv,
-  DATA_OBJECT_PTR result)
+/*******************/
+/* GetMvPrognField */
+/*******************/
+void GetMvPrognField(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    int depth;
    FIELD_VAR_STACK *tmpField;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    depth = ValueToInteger(GetFirstArgument()->value);
    tmpField = MultiFunctionData(theEnv)->FieldVarStack;
@@ -1396,18 +1223,20 @@ globle void GetMvPrognField(
       tmpField = tmpField->nxt;
       depth--;
      }
-   result->type = tmpField->type;
-   result->value = tmpField->value;
+   returnValue->type = tmpField->type;
+   returnValue->value = tmpField->value;
   }
 
-/***************************************************/
-/* GetMvPrognIndex                                 */
-/***************************************************/
-globle long GetMvPrognIndex(
-  void *theEnv)
+/*******************/
+/* GetMvPrognIndex */
+/*******************/
+void GetMvPrognIndex(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    int depth;
    FIELD_VAR_STACK *tmpField;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    depth = ValueToInteger(GetFirstArgument()->value);
    tmpField = MultiFunctionData(theEnv)->FieldVarStack;
@@ -1416,7 +1245,7 @@ globle long GetMvPrognIndex(
       tmpField = tmpField->nxt;
       depth--;
      }
-   return(tmpField->index);
+   mCVSetInteger(returnValue,tmpField->index);
   }
 
 #endif /* MULTIFIELD_FUNCTIONS */
@@ -1432,14 +1261,14 @@ globle long GetMvPrognIndex(
                  3) Beginning of index range
                  4) End of range
                  5) The new field value
-  RETURNS      : TRUE if successful, FALSE otherwise
+  RETURNS      : true if successful, false otherwise
   SIDE EFFECTS : Allocates and sets a ephemeral segment (even if new
                    number of fields is 0)
                  Src value segment is not changed
   NOTES        : index is NOT guaranteed to be valid
                  src is guaranteed to be a multi-field variable or NULL
  **************************************************************************/
-globle int ReplaceMultiValueField(
+bool ReplaceMultiValueField(
   void *theEnv,
   DATA_OBJECT *dst,
   DATA_OBJECT *src,
@@ -1459,7 +1288,7 @@ globle int ReplaceMultiValueField(
 	   (rb > srclen) || (re > srclen))
 	 {
 	  MVRangeError(theEnv,rb,re,srclen,funcName);
-	  return(FALSE);
+	  return(false);
 	 }
    rb = src->begin + rb - 1;
    re = src->begin + re - 1;
@@ -1503,7 +1332,7 @@ globle int ReplaceMultiValueField(
 	  deptr->type = septr->type;
 	  deptr->value = septr->value;
 	 }
-   return(TRUE);
+   return(true);
   }
 
 /**************************************************************************
@@ -1514,14 +1343,14 @@ globle int ReplaceMultiValueField(
                  2) The source value (can be NULL)
                  3) The index for the change
                  4) The new field value
-  RETURNS      : TRUE if successful, FALSE otherwise
+  RETURNS      : true if successful, false otherwise
   SIDE EFFECTS : Allocates and sets a ephemeral segment (even if new
                    number of fields is 0)
                  Src value segment is not changed
   NOTES        : index is NOT guaranteed to be valid
                  src is guaranteed to be a multi-field variable or NULL
  **************************************************************************/
-globle int InsertMultiValueField(
+bool InsertMultiValueField(
   void *theEnv,
   DATA_OBJECT *dst,
   DATA_OBJECT *src,
@@ -1537,7 +1366,7 @@ globle int InsertMultiValueField(
    if (theIndex < 1)
      {
       MVRangeError(theEnv,theIndex,theIndex,srclen+1,funcName);
-      return(FALSE);
+      return(false);
      }
    if (theIndex > (srclen + 1))
      theIndex = (srclen + 1);
@@ -1558,7 +1387,7 @@ globle int InsertMultiValueField(
          deptr->type = field->type;
          deptr->value = field->value;
         }
-      return(TRUE);
+      return(true);
      }
    dstlen = (field->type == MULTIFIELD) ? GetpDOLength(field) + srclen : srclen + 1;
    dst->value = EnvCreateMultifield(theEnv,dstlen);
@@ -1595,7 +1424,7 @@ globle int InsertMultiValueField(
       deptr->type = septr->type;
       deptr->value = septr->value;
      }
-   return(TRUE);
+   return(true);
   }
 
 /*******************************************************
@@ -1618,7 +1447,7 @@ static void MVRangeError(
   long max,
   const char *funcName)
   {
-   PrintErrorID(theEnv,"MULTIFUN",1,FALSE);
+   PrintErrorID(theEnv,"MULTIFUN",1,false);
    EnvPrintRouter(theEnv,WERROR,"Multifield index ");
    if (brb == bre)
      PrintLongInteger(theEnv,WERROR,(long long) brb);
@@ -1647,14 +1476,14 @@ static void MVRangeError(
                  2) The source value (can be NULL)
                  3) The beginning index for deletion
                  4) The ending index for deletion
-  RETURNS      : TRUE if successful, FALSE otherwise
+  RETURNS      : true if successful, false otherwise
   SIDE EFFECTS : Allocates and sets a ephemeral segment (even if new
                    number of fields is 0)
                  Src value segment is not changed
   NOTES        : index is NOT guaranteed to be valid
                  src is guaranteed to be a multi-field variable or NULL
  **************************************************************************/
-globle int DeleteMultiValueField(
+bool DeleteMultiValueField(
   void *theEnv,
   DATA_OBJECT *dst,
   DATA_OBJECT *src,
@@ -1672,7 +1501,7 @@ globle int DeleteMultiValueField(
        (rb > srclen) || (re > srclen))
      {
       MVRangeError(theEnv,rb,re,srclen,funcName);
-      return(FALSE);
+      return(false);
      }
    dst->type = MULTIFIELD;
    dst->begin = 0;
@@ -1680,7 +1509,7 @@ globle int DeleteMultiValueField(
     {
      dst->value = EnvCreateMultifield(theEnv,0L);
      dst->end = -1;
-     return(TRUE);
+     return(true);
     }
    rb = src->begin + rb -1;
    re = src->begin + re -1;
@@ -1703,7 +1532,7 @@ globle int DeleteMultiValueField(
       deptr->type = septr->type;
       deptr->value = septr->value;
      }
-   return(TRUE);
+   return(true);
   }
 
 #endif /* OBJECT_SYSTEM || MULTIFIELD_FUNCTIONS */

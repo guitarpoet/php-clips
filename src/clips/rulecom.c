@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/20/16             */
    /*                                                     */
    /*                RULE COMMANDS MODULE                 */
    /*******************************************************/
@@ -46,12 +46,21 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Fixes for show-joins command.                  */
+/*                                                           */
+/*            Fixes for matches command where the            */
+/*            activations listed were not correct if the     */
+/*            current module was different than the module   */
+/*            for the specified rule.                        */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Incremental reset is always enabled.           */
+/*                                                           */
 /*************************************************************/
 
-#define _RULECOM_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "setup.h"
@@ -98,7 +107,7 @@
    static long                    BetaJoinCountDriver(void *,struct joinNode *);
    static void                    AlphaJoinsDriver(void *,struct joinNode *,long,struct joinInformation *);
    static void                    BetaJoinsDriver(void *,struct joinNode *,long,struct joinInformation *,struct betaMemory *,struct joinNode *);
-   static int                     CountPatterns(void *,struct joinNode *,int);
+   static int                     CountPatterns(void *,struct joinNode *,bool);
    static const char             *BetaHeaderString(void *,struct joinInformation *,long,long);
    static const char             *ActivityHeaderString(void *,struct joinInformation *,long,long);
    static void                    JoinActivityReset(void *,struct constructHeader *,void *);
@@ -107,59 +116,55 @@
 /****************************************************************/
 /* DefruleCommands: Initializes defrule commands and functions. */
 /****************************************************************/
-globle void DefruleCommands(
+void DefruleCommands(
   void *theEnv)
   {
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"run",'v', PTIEF RunCommand,"RunCommand", "*1i");
-   EnvDefineFunction2(theEnv,"halt",'v', PTIEF HaltCommand,"HaltCommand","00");
-   EnvDefineFunction2(theEnv,"focus",'b', PTIEF FocusCommand,"FocusCommand", "1*w");
-   EnvDefineFunction2(theEnv,"clear-focus-stack",'v',PTIEF ClearFocusStackCommand,
-                                       "ClearFocusStackCommand","00");
-   EnvDefineFunction2(theEnv,"get-focus-stack",'m',PTIEF GetFocusStackFunction,
-                                     "GetFocusStackFunction","00");
-   EnvDefineFunction2(theEnv,"pop-focus",'w',PTIEF PopFocusFunction,
-                               "PopFocusFunction","00");
-   EnvDefineFunction2(theEnv,"get-focus",'w',PTIEF GetFocusFunction,
-                               "GetFocusFunction","00");
+   EnvAddUDF(theEnv,"run","v", RunCommand,"RunCommand", 0,1,"l",NULL);
+   EnvAddUDF(theEnv,"halt","v", HaltCommand,"HaltCommand",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"focus","b",  FocusCommand,"FocusCommand",1,UNBOUNDED,"y", NULL);
+   EnvAddUDF(theEnv,"clear-focus-stack","v", ClearFocusStackCommand,
+                                       "ClearFocusStackCommand",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"get-focus-stack","m", GetFocusStackFunction,
+                                     "GetFocusStackFunction",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"pop-focus","y", PopFocusFunction,
+                               "PopFocusFunction",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"get-focus","y", GetFocusFunction,
+                               "GetFocusFunction",0,0,NULL,NULL);
 #if DEBUGGING_FUNCTIONS
-   EnvDefineFunction2(theEnv,"set-break",'v', PTIEF SetBreakCommand,
-                               "SetBreakCommand","11w");
-   EnvDefineFunction2(theEnv,"remove-break",'v', PTIEF RemoveBreakCommand,
-                                  "RemoveBreakCommand", "*1w");
-   EnvDefineFunction2(theEnv,"show-breaks",'v', PTIEF ShowBreaksCommand,
-                                 "ShowBreaksCommand", "01w");
-   EnvDefineFunction2(theEnv,"matches",'u',PTIEF MatchesCommand,"MatchesCommand","12w");
-   EnvDefineFunction2(theEnv,"join-activity",'u',PTIEF JoinActivityCommand,"JoinActivityCommand","12w");
-   EnvDefineFunction2(theEnv,"join-activity-reset",'v', PTIEF JoinActivityResetCommand,
-                                  "JoinActivityResetCommand", "00");
-   EnvDefineFunction2(theEnv,"list-focus-stack",'v', PTIEF ListFocusStackCommand,
-                                      "ListFocusStackCommand", "00");
-   EnvDefineFunction2(theEnv,"dependencies", 'v', PTIEF DependenciesCommand,
-                                   "DependenciesCommand", "11h");
-   EnvDefineFunction2(theEnv,"dependents",   'v', PTIEF DependentsCommand,
-                                   "DependentsCommand", "11h");
-   EnvDefineFunction2(theEnv,"timetag",   'g', PTIEF TimetagFunction,
-                                   "TimetagFunction", "11h");
+   EnvAddUDF(theEnv,"set-break","v", SetBreakCommand,
+                               "SetBreakCommand",1,1,"y",NULL);
+   EnvAddUDF(theEnv,"remove-break","v", RemoveBreakCommand,
+                                  "RemoveBreakCommand", 0,1,"y",NULL);
+   EnvAddUDF(theEnv,"show-breaks","v", ShowBreaksCommand,
+                                 "ShowBreaksCommand", 0,1,"y",NULL);
+   EnvAddUDF(theEnv,"matches","bm", MatchesCommand,"MatchesCommand",1,2,"y",NULL);
+   EnvAddUDF(theEnv,"join-activity","bm", JoinActivityCommand,"JoinActivityCommand",1,2,"y",NULL);
+   EnvAddUDF(theEnv,"join-activity-reset","v",  JoinActivityResetCommand,
+                                  "JoinActivityResetCommand", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"list-focus-stack","v", ListFocusStackCommand,
+                                      "ListFocusStackCommand", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"dependencies", "v", DependenciesCommand,
+                                   "DependenciesCommand", 1,1,"infly",NULL);
+   EnvAddUDF(theEnv,"dependents",  "v",  DependentsCommand,
+                                   "DependentsCommand", 1,1,"infly",NULL);
+      
+   EnvAddUDF(theEnv,"timetag","l",TimetagFunction,
+                                   "TimetagFunction", 1,1,"infly" ,NULL);
 #endif /* DEBUGGING_FUNCTIONS */
 
-   EnvDefineFunction2(theEnv,"get-incremental-reset",'b',
-                   GetIncrementalResetCommand,"GetIncrementalResetCommand","00");
-   EnvDefineFunction2(theEnv,"set-incremental-reset",'b',
-                   SetIncrementalResetCommand,"SetIncrementalResetCommand","11");
+   EnvAddUDF(theEnv,"get-beta-memory-resizing","b",
+                    GetBetaMemoryResizingCommand,"GetBetaMemoryResizingCommand",0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"set-beta-memory-resizing","b",
+                    SetBetaMemoryResizingCommand,"SetBetaMemoryResizingCommand",1,1,NULL,NULL);
 
-   EnvDefineFunction2(theEnv,"get-beta-memory-resizing",'b',
-                   GetBetaMemoryResizingCommand,"GetBetaMemoryResizingCommand","00");
-   EnvDefineFunction2(theEnv,"set-beta-memory-resizing",'b',
-                   SetBetaMemoryResizingCommand,"SetBetaMemoryResizingCommand","11");
-
-   EnvDefineFunction2(theEnv,"get-strategy", 'w', PTIEF GetStrategyCommand,  "GetStrategyCommand", "00");
-   EnvDefineFunction2(theEnv,"set-strategy", 'w', PTIEF SetStrategyCommand,  "SetStrategyCommand", "11w");
+   EnvAddUDF(theEnv,"get-strategy", "y", GetStrategyCommand,  "GetStrategyCommand", 0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"set-strategy", "y", SetStrategyCommand,  "SetStrategyCommand", 1,1,"y",NULL);
 
 #if DEVELOPER && (! BLOAD_ONLY)
-   EnvDefineFunction2(theEnv,"rule-complexity",'l', PTIEF RuleComplexityCommand,"RuleComplexityCommand", "11w");
-   EnvDefineFunction2(theEnv,"show-joins",   'v', PTIEF ShowJoinsCommand,    "ShowJoinsCommand", "11w");
-   EnvDefineFunction2(theEnv,"show-aht",   'v', PTIEF ShowAlphaHashTable,    "ShowAlphaHashTable", "00");
+   EnvAddUDF(theEnv,"rule-complexity","l", RuleComplexityCommand,"RuleComplexityCommand", 1,1,"y",NULL);
+   EnvAddUDF(theEnv,"show-joins",  "v", ShowJoinsCommand,    "ShowJoinsCommand", 1,1,"y",NULL);
+   EnvAddUDF(theEnv,"show-aht",   "v", ShowAlphaHashTable,    "ShowAlphaHashTable", 0,0,NULL,NULL);
 #if DEBUGGING_FUNCTIONS
    AddWatchItem(theEnv,"rule-analysis",0,&DefruleData(theEnv)->WatchRuleAnalysis,0,NULL,NULL);
 #endif
@@ -176,7 +181,7 @@ globle void DefruleCommands(
 /* EnvGetBetaMemoryResizing: C access routine  */
 /*   for the get-beta-memory-resizing command. */
 /***********************************************/
-globle intBool EnvGetBetaMemoryResizing(
+bool EnvGetBetaMemoryResizing(
   void *theEnv)
   {   
    return(DefruleData(theEnv)->BetaMemoryResizingFlag);
@@ -186,11 +191,11 @@ globle intBool EnvGetBetaMemoryResizing(
 /* EnvSetBetaMemoryResizing: C access routine  */
 /*   for the set-beta-memory-resizing command. */
 /***********************************************/
-globle intBool EnvSetBetaMemoryResizing(
+bool EnvSetBetaMemoryResizing(
   void *theEnv,
-  int value)
+  bool value)
   {
-   int ov;
+   bool ov;
 
    ov = DefruleData(theEnv)->BetaMemoryResizingFlag;
 
@@ -203,55 +208,38 @@ globle intBool EnvSetBetaMemoryResizing(
 /* SetBetaMemoryResizingCommand: H/L access routine */
 /*   for the set-beta-memory-resizing command.      */
 /****************************************************/
-globle int SetBetaMemoryResizingCommand(
-  void *theEnv)
+void SetBetaMemoryResizingCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int oldValue;
-   DATA_OBJECT argPtr;
+   CLIPSValue theArg;
+   Environment *theEnv = UDFContextEnvironment(context);
 
-   oldValue = EnvGetBetaMemoryResizing(theEnv);
-
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   if (EnvArgCountCheck(theEnv,"set-beta-memory-resizing",EXACTLY,1) == -1)
-     { return(oldValue); }
+   mCVSetBoolean(returnValue,EnvGetBetaMemoryResizing(theEnv));
 
    /*=================================================*/
    /* The symbol FALSE disables beta memory resizing. */
    /* Any other value enables beta memory resizing.   */
    /*=================================================*/
 
-   EnvRtnUnknown(theEnv,1,&argPtr);
-
-   if ((argPtr.value == EnvFalseSymbol(theEnv)) && (argPtr.type == SYMBOL))
-     { EnvSetBetaMemoryResizing(theEnv,FALSE); }
+   if (! UDFFirstArgument(context,ANY_TYPE,&theArg))
+     { return; }
+    
+   if (CVIsFalseSymbol(&theArg))
+     { EnvSetBetaMemoryResizing(theEnv,false); }
    else
-     { EnvSetBetaMemoryResizing(theEnv,TRUE); }
-
-   /*=======================*/
-   /* Return the old value. */
-   /*=======================*/
-
-   return(oldValue);
+     { EnvSetBetaMemoryResizing(theEnv,true); }
   }
 
 /****************************************************/
 /* GetBetaMemoryResizingCommand: H/L access routine */
 /*   for the get-beta-memory-resizing command.      */
 /****************************************************/
-globle int GetBetaMemoryResizingCommand(
-  void *theEnv)
+void GetBetaMemoryResizingCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int oldValue;
-
-   oldValue = EnvGetBetaMemoryResizing(theEnv);
-
-   if (EnvArgCountCheck(theEnv,"get-beta-memory-resizing",EXACTLY,0) == -1)
-     { return(oldValue); }
-
-   return(oldValue);
+   mCVSetBoolean(returnValue,EnvGetBetaMemoryResizing(UDFContextEnvironment(context)));
   }
 
 #if DEBUGGING_FUNCTIONS
@@ -260,44 +248,35 @@ globle int GetBetaMemoryResizingCommand(
 /* MatchesCommand: H/L access routine   */
 /*   for the matches command.           */
 /****************************************/
-globle void MatchesCommand(
-  void *theEnv,
-  DATA_OBJECT *result)
+void MatchesCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *ruleName, *argument;
    void *rulePtr;
-   int numberOfArguments;
-   DATA_OBJECT argPtr;
+   CLIPSValue theArg;
    int output;
+   Environment *theEnv = UDFContextEnvironment(context);
 
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
-
-   if ((numberOfArguments = EnvArgRangeCheck(theEnv,"matches",1,2)) == -1) return;
-
-   if (EnvArgTypeCheck(theEnv,"matches",1,SYMBOL,&argPtr) == FALSE) return;
-
-   if (GetType(argPtr) != SYMBOL)
-     {
-      ExpectedTypeError1(theEnv,"matches",1,"rule name");
-      return;
-     }
-
-   ruleName = DOToString(argPtr);
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg))
+     { return; }
+     
+   ruleName = mCVToString(&theArg);
 
    rulePtr = EnvFindDefrule(theEnv,ruleName);
    if (rulePtr == NULL)
      {
       CantFindItemErrorMessage(theEnv,"defrule",ruleName);
+      mCVSetBoolean(returnValue,false);
       return;
      }
 
-   if (numberOfArguments == 2)
+   if (UDFHasNextArgument(context))
      {
-      if (EnvArgTypeCheck(theEnv,"matches",2,SYMBOL,&argPtr) == FALSE)
+      if (! UDFNextArgument(context,SYMBOL_TYPE,&theArg))
         { return; }
 
-      argument = DOToString(argPtr);
+      argument = mCVToString(&theArg);
       if (strcmp(argument,"verbose") == 0)
         { output = VERBOSE; }
       else if (strcmp(argument,"succinct") == 0)
@@ -306,28 +285,30 @@ globle void MatchesCommand(
         { output = TERSE; }
       else
         {
-         ExpectedTypeError1(theEnv,"matches",2,"symbol with value verbose, succinct, or terse");
+         UDFInvalidArgumentMessage(context,"symbol with value verbose, succinct, or terse");
+         mCVSetBoolean(returnValue,false);
          return;
         }
      }
    else
      { output = VERBOSE; }
 
-   EnvMatches(theEnv,rulePtr,output,result);
+   EnvMatches(theEnv,rulePtr,output,returnValue);
   }
 
 /********************************/
 /* EnvMatches: C access routine */
 /*   for the matches command.   */
 /********************************/
-globle void EnvMatches(
+void EnvMatches(
   void *theEnv,
   void *theRule,
   int output,
   DATA_OBJECT *result)
   {
    struct defrule *rulePtr;
-   long disjunctCount, disjunctIndex, joinIndex;
+   struct defrule *topDisjunct = (struct defrule *) theRule;
+   long joinIndex;
    long arraySize;
    struct joinInformation *theInfo;
    long long alphaMatchCount = 0;
@@ -355,12 +336,8 @@ globle void EnvMatches(
    /* Loop through each of the disjuncts for the rule */
    /*=================================================*/
 
-   disjunctCount = EnvGetDisjunctCount(theEnv,theRule);
-
-   for (disjunctIndex = 1; disjunctIndex <= disjunctCount; disjunctIndex++)
+   for (rulePtr = topDisjunct; rulePtr != NULL; rulePtr = rulePtr->disjunct)
      {
-      rulePtr = (struct defrule *) EnvGetNthDisjunct(theEnv,theRule,disjunctIndex);
-      
       /*===============================================*/
       /* Create the array containing the list of alpha */
       /* join nodes (those connected to a pattern CE). */
@@ -429,13 +406,13 @@ globle void EnvMatches(
    if (output == VERBOSE)
      { EnvPrintRouter(theEnv,WDISPLAY,"Activations\n"); }
      
-   for (agendaPtr = (struct activation *) EnvGetNextActivation(theEnv,NULL);
+   for (agendaPtr = ((struct defruleModule *) topDisjunct->header.whichModule)->agenda;
         agendaPtr != NULL;
         agendaPtr = (struct activation *) EnvGetNextActivation(theEnv,agendaPtr))
      {
-      if (GetHaltExecution(theEnv) == TRUE) return;
+      if (EnvGetHaltExecution(theEnv) == true) return;
 
-      if (((struct activation *) agendaPtr)->theRule->header.name == rulePtr->header.name)
+      if (((struct activation *) agendaPtr)->theRule->header.name == topDisjunct->header.name)
         {
          activations++;
       
@@ -488,7 +465,7 @@ static long AlphaJoinCountDriver(
 /* EnvAlphaJoinCount: Returns the number of alpha */
 /*   joins associated with the specified rule.    */
 /**************************************************/
-globle long EnvAlphaJoinCount(
+long EnvAlphaJoinCount(
   void *theEnv,
   void *vTheDefrule)
   {
@@ -528,7 +505,7 @@ static void AlphaJoinsDriver(
 /* EnvAlphaJoins: Retrieves the alpha joins */
 /*   associated with the specified rule.    */
 /********************************************/
-globle void EnvAlphaJoins(
+void EnvAlphaJoins(
   void *theEnv,
   void *vTheDefrule,
   long alphaCount,
@@ -567,7 +544,7 @@ static long BetaJoinCountDriver(
 /* EnvBetaJoinCount: Returns the number of beta */
 /*   joins associated with the specified rule.  */
 /************************************************/
-globle long EnvBetaJoinCount(
+long EnvBetaJoinCount(
   void *theEnv,
   void *vTheDefrule)
   {
@@ -614,7 +591,7 @@ static void BetaJoinsDriver(
    /* remaining to be encountered.                 */
    /*==============================================*/
 
-   theCount = CountPatterns(theEnv,theJoin,TRUE);
+   theCount = CountPatterns(theEnv,theJoin,true);
    theJoinInfoArray[betaIndex-1].patternEnd = theCount;
 
    /*========================================================*/
@@ -622,7 +599,7 @@ static void BetaJoinsDriver(
    /*========================================================*/
 
 
-   theCount = CountPatterns(theEnv,theJoin,FALSE);
+   theCount = CountPatterns(theEnv,theJoin,false);
    theJoinInfoArray[betaIndex-1].patternBegin = theCount;
    
    /*==========================*/
@@ -645,7 +622,7 @@ static void BetaJoinsDriver(
 /* EnvBetaJoins: Retrieves the beta joins */
 /*   associated with the specified rule.  */
 /******************************************/
-globle void EnvBetaJoins(
+void EnvBetaJoins(
   void *theEnv,
   void *vTheDefrule,
   long betaArraySize,
@@ -660,7 +637,7 @@ globle void EnvBetaJoins(
 /* EnvCreateJoinArray: Creates a join information */
 /*    array of the specified size.                */
 /**************************************************/
-globle struct joinInformation *EnvCreateJoinArray(
+struct joinInformation *EnvCreateJoinArray(
    void *theEnv,
    long size)
    {
@@ -673,7 +650,7 @@ globle struct joinInformation *EnvCreateJoinArray(
 /* EnvFreeJoinArray: Frees a join information */
 /*    array of the specified size.            */
 /**********************************************/
-globle void EnvFreeJoinArray(
+void EnvFreeJoinArray(
    void *theEnv,
    struct joinInformation *theArray,
    long size)
@@ -697,7 +674,7 @@ static long long ListAlphaMatches(
    struct joinNode *theJoin;
    long long alphaCount = 0;
 
-   if (GetHaltExecution(theEnv) == TRUE)
+   if (EnvGetHaltExecution(theEnv) == true)
      { return(alphaCount); }
 
    theJoin = theInfo->theJoin;
@@ -747,7 +724,7 @@ static long long ListAlphaMatches(
 
       while (listOfMatches != NULL)
         {
-         if (GetHaltExecution(theEnv) == TRUE)
+         if (EnvGetHaltExecution(theEnv) == true)
            { return(alphaCount); }
                  
          count++;
@@ -788,7 +765,7 @@ static const char *BetaHeaderString(
    struct joinNode *theJoin;
    struct joinInformation *theInfo;
    long i, j, startPosition, endPosition, positionsToPrint = 0;
-   int nestedCEs = FALSE;
+   bool nestedCEs = false;
    const char *returnString = "";
    long lastIndex;
    char buffer[32];
@@ -798,7 +775,7 @@ static const char *BetaHeaderString(
    /*=============================================*/
    
    for (i = 0; i < arraySize; i++)
-     { infoArray[i].marked = FALSE; }
+     { infoArray[i].marked = false; }
      
    theInfo = &infoArray[joinIndex];
    theJoin = theInfo->theJoin;
@@ -811,9 +788,9 @@ static const char *BetaHeaderString(
          if (infoArray[i].theJoin == theJoin)
            {
             positionsToPrint++;
-            infoArray[i].marked = TRUE;
+            infoArray[i].marked = true;
             if (infoArray[i].patternBegin != infoArray[i].patternEnd)
-              { nestedCEs = TRUE; }
+              { nestedCEs = true; }
             lastIndex = i - 1;
             break;
            }
@@ -823,7 +800,7 @@ static const char *BetaHeaderString(
    
    for (i = 0; i <= joinIndex; i++)
      {
-      if (infoArray[i].marked == FALSE) continue;
+      if (infoArray[i].marked == false) continue;
 
       positionsToPrint--;
       startPosition = i;
@@ -833,7 +810,7 @@ static const char *BetaHeaderString(
         {
          for (j = i + 1; j <= joinIndex; j++)
            {
-            if (infoArray[j].marked == FALSE) continue;
+            if (infoArray[j].marked == false) continue;
          
             if (infoArray[j].patternBegin != infoArray[j].patternEnd) break;
          
@@ -920,7 +897,7 @@ static long long ListBetaMatches(
    struct joinInformation *theInfo;
    long int count;
 
-   if (GetHaltExecution(theEnv) == TRUE)
+   if (EnvGetHaltExecution(theEnv) == true)
      { return(betaCount); }
 
    theInfo = &infoArray[joinIndex];
@@ -933,7 +910,7 @@ static long long ListBetaMatches(
       EnvPrintRouter(theEnv,WDISPLAY,"\n");
      }
 
-   count = PrintBetaMemory(theEnv,WDISPLAY,theInfo->theMemory,TRUE,"",output);
+   count = PrintBetaMemory(theEnv,WDISPLAY,theInfo->theMemory,true,"",output);
    
    betaCount += count;
    
@@ -958,13 +935,13 @@ static long long ListBetaMatches(
 static int CountPatterns(
   void *theEnv,
   struct joinNode *theJoin,
-  int followRight)
+  bool followRight)
   {
    int theCount = 0;
 
    if (theJoin == NULL) return theCount;
    
-   if (theJoin->joinFromTheRight && (followRight == FALSE))
+   if (theJoin->joinFromTheRight && (followRight == false))
      { theCount++; }
     
    while (theJoin != NULL)
@@ -982,7 +959,7 @@ static int CountPatterns(
          theJoin = theJoin->lastLevel;
         }
         
-      followRight = TRUE;
+      followRight = true;
      }
      
    return theCount;
@@ -992,44 +969,35 @@ static int CountPatterns(
 /* JoinActivityCommand: H/L access routine */
 /*   for the join-activity command.        */
 /*******************************************/
-globle void JoinActivityCommand(
-  void *theEnv,
-  DATA_OBJECT *result)
+void JoinActivityCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *ruleName, *argument;
    void *rulePtr;
-   int numberOfArguments;
-   DATA_OBJECT argPtr;
+   CLIPSValue theArg;
    int output;
+   Environment *theEnv = UDFContextEnvironment(context);
 
-   result->type = SYMBOL;
-   result->value = EnvFalseSymbol(theEnv);
-
-   if ((numberOfArguments = EnvArgRangeCheck(theEnv,"join-activity",1,2)) == -1) return;
-
-   if (EnvArgTypeCheck(theEnv,"join-activity",1,SYMBOL,&argPtr) == FALSE) return;
-
-   if (GetType(argPtr) != SYMBOL)
-     {
-      ExpectedTypeError1(theEnv,"join-activity",1,"rule name");
-      return;
-     }
-
-   ruleName = DOToString(argPtr);
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg))
+     { return; }
+     
+   ruleName = mCVToString(&theArg);
 
    rulePtr = EnvFindDefrule(theEnv,ruleName);
    if (rulePtr == NULL)
      {
       CantFindItemErrorMessage(theEnv,"defrule",ruleName);
+      mCVSetBoolean(returnValue,false);
       return;
      }
 
-   if (numberOfArguments == 2)
+   if (UDFHasNextArgument(context))
      {
-      if (EnvArgTypeCheck(theEnv,"join-activity",2,SYMBOL,&argPtr) == FALSE)
+      if (! UDFNextArgument(context,SYMBOL_TYPE,&theArg))
         { return; }
 
-      argument = DOToString(argPtr);
+      argument = mCVToString(&theArg);
       if (strcmp(argument,"verbose") == 0)
         { output = VERBOSE; }
       else if (strcmp(argument,"succinct") == 0)
@@ -1038,21 +1006,22 @@ globle void JoinActivityCommand(
         { output = TERSE; }
       else
         {
-         ExpectedTypeError1(theEnv,"join-activity",2,"symbol with value verbose, succinct, or terse");
+         UDFInvalidArgumentMessage(context,"symbol with value verbose, succinct, or terse");
+         mCVSetBoolean(returnValue,false);
          return;
         }
      }
    else
      { output = VERBOSE; }
 
-   EnvJoinActivity(theEnv,rulePtr,output,result);
+   EnvJoinActivity(theEnv,rulePtr,output,returnValue);
   }
 
 /*************************************/
 /* EnvJoinActivity: C access routine */
 /*   for the join-activity command.  */
 /*************************************/
-globle void EnvJoinActivity(
+void EnvJoinActivity(
   void *theEnv,
   void *theRule,
   int output,
@@ -1129,7 +1098,7 @@ static const char *ActivityHeaderString(
    struct joinNode *theJoin;
    struct joinInformation *theInfo;
    long i;
-   int nestedCEs = FALSE;
+   bool nestedCEs = false;
    const char *returnString = "";
    long lastIndex;
    char buffer[32];
@@ -1139,7 +1108,7 @@ static const char *ActivityHeaderString(
    /*=============================================*/
    
    for (i = 0; i < arraySize; i++)
-     { infoArray[i].marked = FALSE; }
+     { infoArray[i].marked = false; }
      
    theInfo = &infoArray[joinIndex];
    theJoin = theInfo->theJoin;
@@ -1152,7 +1121,7 @@ static const char *ActivityHeaderString(
          if (infoArray[i].theJoin == theJoin)
            {
             if (infoArray[i].patternBegin != infoArray[i].patternEnd)
-              { nestedCEs = TRUE; }
+              { nestedCEs = true; }
             lastIndex = i - 1;
             break;
            }
@@ -1162,7 +1131,7 @@ static const char *ActivityHeaderString(
   
    gensprintf(buffer,"%d",theInfo->whichCE);
    returnString = AppendStrings(theEnv,returnString,buffer);
-   if (nestedCEs == FALSE)
+   if (nestedCEs == false)
      { return returnString; }
 
    if (theInfo->patternBegin == theInfo->patternEnd)
@@ -1207,7 +1176,7 @@ static void ListBetaJoinActivity(
    struct joinNode *theJoin, *nextJoin;
    struct joinInformation *theInfo;
 
-   if (GetHaltExecution(theEnv) == TRUE)
+   if (EnvGetHaltExecution(theEnv) == true)
      { return; }
 
    theInfo = &infoArray[joinIndex];
@@ -1301,29 +1270,34 @@ static void JoinActivityReset(
 /* JoinActivityResetCommand: H/L access routine */
 /*   for the reset-join-activity command.       */
 /************************************************/
-globle void JoinActivityResetCommand(
-  void *theEnv)
-  { 
-   DoForAllConstructs(theEnv,JoinActivityReset,DefruleData(theEnv)->DefruleModuleIndex,TRUE,NULL);
+void JoinActivityResetCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {
+   void *theEnv = UDFContextEnvironment(context);
+   DoForAllConstructs(theEnv,JoinActivityReset,DefruleData(theEnv)->DefruleModuleIndex,true,NULL);
   }
 
 /***************************************/
 /* TimetagFunction: H/L access routine */
 /*   for the timetag function.         */
 /***************************************/
-globle long long TimetagFunction(
-  void *theEnv)
+void TimetagFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue theArg;
    void *ptr;
 
-   if (EnvArgCountCheck(theEnv,"timetag",EXACTLY,1) == -1) return(-1LL);
+   ptr = GetFactOrInstanceArgument(UDFContextEnvironment(context),1,&theArg,"timetag");
 
-   ptr = GetFactOrInstanceArgument(theEnv,1,&item,"timetag");
+   if (ptr == NULL)
+     {
+      mCVSetInteger(returnValue,-1LL);
+      return;
+     }
 
-   if (ptr == NULL) return(-1);
-
-   return ((struct patternEntity *) ptr)->timeTag;
+   mCVSetInteger(returnValue,((struct patternEntity *) ptr)->timeTag);
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
@@ -1333,36 +1307,45 @@ globle long long TimetagFunction(
 /* RuleComplexityCommand: H/L access routine   */
 /*   for the rule-complexity function.         */
 /***********************************************/
-globle long RuleComplexityCommand(
-  void *theEnv)
+void RuleComplexityCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *ruleName;
    struct defrule *rulePtr;
+   void *theEnv = UDFContextEnvironment(context);
 
-   ruleName = GetConstructName(theEnv,"rule-complexity","rule name");
-   if (ruleName == NULL) return(-1);
+   ruleName = GetConstructName(context,"rule-complexity","rule name");
+   if (ruleName == NULL)
+     {
+      mCVSetInteger(returnValue,-1);
+      return;
+     }
 
    rulePtr = (struct defrule *) EnvFindDefrule(theEnv,ruleName);
    if (rulePtr == NULL)
      {
       CantFindItemErrorMessage(theEnv,"defrule",ruleName);
-      return(-1);
+      mCVSetInteger(returnValue,-1);
+      return;
      }
 
-   return(rulePtr->complexity);
+   mCVSetInteger(returnValue,rulePtr->complexity);
   }
 
 /******************************************/
 /* ShowJoinsCommand: H/L access routine   */
 /*   for the show-joins command.          */
 /******************************************/
-globle void ShowJoinsCommand(
-  void *theEnv)
+void ShowJoinsCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    const char *ruleName;
    void *rulePtr;
+   void *theEnv = UDFContextEnvironment(context);
 
-   ruleName = GetConstructName(theEnv,"show-joins","rule name");
+   ruleName = GetConstructName(context,"show-joins","rule name");
    if (ruleName == NULL) return;
 
    rulePtr = EnvFindDefrule(theEnv,ruleName);
@@ -1390,15 +1373,27 @@ static void ShowJoins(
    struct joinNode *joinList[MAXIMUM_NUMBER_OF_PATTERNS];
    int numberOfJoins;
    char rhsType;
+   int disjunct = 0;
+   unsigned long count = 0;
 
    rulePtr = (struct defrule *) theRule;
-
+   
+   if ((rulePtr != NULL) && (rulePtr->disjunct != NULL))
+     { disjunct = 1; }
+     
    /*=================================================*/
    /* Loop through each of the disjuncts for the rule */
    /*=================================================*/
 
    while (rulePtr != NULL)
      {
+      if (disjunct > 0)
+        {
+         EnvPrintRouter(theEnv,WDISPLAY,"Disjunct #");
+         PrintLongInteger(theEnv, WDISPLAY, (long long) disjunct++);
+         EnvPrintRouter(theEnv,WDISPLAY,"\n");
+        }
+        
       /*=====================================*/
       /* Determine the number of join nodes. */
       /*=====================================*/
@@ -1476,15 +1471,27 @@ static void ShowJoins(
          if (! joinList[numberOfJoins]->firstJoin)
            {
             EnvPrintRouter(theEnv,WDISPLAY,"    LM : ");
-            if (PrintBetaMemory(theEnv,WDISPLAY,joinList[numberOfJoins]->leftMemory,FALSE,"         ",SUCCINCT) == 0)
+            count = PrintBetaMemory(theEnv,WDISPLAY,joinList[numberOfJoins]->leftMemory,false,"",SUCCINCT);
+            if (count == 0)
               { EnvPrintRouter(theEnv,WDISPLAY,"None\n"); }
+            else
+              {
+               sprintf(buffer,"%lu\n",count);
+               EnvPrintRouter(theEnv,WDISPLAY,buffer);
+              }
            }
          
          if (joinList[numberOfJoins]->joinFromTheRight)
            {
             EnvPrintRouter(theEnv,WDISPLAY,"    RM : ");
-            if (PrintBetaMemory(theEnv,WDISPLAY,joinList[numberOfJoins]->rightMemory,FALSE,"         ",SUCCINCT) == 0)
+            count = PrintBetaMemory(theEnv,WDISPLAY,joinList[numberOfJoins]->rightMemory,false,"",SUCCINCT);
+            if (count == 0)
               { EnvPrintRouter(theEnv,WDISPLAY,"None\n"); }
+            else
+              {
+               sprintf(buffer,"%lu\n",count);
+               EnvPrintRouter(theEnv,WDISPLAY,buffer);
+              }
            }
          
          numberOfJoins--;
@@ -1503,14 +1510,16 @@ static void ShowJoins(
 /* ShowAlphaHashTable: Displays the number of entries */
 /*   in each slot of the alpha hash table.            */
 /******************************************************/
-globle void ShowAlphaHashTable(
-   void *theEnv)
+void ShowAlphaHashTable(
+   UDFContext *context,
+   CLIPSValue *returnValue)
    {
     int i, count;
     long totalCount = 0;
     struct alphaMemoryHash *theEntry;
     struct partialMatch *theMatch;
     char buffer[40];
+    Environment *theEnv = UDFContextEnvironment(context);
 
     for (i = 0; i < ALPHA_MEMORY_HASH_SIZE; i++)
       {
@@ -1548,44 +1557,5 @@ globle void ShowAlphaHashTable(
    }
 
 #endif /* DEVELOPER */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if DEBUGGING_FUNCTIONS
-
-globle void Matches(
-  void *theRule,
-  int output,
-  DATA_OBJECT *result)
-  {
-   EnvMatches(GetCurrentEnvironment(),theRule,output,result);
-  }
-
-globle void JoinActivity(
-  void *theRule,
-  int output,
-  DATA_OBJECT *result)
-  {
-   EnvJoinActivity(GetCurrentEnvironment(),theRule,output,result);
-  }
-
-#endif /* DEBUGGING_FUNCTIONS */
-
-globle intBool GetBetaMemoryResizing()
-  {   
-   return EnvGetBetaMemoryResizing(GetCurrentEnvironment());
-  }
-
-globle intBool SetBetaMemoryResizing(
-  int value)
-  {
-   return EnvSetBetaMemoryResizing(GetCurrentEnvironment(),value);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFRULE_CONSTRUCT */

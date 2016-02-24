@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*         DEFGLOBAL BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -41,49 +41,28 @@
 /*************************************************************/
 
 #ifndef _H_globlbsc
+
+#pragma once
+
 #define _H_globlbsc
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GLOBLBSC_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefglobalBasicCommands(void *);
-   LOCALE void                           UndefglobalCommand(void *);
-   LOCALE intBool                        EnvUndefglobal(void *,void *);
-   LOCALE void                           GetDefglobalListFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EnvGetDefglobalList(void *,DATA_OBJECT_PTR,void *);
-   LOCALE void                          *DefglobalModuleFunction(void *);
-   LOCALE void                           PPDefglobalCommand(void *);
-   LOCALE int                            PPDefglobal(void *,const char *,const char *);
-   LOCALE void                           ListDefglobalsCommand(void *);
+   void                           DefglobalBasicCommands(void *);
+   void                           UndefglobalCommand(UDFContext *,CLIPSValue *);
+   bool                           EnvUndefglobal(void *,void *);
+   void                           GetDefglobalListFunction(UDFContext *,CLIPSValue *);
+   void                           EnvGetDefglobalList(void *,DATA_OBJECT_PTR,void *);
+   void                           DefglobalModuleFunction(UDFContext *,CLIPSValue *);
+   void                           PPDefglobalCommand(UDFContext *,CLIPSValue *);
+   int                            PPDefglobal(void *,const char *,const char *);
+   void                           ListDefglobalsCommand(UDFContext *,CLIPSValue *);
 #if DEBUGGING_FUNCTIONS
-   LOCALE unsigned                       EnvGetDefglobalWatch(void *,void *);
-   LOCALE void                           EnvListDefglobals(void *,const char *,void *);
-   LOCALE void                           EnvSetDefglobalWatch(void *,unsigned,void *);
+   bool                           EnvGetDefglobalWatch(void *,void *);
+   void                           EnvListDefglobals(void *,const char *,void *);
+   void                           EnvSetDefglobalWatch(void *,bool,void *);
 #endif
-   LOCALE void                           ResetDefglobals(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           GetDefglobalList(DATA_OBJECT_PTR,void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE unsigned                       GetDefglobalWatch(void *);
-   LOCALE void                           ListDefglobals(const char *,void *);
-   LOCALE void                           SetDefglobalWatch(unsigned,void *);
-#endif
-   LOCALE intBool                        Undefglobal(void *);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           ResetDefglobals(void *);
 
 #endif /* _H_globlbsc */
 

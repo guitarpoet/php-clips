@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            DEFGLOBAL BSAVE/BLOAD MODULE             */
    /*******************************************************/
@@ -24,23 +24,20 @@
 /*                                                           */
 /*************************************************************/
 
-#define _GLOBLBIN_SOURCE_
-
 #include "setup.h"
 
 #if DEFGLOBAL_CONSTRUCT && (BLOAD || BLOAD_AND_BSAVE || BLOAD_ONLY) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "multifld.h"
-#include "globldef.h"
 #include "bload.h"
 #include "bsave.h"
-#include "moduldef.h"
-#include "globlbsc.h"
 #include "envrnmnt.h"
+#include "globlbsc.h"
+#include "globldef.h"
+#include "memalloc.h"
+#include "moduldef.h"
+#include "multifld.h"
 
 #include "globlbin.h"
 
@@ -64,7 +61,7 @@
 /* DefglobalBinarySetup: Installs the binary */
 /*   save/load feature for the defglobals.   */
 /*********************************************/
-globle void DefglobalBinarySetup(
+void DefglobalBinarySetup(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,GLOBLBIN_DATA,sizeof(struct defglobalBinaryData),DeallocateDefglobalBloadData);
@@ -444,7 +441,7 @@ static void ClearBload(
 /* BloadDefglobalModuleReference: Returns the defglobal */
 /*   module pointer for using with the bload function.  */
 /********************************************************/
-globle void *BloadDefglobalModuleReference(
+void *BloadDefglobalModuleReference(
   void *theEnv,
   int theIndex)
   {

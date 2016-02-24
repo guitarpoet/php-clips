@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                DEFGLOBAL HEADER FILE                */
    /*******************************************************/
@@ -38,32 +38,25 @@
 /*            Fixed linkage issue when BLOAD_ONLY compiler   */
 /*            flag is set to 1.                              */
 /*                                                           */
+/*            Changed find construct functionality so that   */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_globldef
+
+#pragma once
+
 #define _H_globldef
 
-#ifndef _H_conscomp
 #include "conscomp.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-#ifndef _H_cstrccom
 #include "cstrccom.h"
-#endif
+#include "evaluatn.h"
+#include "expressn.h"
+#include "moduldef.h"
+#include "symbol.h"
 
 #define DEFGLOBAL_DATA 1
 
@@ -71,11 +64,11 @@ struct defglobalData
   { 
    struct construct *DefglobalConstruct;
    int DefglobalModuleIndex;  
-   int ChangeToGlobals;
+   bool ChangeToGlobals;
 #if DEBUGGING_FUNCTIONS
    unsigned WatchGlobals;
 #endif
-   intBool ResetGlobals;
+   bool ResetGlobals;
    struct entityRecord GlobalInfo;
    struct entityRecord DefglobalPtrRecord;
    long LastModuleIndex;
@@ -102,51 +95,26 @@ struct defglobalModule
 
 #define DefglobalData(theEnv) ((struct defglobalData *) GetEnvironmentData(theEnv,DEFGLOBAL_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GLOBLDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDefglobals(void *);
-   LOCALE void                          *EnvFindDefglobal(void *,const char *);
-   LOCALE void                          *EnvGetNextDefglobal(void *,void *);
-   LOCALE void                           CreateInitialFactDefglobal(void);
-   LOCALE intBool                        EnvIsDefglobalDeletable(void *,void *);
-   LOCALE struct defglobalModule        *GetDefglobalModuleItem(void *,struct defmodule *);
-   LOCALE void                           QSetDefglobalValue(void *,struct defglobal *,DATA_OBJECT_PTR,int);
-   LOCALE struct defglobal              *QFindDefglobal(void *,struct symbolHashNode *);
-   LOCALE void                           EnvGetDefglobalValueForm(void *,char *,size_t,void *);
-   LOCALE int                            EnvGetGlobalsChanged(void *);
-   LOCALE void                           EnvSetGlobalsChanged(void *,int);
-   LOCALE intBool                        EnvGetDefglobalValue(void *,const char *,DATA_OBJECT_PTR);
-   LOCALE intBool                        EnvSetDefglobalValue(void *,const char *,DATA_OBJECT_PTR);
-   LOCALE void                           UpdateDefglobalScope(void *);
-   LOCALE void                          *GetNextDefglobalInScope(void *,void *);
-   LOCALE int                            QGetDefglobalValue(void *,void *,DATA_OBJECT_PTR);
-   LOCALE const char                    *EnvDefglobalModule(void *,void *);
-   LOCALE const char                    *EnvGetDefglobalName(void *,void *);
-   LOCALE const char                    *EnvGetDefglobalPPForm(void *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE const char                    *DefglobalModule(void *);
-   LOCALE void                          *FindDefglobal(const char *);
-   LOCALE const char                    *GetDefglobalName(void *);
-   LOCALE const char                    *GetDefglobalPPForm(void *);
-   LOCALE intBool                        GetDefglobalValue(const char *,DATA_OBJECT_PTR);
-   LOCALE void                           GetDefglobalValueForm(char *,unsigned,void *);
-   LOCALE int                            GetGlobalsChanged(void);
-   LOCALE void                          *GetNextDefglobal(void *);
-   LOCALE intBool                        IsDefglobalDeletable(void *);
-   LOCALE intBool                        SetDefglobalValue(const char *,DATA_OBJECT_PTR);
-   LOCALE void                           SetGlobalsChanged(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           InitializeDefglobals(void *);
+   void                          *EnvFindDefglobal(void *,const char *);
+   void                          *EnvFindDefglobalInModule(void *,const char *);
+   void                          *EnvGetNextDefglobal(void *,void *);
+   void                           CreateInitialFactDefglobal(void);
+   bool                           EnvIsDefglobalDeletable(void *,void *);
+   struct defglobalModule        *GetDefglobalModuleItem(void *,struct defmodule *);
+   void                           QSetDefglobalValue(void *,struct defglobal *,DATA_OBJECT_PTR,bool);
+   struct defglobal              *QFindDefglobal(void *,struct symbolHashNode *);
+   void                           EnvGetDefglobalValueForm(void *,char *,size_t,void *);
+   bool                           EnvGetGlobalsChanged(void *);
+   void                           EnvSetGlobalsChanged(void *,bool);
+   bool                           EnvGetDefglobalValue(void *,const char *,DATA_OBJECT_PTR);
+   bool                           EnvSetDefglobalValue(void *,const char *,DATA_OBJECT_PTR);
+   void                           UpdateDefglobalScope(void *);
+   void                          *GetNextDefglobalInScope(void *,void *);
+   bool                           QGetDefglobalValue(void *,void *,DATA_OBJECT_PTR);
+   const char                    *EnvDefglobalModule(void *,void *);
+   const char                    *EnvGetDefglobalName(void *,void *);
+   const char                    *EnvGetDefglobalPPForm(void *,void *);
 
 #endif /* _H_globldef */
 

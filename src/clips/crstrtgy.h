@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*      CONFLICT RESOLUTION STRATEGY HEADER MODULE     */
    /*******************************************************/
@@ -43,6 +43,8 @@
 
 #ifndef _H_crstrtgy
 
+#pragma once
+
 #define _H_crstrtgy
 
 #include "agenda.h"
@@ -58,28 +60,11 @@
 
 #define DEFAULT_STRATEGY DEPTH_STRATEGY
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CRSTRTGY_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           PlaceActivation(void *,ACTIVATION **,ACTIVATION *,struct salienceGroup *);
-   LOCALE int                            EnvSetStrategy(void *,int);
-   LOCALE int                            EnvGetStrategy(void *);
-   LOCALE void                          *SetStrategyCommand(void *);
-   LOCALE void                          *GetStrategyCommand(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE int                            SetStrategy(int);
-   LOCALE int                            GetStrategy(void);
-
-#endif
+   void                           PlaceActivation(void *,ACTIVATION **,ACTIVATION *,struct salienceGroup *);
+   int                            EnvSetStrategy(void *,int);
+   int                            EnvGetStrategy(void *);
+   void                           SetStrategyCommand(UDFContext *,CLIPSValue *);
+   void                           GetStrategyCommand(UDFContext *,CLIPSValue *);
 
 #endif /* _H_crstrtgy */
 

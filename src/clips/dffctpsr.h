@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             DEFFACTS PARSER HEADER FILE             */
    /*******************************************************/
@@ -29,19 +29,12 @@
 /*************************************************************/
 
 #ifndef _H_dffctpsr
+
+#pragma once
+
 #define _H_dffctpsr
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFCTPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int                            ParseDeffacts(void *,const char *);
+   bool                           ParseDeffacts(void *,const char *);
 
 #endif /* _H_dffctpsr */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                  WATCH HEADER FILE                  */
    /*******************************************************/
@@ -37,11 +37,12 @@
 /*************************************************************/
 
 #ifndef _H_watch
+
+#pragma once
+
 #define _H_watch
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 
 #define WATCH_DATA 54
 
@@ -50,8 +51,8 @@ struct watchItem
    const char *name;
    unsigned *flag;
    int code,priority;
-   unsigned (*accessFunc)(void *,int,unsigned,struct expr *);
-   unsigned (*printFunc)(void *,const char *,int,struct expr *);
+   bool (*accessFunc)(void *,int,bool,struct expr *);
+   bool (*printFunc)(void *,const char *,int,struct expr *);
    struct watchItem *next;
   };
 
@@ -62,40 +63,21 @@ struct watchData
 
 #define WatchData(theEnv) ((struct watchData *) GetEnvironmentData(theEnv,WATCH_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _WATCH_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                        EnvWatch(void *,const char *);
-   LOCALE intBool                        EnvUnwatch(void *,const char *);
-   LOCALE void                           InitializeWatchData(void *);   
-   LOCALE int                            EnvSetWatchItem(void *,const char *,unsigned,struct expr *);
-   LOCALE int                            EnvGetWatchItem(void *,const char *);
-   LOCALE intBool                        AddWatchItem(void *,const char *,int,unsigned *,int,
-                                                      unsigned (*)(void *,int,unsigned,struct expr *),
-                                                      unsigned (*)(void *,const char *,int,struct expr *));
-   LOCALE const char                    *GetNthWatchName(void *,int);
-   LOCALE int                            GetNthWatchValue(void *,int);
-   LOCALE void                           WatchCommand(void *);
-   LOCALE void                           UnwatchCommand(void *);
-   LOCALE void                           ListWatchItemsCommand(void *);
-   LOCALE void                           WatchFunctionDefinitions(void *);
-   LOCALE int                            GetWatchItemCommand(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        Watch(const char *);
-   LOCALE intBool                        Unwatch(const char *);
-   LOCALE int                            GetWatchItem(const char *);
-   LOCALE int                            SetWatchItem(const char *,unsigned,struct expr *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   bool                           EnvWatch(void *,const char *);
+   bool                           EnvUnwatch(void *,const char *);
+   void                           InitializeWatchData(void *);   
+   bool                           EnvSetWatchItem(void *,const char *,bool,struct expr *);
+   int                            EnvGetWatchItem(void *,const char *);
+   bool                           AddWatchItem(void *,const char *,int,unsigned *,int,
+                                                      bool (*)(void *,int,bool,struct expr *),
+                                                      bool (*)(void *,const char *,int,struct expr *));
+   const char                    *GetNthWatchName(void *,int);
+   int                            GetNthWatchValue(void *,int);
+   void                           WatchCommand(UDFContext *,CLIPSValue *);
+   void                           UnwatchCommand(UDFContext *,CLIPSValue *);
+   void                           ListWatchItemsCommand(UDFContext *,CLIPSValue *);
+   void                           WatchFunctionDefinitions(void *);
+   void                           GetWatchItemCommand(UDFContext *,CLIPSValue *);
 
 #endif /* _H_watch */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           DEFFACTS BSAVE/BLOAD HEADER FILE          */
    /*******************************************************/
@@ -21,17 +21,17 @@
 /*                                                           */
 /*************************************************************/
 
-#if (! RUN_TIME)
-
 #ifndef _H_dffctbin
+
+#pragma once
 
 #define _H_dffctbin
 
-#include "modulbin.h"
-#include "cstrcbin.h"
-#ifndef _H_constrct
+#if (! RUN_TIME)
+
 #include "constrct.h"
-#endif
+#include "cstrcbin.h"
+#include "modulbin.h"
 
 struct bsaveDeffacts
   {
@@ -56,22 +56,13 @@ struct deffactsBinaryData
   
 #define DeffactsBinaryData(theEnv) ((struct deffactsBinaryData *) GetEnvironmentData(theEnv,DFFCTBIN_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           DeffactsBinarySetup(void *);
+   void                          *BloadDeffactsModuleReference(void *,int);
 
-#ifdef _DFFCTBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeffactsBinarySetup(void *);
-   LOCALE void                          *BloadDeffactsModuleReference(void *,int);
+#endif /* (! RUN_TIME) */
 
 #endif /* _H_dffctbin */
 
-#endif /* (! RUN_TIME) */
 
 
 

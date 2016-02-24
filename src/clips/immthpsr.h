@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -28,23 +28,16 @@
 /*************************************************************/
 
 #ifndef _H_immthpsr
+
+#pragma once
+
 #define _H_immthpsr
 
 #if DEFGENERIC_CONSTRUCT && (! BLOAD_ONLY) && (! RUN_TIME)
 
 #include "genrcfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _IMMTHPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           AddImplicitMethods(void *,DEFGENERIC *);
+   void                           AddImplicitMethods(void *,DEFGENERIC *);
 
 #endif /* DEFGENERIC_CONSTRUCT && (! BLOAD_ONLY) && (! RUN_TIME) */
 

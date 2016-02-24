@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*          FACT RETE ACCESS FUNCTIONS MODULE          */
    /*******************************************************/
@@ -28,27 +28,26 @@
 /*                                                           */
 /*            Support for hashing optimizations.             */
 /*                                                           */
+/*      6.40: Modify command preserves fact address.         */
+/*                                                           */
 /*************************************************************/
 
-#define _FACTRETE_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT
 
-#include "memalloc.h"
-#include "extnfunc.h"
-#include "router.h"
-#include "incrrset.h"
-#include "reteutil.h"
 #include "drive.h"
 #include "engine.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
 #include "factgen.h"
 #include "factmch.h"
-#include "envrnmnt.h"
+#include "incrrset.h"
+#include "memalloc.h"
+#include "reteutil.h"
+#include "router.h"
 
 #include "factrete.h"
 
@@ -56,7 +55,7 @@
 /* FactPNGetVar1: Fact pattern network function for extracting */
 /*   a variable's value. This is the most generalized routine. */
 /***************************************************************/
-globle intBool FactPNGetVar1(
+bool FactPNGetVar1(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -91,7 +90,7 @@ globle intBool FactPNGetVar1(
      {
       returnValue->type = FACT_ADDRESS;
       returnValue->value = (void *) factPtr;
-      return(TRUE);
+      return(true);
      }
 
    /*=========================================================*/
@@ -110,7 +109,7 @@ globle intBool FactPNGetVar1(
          SetpDOEnd(returnValue,((struct multifield *) fieldPtr->value)->multifieldLength);
         }
 
-      return(TRUE);
+      return(true);
      }
 
    /*====================================================*/
@@ -145,7 +144,7 @@ globle intBool FactPNGetVar1(
       returnValue->value = (void *) fieldPtr->value;
       returnValue->begin = theField;
       returnValue->end = theField + extent - 1;
-      return(TRUE);
+      return(true);
      }
 
    /*========================================================*/
@@ -159,7 +158,7 @@ globle intBool FactPNGetVar1(
    returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return(true);
   }
 
 /**************************************************/
@@ -167,7 +166,7 @@ globle intBool FactPNGetVar1(
 /*   for extracting a variable's value. The value */
 /*   extracted is from a single field slot.       */
 /**************************************************/
-globle intBool FactPNGetVar2(
+bool FactPNGetVar2(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -197,7 +196,7 @@ globle intBool FactPNGetVar2(
    returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return(true);
   }
 
 /*****************************************************************/
@@ -205,7 +204,7 @@ globle intBool FactPNGetVar2(
 /*   variable's value. The value extracted is from a multifield  */
 /*   slot that contains at most one multifield variable.         */
 /*****************************************************************/
-globle intBool FactPNGetVar3(
+bool FactPNGetVar3(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -244,7 +243,7 @@ globle intBool FactPNGetVar3(
       returnValue->value = (void *) segmentPtr;
       returnValue->begin = (long) hack->beginOffset;
       returnValue->end = (long) (segmentPtr->multifieldLength - (hack->endOffset + 1));
-      return(TRUE);
+      return(true);
      }
 
    /*=====================================================*/
@@ -259,7 +258,7 @@ globle intBool FactPNGetVar3(
    returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return(true);
   }
 
 /******************************************************/
@@ -267,7 +266,7 @@ globle intBool FactPNGetVar3(
 /*   comparing a value stored in a single field slot  */
 /*   to a constant for either equality or inequality. */
 /******************************************************/
-globle intBool FactPNConstant1(
+bool FactPNConstant1(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -308,7 +307,7 @@ globle intBool FactPNConstant1(
 /*   no multifields to its right (thus it can be retrieved      */
 /*   relative to the beginning).                                */
 /****************************************************************/
-globle intBool FactPNConstant2(
+bool FactPNConstant2(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -363,7 +362,7 @@ globle intBool FactPNConstant2(
 /* FactJNGetVar1: Fact join network function for extracting a */
 /*   variable's value. This is the most generalized routine.  */
 /**************************************************************/
-globle intBool FactJNGetVar1(
+bool FactJNGetVar1(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -375,6 +374,7 @@ globle intBool FactJNGetVar1(
    struct multifield *segmentPtr;
    int extent;
    struct factGetVarJN1Call *hack;
+   struct multifield *theSlots = NULL;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
@@ -421,9 +421,15 @@ globle intBool FactJNGetVar1(
      {
       returnValue->type = FACT_ADDRESS;
       returnValue->value = (void *) factPtr;
-      return(TRUE);
+      return(true);
      }
 
+   if ((factPtr->basisSlots != NULL) &&
+       (! EngineData(theEnv)->JoinOperationInProgress))
+     { theSlots = factPtr->basisSlots; }
+   else
+     { theSlots = &factPtr->theProposition; }
+     
    /*=========================================================*/
    /* Determine if we want to retrieve the entire slot value. */
    /*=========================================================*/
@@ -431,7 +437,7 @@ globle intBool FactJNGetVar1(
    if (hack->allFields)
      {
       theSlot = hack->whichSlot;
-      fieldPtr = &factPtr->theProposition.theFields[theSlot];
+      fieldPtr = &theSlots->theFields[theSlot];
       returnValue->type = fieldPtr->type;
       returnValue->value = fieldPtr->value;
       if (returnValue->type == MULTIFIELD)
@@ -440,7 +446,7 @@ globle intBool FactJNGetVar1(
          SetpDOEnd(returnValue,((struct multifield *) fieldPtr->value)->multifieldLength);
         }
 
-      return(TRUE);
+      return(true);
      }
 
    /*====================================================*/
@@ -454,13 +460,13 @@ globle intBool FactJNGetVar1(
 
    theField = hack->whichField;
    theSlot = hack->whichSlot;
-   fieldPtr = &factPtr->theProposition.theFields[theSlot];
+   fieldPtr = &theSlots->theFields[theSlot];
 
    if (fieldPtr->type != MULTIFIELD)
      {
       returnValue->type = fieldPtr->type;
       returnValue->value = fieldPtr->value;
-      return(TRUE);
+      return(true);
      }
 
    /*==========================================================*/
@@ -482,7 +488,7 @@ globle intBool FactJNGetVar1(
       returnValue->value = (void *) fieldPtr->value;
       returnValue->begin = theField;
       returnValue->end = theField + extent - 1;
-      return(TRUE);
+      return(true);
      }
 
    /*========================================================*/
@@ -490,13 +496,13 @@ globle intBool FactJNGetVar1(
    /* a multifield slot. Just return the type and value.     */
    /*========================================================*/
 
-   segmentPtr = (struct multifield *) factPtr->theProposition.theFields[theSlot].value;
+   segmentPtr = (struct multifield *) theSlots->theFields[theSlot].value;
    fieldPtr = &segmentPtr->theFields[theField];
 
    returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return(true);
   }
 
 /*************************************************/
@@ -504,7 +510,7 @@ globle intBool FactJNGetVar1(
 /*   extracting a variable's value. The value    */
 /*   extracted is from a single field slot.      */
 /*************************************************/
-globle intBool FactJNGetVar2(
+bool FactJNGetVar2(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -538,12 +544,16 @@ globle intBool FactJNGetVar2(
    /* Extract the value from the specified slot. */
    /*============================================*/
 
-   fieldPtr = &factPtr->theProposition.theFields[hack->whichSlot];
+   if ((factPtr->basisSlots != NULL) &&
+       (! EngineData(theEnv)->JoinOperationInProgress))
+     { fieldPtr = &factPtr->basisSlots->theFields[hack->whichSlot]; }
+   else
+     { fieldPtr = &factPtr->theProposition.theFields[hack->whichSlot]; }
 
    returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return(true);
   }
 
 /****************************************************************/
@@ -551,7 +561,7 @@ globle intBool FactJNGetVar2(
 /*   variable's value. The value extracted is from a multifield */
 /*   slot that contains at most one multifield variable.        */
 /****************************************************************/
-globle intBool FactJNGetVar3(
+bool FactJNGetVar3(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -586,7 +596,11 @@ globle intBool FactJNGetVar3(
    /* Get the multifield value from which the data is retrieved. */
    /*============================================================*/
 
-   segmentPtr = (struct multifield *) factPtr->theProposition.theFields[hack->whichSlot].value;
+   if ((factPtr->basisSlots != NULL) &&
+       (! EngineData(theEnv)->JoinOperationInProgress))
+     { segmentPtr = (struct multifield *) factPtr->basisSlots->theFields[hack->whichSlot].value; }
+   else
+     { segmentPtr = (struct multifield *) factPtr->theProposition.theFields[hack->whichSlot].value; }
 
    /*=========================================*/
    /* If the beginning and end flags are set, */
@@ -599,7 +613,7 @@ globle intBool FactJNGetVar3(
       returnValue->value = (void *) segmentPtr;
       returnValue->begin = hack->beginOffset;
       returnValue->end = (long) (segmentPtr->multifieldLength - (hack->endOffset + 1));
-      return(TRUE);
+      return(true);
      }
 
    /*=====================================================*/
@@ -614,14 +628,14 @@ globle intBool FactJNGetVar3(
    returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return(true);
   }
 
 /****************************************************/
 /* FactSlotLength: Determines if the length of a    */
 /*  multifield slot falls within a specified range. */
 /****************************************************/
-globle intBool FactSlotLength(
+bool FactSlotLength(
   void *theEnv,
   void *theValue,
   DATA_OBJECT_PTR returnValue)
@@ -647,20 +661,20 @@ globle intBool FactSlotLength(
    segmentPtr = (struct multifield *) FactData(theEnv)->CurrentPatternFact->theProposition.theFields[hack->whichSlot].value;
 
    if (segmentPtr->multifieldLength < (hack->minLength + extraOffset))
-     { return(FALSE); }
+     { return(false); }
 
    if (hack->exactly && (segmentPtr->multifieldLength > (hack->minLength + extraOffset)))
-     { return(FALSE); }
+     { return(false); }
 
    returnValue->value = EnvTrueSymbol(theEnv);
-   return(TRUE);
+   return(true);
   }
 
 /************************************************************/
 /* FactJNCompVars1: Fact join network routine for comparing */
 /*   the values of two single field slots.                  */
 /************************************************************/
-globle int FactJNCompVars1(
+bool FactJNCompVars1(
   void *theEnv,
   void *theValue,
   DATA_OBJECT *theResult)
@@ -717,7 +731,7 @@ globle int FactJNCompVars1(
 /*   This function is provided so that variable comparisons of   */
 /*   implied deftemplates will be faster.                        */
 /*****************************************************************/
-globle int FactJNCompVars2(
+bool FactJNCompVars2(
   void *theEnv,
   void *theValue,
   DATA_OBJECT *theResult)
@@ -798,7 +812,7 @@ globle int FactJNCompVars2(
 /* FactPNCompVars1: Fact pattern network routine for */
 /*   comparing the values of two single field slots. */
 /*****************************************************/
-globle int FactPNCompVars1(
+bool FactPNCompVars1(
   void *theEnv,
   void *theValue,
   DATA_OBJECT *theResult)
@@ -846,7 +860,7 @@ globle int FactPNCompVars1(
 /*   variable ?z) would be 8 since $?x binds to 2 fields and $?y binds   */
 /*   to 3 fields.                                                        */
 /*************************************************************************/
-globle unsigned short AdjustFieldPosition(
+unsigned short AdjustFieldPosition(
   void *theEnv,
   struct multifieldMarker *markList,
   unsigned short whichField,
@@ -911,7 +925,7 @@ globle unsigned short AdjustFieldPosition(
 /*   number of multifield functions for grouping a   */
 /*   series of valuesinto a single multifield value. */
 /*****************************************************/
-globle int FactStoreMultifield(
+bool FactStoreMultifield(
   void *theEnv,
   void *theValue,
   DATA_OBJECT *theResult)
@@ -920,8 +934,8 @@ globle int FactStoreMultifield(
 #pragma unused(theValue)
 #endif
 
-   StoreInMultifield(theEnv,theResult,GetFirstArgument(),FALSE);
-   return(TRUE);
+   StoreInMultifield(theEnv,theResult,GetFirstArgument(),false);
+   return(true);
   }
 
 #endif /* DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT */

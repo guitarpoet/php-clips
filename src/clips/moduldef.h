@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                DEFMODULE HEADER FILE                */
    /*******************************************************/
@@ -40,6 +40,9 @@
 /*************************************************************/
 
 #ifndef _H_moduldef
+
+#pragma once
+
 #define _H_moduldef
 
 struct defmodule;
@@ -47,29 +50,10 @@ struct portItem;
 struct defmoduleItemHeader;
 struct moduleItem;
 
-#ifndef _STDIO_INCLUDED_
 #include <stdio.h>
-#define _STDIO_INCLUDED_
-#endif
 
-#ifndef _H_conscomp
-#include "conscomp.h"
-#endif
-#ifndef _H_modulpsr
-#include "modulpsr.h"
-#endif
-#ifndef _H_utility
-#include "utility.h"
-#endif
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
-#include "constrct.h"
-#endif
+#include "userdata.h"
 
 /**********************************************************************/
 /* defmodule                                                          */
@@ -90,6 +74,7 @@ struct moduleItem;
 /*                                                                    */
 /* next: A pointer to the next defmodule data structure.              */
 /**********************************************************************/
+
 struct defmodule
   {
    struct symbolHashNode *name;
@@ -97,7 +82,7 @@ struct defmodule
    struct defmoduleItemHeader **itemsArray;
    struct portItem *importList;
    struct portItem *exportList;
-   unsigned visitedFlag;
+   bool visitedFlag;
    long bsaveID;
    struct userData *usrData;
    struct defmodule *next;
@@ -145,8 +130,8 @@ struct defmoduleItemHeader
 /*   a string and the function returns a pointer to the specified     */
 /*   construct if it exists.                                          */
 /*                                                                    */
-/* exportable: If TRUE, then the specified construct type can be      */
-/*   exported (and hence imported). If FALSE, it can't be exported.   */
+/* exportable: If true, then the specified construct type can be      */
+/*   exported (and hence imported). If false, it can't be exported.   */
 /*                                                                    */
 /* next: A pointer to the next moduleItem data structure.             */
 /**********************************************************************/
@@ -165,26 +150,32 @@ struct moduleItem
 
 typedef struct moduleStackItem
   {
-   intBool changeFlag;
+   bool changeFlag;
    struct defmodule *theModule;
    struct moduleStackItem *next;
   } MODULE_STACK_ITEM;
 
 #define DEFMODULE_DATA 4
 
+#include "conscomp.h" /* TBD Needed Headers? */
+#include "constrct.h"
+#include "evaluatn.h"
+#include "modulpsr.h"
+#include "utility.h"
+
 struct defmoduleData
   {   
    struct moduleItem *LastModuleItem;
    struct callFunctionItem *AfterModuleChangeFunctions;
    MODULE_STACK_ITEM *ModuleStack;
-   intBool CallModuleChangeFunctions;
+   bool CallModuleChangeFunctions;
    struct defmodule *ListOfDefmodules;
    struct defmodule *CurrentModule;
    struct defmodule *LastDefmodule;
    int NumberOfModuleItems;
    struct moduleItem *ListOfModuleItems;
    long ModuleChangeIndex;
-   int MainModuleRedefinable;
+   bool MainModuleRedefinable;
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    struct portConstructItem *ListOfPortConstructItems;
    long NumberOfDefmodules;
@@ -203,56 +194,36 @@ struct defmoduleData
   
 #define DefmoduleData(theEnv) ((struct defmoduleData *) GetEnvironmentData(theEnv,DEFMODULE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDefmodules(void *);
-   LOCALE void                          *EnvFindDefmodule(void *,const char *);
-   LOCALE const char                    *EnvGetDefmoduleName(void *,void *);
-   LOCALE const char                    *EnvGetDefmodulePPForm(void *,void *);
-   LOCALE void                          *EnvGetNextDefmodule(void *,void *);
-   LOCALE void                           RemoveAllDefmodules(void *);
-   LOCALE int                            AllocateModuleStorage(void);
-   LOCALE int                            RegisterModuleItem(void *,const char *,
+   void                           InitializeDefmodules(void *);
+   void                          *EnvFindDefmodule(void *,const char *);
+   const char                    *EnvGetDefmoduleName(void *,void *);
+   const char                    *EnvGetDefmodulePPForm(void *,void *);
+   void                          *EnvGetNextDefmodule(void *,void *);
+   void                           RemoveAllDefmodules(void *);
+   int                            AllocateModuleStorage(void);
+   int                            RegisterModuleItem(void *,const char *,
                                                             void *(*)(void *),
                                                             void (*)(void *,void *),
                                                             void *(*)(void *,int),
                                                             void (*)(void *,FILE *,int,int,int),
                                                             void *(*)(void *,const char *));
-   LOCALE void                          *GetModuleItem(void *,struct defmodule *,int);
-   LOCALE void                           SetModuleItem(void *,struct defmodule *,int,void *);
-   LOCALE void                          *EnvGetCurrentModule(void *);
-   LOCALE void                          *EnvSetCurrentModule(void *,void *);
-   LOCALE void                          *GetCurrentModuleCommand(void *);
-   LOCALE void                          *SetCurrentModuleCommand(void *);
-   LOCALE int                            GetNumberOfModuleItems(void *);
-   LOCALE void                           CreateMainModule(void *);
-   LOCALE void                           SetListOfDefmodules(void *,void *);
-   LOCALE struct moduleItem             *GetListOfModuleItems(void *);
-   LOCALE struct moduleItem             *FindModuleItem(void *,const char *);
-   LOCALE void                           SaveCurrentModule(void *);
-   LOCALE void                           RestoreCurrentModule(void *);
-   LOCALE void                           AddAfterModuleChangeFunction(void *,const char *,void (*)(void *),int);
-   LOCALE void                           IllegalModuleSpecifierMessage(void *);
-   LOCALE void                           AllocateDefmoduleGlobals(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *FindDefmodule(const char *);
-   LOCALE void                          *GetCurrentModule(void);
-   LOCALE const char                    *GetDefmoduleName(void *);
-   LOCALE const char                    *GetDefmodulePPForm(void *);
-   LOCALE void                          *GetNextDefmodule(void *);
-   LOCALE void                          *SetCurrentModule(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                          *GetModuleItem(void *,struct defmodule *,int);
+   void                           SetModuleItem(void *,struct defmodule *,int,void *);
+   void                          *EnvGetCurrentModule(void *);
+   void                          *EnvSetCurrentModule(void *,void *);
+   void                           GetCurrentModuleCommand(UDFContext *,CLIPSValue *);
+   void                           SetCurrentModuleCommand(UDFContext *,CLIPSValue *);
+   int                            GetNumberOfModuleItems(void *);
+   void                           CreateMainModule(void *);
+   void                           SetListOfDefmodules(void *,void *);
+   struct moduleItem             *GetListOfModuleItems(void *);
+   struct moduleItem             *FindModuleItem(void *,const char *);
+   void                           SaveCurrentModule(void *);
+   void                           RestoreCurrentModule(void *);
+   void                           AddAfterModuleChangeFunction(void *,const char *,void (*)(void *),int);
+   void                           IllegalModuleSpecifierMessage(void *);
+   void                           AllocateDefmoduleGlobals(void *);
+   long                           GetNumberOfDefmodules(void *);
 
 #endif /* _H_moduldef */
 

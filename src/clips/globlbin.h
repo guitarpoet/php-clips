@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             DEFGLOBAL BINARY HEADER FILE            */
    /*******************************************************/
@@ -24,6 +24,8 @@
 /*************************************************************/
 
 #ifndef _H_globlbin
+
+#pragma once
 
 #define _H_globlbin
 
@@ -56,18 +58,8 @@ struct defglobalBinaryData
 
 #define DefglobalPointer(i) ((struct defglobal *) (&DefglobalBinaryData(theEnv)->DefglobalArray[i]))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GLOBLBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefglobalBinarySetup(void *);
-   LOCALE void                          *BloadDefglobalModuleReference(void *,int);
+   void                           DefglobalBinarySetup(void *);
+   void                          *BloadDefglobalModuleReference(void *,int);
 
 #endif /* _H_globlbin */
 

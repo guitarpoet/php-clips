@@ -129,7 +129,7 @@ void process_multifields(void* pv_env, DATA_OBJECT data, zval* pzv_val) {
  * Process the fact, try class first, if no class is exists use array instead
  */
 void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
-	struct deftemplate* template = (struct deftemplate *) FactDeftemplate(data.value);
+	struct deftemplate* template = (struct deftemplate *) EnvFactDeftemplate(p_clips_env, data.value);
 	const char* s_template_name = strdup(ValueToString(template->header.name));
 	
 	// The slots for the fact

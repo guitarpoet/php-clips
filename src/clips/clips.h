@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                   API HEADER FILE                   */
    /*******************************************************/
@@ -24,18 +24,16 @@
 /*                                                           */
 /*************************************************************/
 
-#ifndef _H_API
-#define _H_API
+#ifndef _H_CLIPS_API
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
+#pragma once
+
+#define _H_CLIPS_API
+
 #include <stdio.h>
-#endif
 
 #include "setup.h"
-#ifndef _H_argacces
 #include "argacces.h"
-#endif
 #include "constant.h"
 #include "memalloc.h"
 #include "cstrcpsr.h"
@@ -43,9 +41,7 @@
 #include "strngfun.h"
 #include "envrnmnt.h"
 #include "commline.h"
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
 #include "router.h"
 #include "filertr.h"
@@ -55,16 +51,10 @@
 
 #include "sysdep.h"
 #include "bmathfun.h"
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 #include "exprnpsr.h"
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
 #include "utility.h"
 #include "watch.h"
 #include "modulbsc.h"
@@ -78,9 +68,7 @@
 #endif
 
 #if DEFRULE_CONSTRUCT
-#ifndef _H_ruledef
 #include "ruledef.h"
-#endif
 #include "rulebsc.h"
 #include "engine.h"
 #include "drive.h"
@@ -100,9 +88,7 @@
 #include "tmpltfun.h"
 #include "factcom.h"
 #include "factfun.h"
-#ifndef _H_factmngr
 #include "factmngr.h"
-#endif
 #include "facthsh.h"
 #endif
 
@@ -138,7 +124,4 @@
 
 
 #endif
-
-#include <php.h>
-
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            EXTENDED MATH FUNCTIONS MODULE           */
    /*******************************************************/
@@ -33,6 +33,12 @@
 /*                                                           */
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
+/*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
 /*                                                           */
 /*************************************************************/
 
@@ -67,8 +73,8 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     SingleNumberCheck(void *,const char *,double *);
-   static int                     TestProximity(double,double);
+   static bool                    SingleNumberCheck(UDFContext *,const char *,CLIPSValue *);
+   static bool                    TestProximity(double,double);
    static void                    DomainErrorMessage(void *,const char *);
    static void                    ArgumentOverflowErrorMessage(void *,const char *);
    static void                    SingularityErrorMessage(void *,const char *);
@@ -83,47 +89,47 @@
 /* ExtendedMathFunctionDefinitions: Initializes */
 /*   the extended math functions.               */
 /************************************************/
-globle void ExtendedMathFunctionDefinitions(
+void ExtendedMathFunctionDefinitions(
   void *theEnv)
   {
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"cos",      'd', PTIEF CosFunction,      "CosFunction", "11n");
-   EnvDefineFunction2(theEnv,"sin",      'd', PTIEF SinFunction,      "SinFunction", "11n");
-   EnvDefineFunction2(theEnv,"tan",      'd', PTIEF TanFunction,      "TanFunction", "11n");
-   EnvDefineFunction2(theEnv,"sec",      'd', PTIEF SecFunction,      "SecFunction", "11n");
-   EnvDefineFunction2(theEnv,"csc",      'd', PTIEF CscFunction,      "CscFunction", "11n");
-   EnvDefineFunction2(theEnv,"cot",      'd', PTIEF CotFunction,      "CotFunction", "11n");
-   EnvDefineFunction2(theEnv,"acos",     'd', PTIEF AcosFunction,     "AcosFunction", "11n");
-   EnvDefineFunction2(theEnv,"asin",     'd', PTIEF AsinFunction,     "AsinFunction", "11n");
-   EnvDefineFunction2(theEnv,"atan",     'd', PTIEF AtanFunction,     "AtanFunction", "11n");
-   EnvDefineFunction2(theEnv,"asec",     'd', PTIEF AsecFunction,     "AsecFunction", "11n");
-   EnvDefineFunction2(theEnv,"acsc",     'd', PTIEF AcscFunction,     "AcscFunction", "11n");
-   EnvDefineFunction2(theEnv,"acot",     'd', PTIEF AcotFunction,     "AcotFunction", "11n");
-   EnvDefineFunction2(theEnv,"cosh",     'd', PTIEF CoshFunction,     "CoshFunction", "11n");
-   EnvDefineFunction2(theEnv,"sinh",     'd', PTIEF SinhFunction,     "SinhFunction", "11n");
-   EnvDefineFunction2(theEnv,"tanh",     'd', PTIEF TanhFunction,     "TanhFunction", "11n");
-   EnvDefineFunction2(theEnv,"sech",     'd', PTIEF SechFunction,     "SechFunction", "11n");
-   EnvDefineFunction2(theEnv,"csch",     'd', PTIEF CschFunction,     "CschFunction", "11n");
-   EnvDefineFunction2(theEnv,"coth",     'd', PTIEF CothFunction,     "CothFunction", "11n");
-   EnvDefineFunction2(theEnv,"acosh",    'd', PTIEF AcoshFunction,    "AcoshFunction", "11n");
-   EnvDefineFunction2(theEnv,"asinh",    'd', PTIEF AsinhFunction,    "AsinhFunction", "11n");
-   EnvDefineFunction2(theEnv,"atanh",    'd', PTIEF AtanhFunction,    "AtanhFunction", "11n");
-   EnvDefineFunction2(theEnv,"asech",    'd', PTIEF AsechFunction,    "AsechFunction", "11n");
-   EnvDefineFunction2(theEnv,"acsch",    'd', PTIEF AcschFunction,    "AcschFunction", "11n");
-   EnvDefineFunction2(theEnv,"acoth",    'd', PTIEF AcothFunction,    "AcothFunction", "11n");
+   EnvAddUDF(theEnv,"cos",      "d",   CosFunction,      "CosFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"sin",      "d",   SinFunction,      "SinFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"tan",      "d",   TanFunction,      "TanFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"sec",      "d",   SecFunction,      "SecFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"csc",      "d",   CscFunction,      "CscFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"cot",      "d",   CotFunction,      "CotFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"acos",     "d",   AcosFunction,     "AcosFunction",    1,1,"ld",NULL);;
+   EnvAddUDF(theEnv,"asin",     "d",   AsinFunction,     "AsinFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"atan",     "d",   AtanFunction,     "AtanFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"asec",     "d",   AsecFunction,     "AsecFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"acsc",     "d",   AcscFunction,     "AcscFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"acot",     "d",   AcotFunction,     "AcotFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"cosh",     "d",   CoshFunction,     "CoshFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"sinh",     "d",   SinhFunction,     "SinhFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"tanh",     "d",   TanhFunction,     "TanhFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"sech",     "d",   SechFunction,     "SechFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"csch",     "d",   CschFunction,     "CschFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"coth",     "d",   CothFunction,     "CothFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"acosh",    "d",   AcoshFunction,    "AcoshFunction",   1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"asinh",    "d",   AsinhFunction,    "AsinhFunction",   1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"atanh",    "d",   AtanhFunction,    "AtanhFunction",   1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"asech",    "d",   AsechFunction,    "AsechFunction",   1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"acsch",    "d",   AcschFunction,    "AcschFunction",   1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"acoth",    "d",   AcothFunction,    "AcothFunction",   1,1,"ld",NULL);
 
-   EnvDefineFunction2(theEnv,"mod",      'n', PTIEF ModFunction,      "ModFunction", "22n");
-   EnvDefineFunction2(theEnv,"exp",      'd', PTIEF ExpFunction,      "ExpFunction", "11n");
-   EnvDefineFunction2(theEnv,"log",      'd', PTIEF LogFunction,      "LogFunction", "11n");
-   EnvDefineFunction2(theEnv,"log10",    'd', PTIEF Log10Function,    "Log10Function", "11n");
-   EnvDefineFunction2(theEnv,"sqrt",     'd', PTIEF SqrtFunction,     "SqrtFunction", "11n");
-   EnvDefineFunction2(theEnv,"pi",       'd', PTIEF PiFunction,       "PiFunction", "00");
-   EnvDefineFunction2(theEnv,"deg-rad",  'd', PTIEF DegRadFunction,   "DegRadFunction", "11n");
-   EnvDefineFunction2(theEnv,"rad-deg",  'd', PTIEF RadDegFunction,   "RadDegFunction", "11n");
-   EnvDefineFunction2(theEnv,"deg-grad", 'd', PTIEF DegGradFunction,  "DegGradFunction", "11n");
-   EnvDefineFunction2(theEnv,"grad-deg", 'd', PTIEF GradDegFunction,  "GradDegFunction", "11n");
-   EnvDefineFunction2(theEnv,"**",       'd', PTIEF PowFunction,      "PowFunction", "22n");
-   EnvDefineFunction2(theEnv,"round",    'g', PTIEF RoundFunction,    "RoundFunction", "11n");
+   EnvAddUDF(theEnv,"mod",      "ld", ModFunction,      "ModFunction",     2,2,"ld",NULL);
+   EnvAddUDF(theEnv,"exp",      "d",   ExpFunction,      "ExpFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"log",      "d",   LogFunction,      "LogFunction",     1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"log10",    "d",   Log10Function,    "Log10Function",   1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"sqrt",     "d",   SqrtFunction,     "SqrtFunction",    1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"pi",       "d",   PiFunction,       "PiFunction",      0,0,NULL,NULL);
+   EnvAddUDF(theEnv,"deg-rad",  "d",   DegRadFunction,   "DegRadFunction",  1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"rad-deg",  "d",   RadDegFunction,   "RadDegFunction",  1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"deg-grad", "d",   DegGradFunction,  "DegGradFunction", 1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"grad-deg", "d",   GradDegFunction,  "GradDegFunction", 1,1,"ld",NULL);
+   EnvAddUDF(theEnv,"**",       "d",   PowFunction,      "PowFunction",     2,2,"ld",NULL);
+   EnvAddUDF(theEnv,"round",    "l", RoundFunction,    "RoundFunction",   1,1,"ld",NULL);
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -136,30 +142,31 @@ globle void ExtendedMathFunctionDefinitions(
 /*   extended math functions which expect a single floating */
 /*   point argument.                                        */
 /************************************************************/
-static int SingleNumberCheck(
-  void *theEnv,
+static bool SingleNumberCheck(
+  UDFContext *context,
   const char *functionName,
-  double *theNumber)
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT theValue;
+   /*======================================*/
+   /* Check that the argument is a number. */
+   /*======================================*/
 
-   if (EnvArgCountCheck(theEnv,functionName,EXACTLY,1) == -1) return(FALSE);
-   if (EnvArgTypeCheck(theEnv,functionName,1,FLOAT,&theValue) == FALSE) return(FALSE);
-
-   *theNumber = DOToDouble(theValue);
-   return(TRUE);
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,returnValue))
+     { return false; }
+  
+   return(true);
   }
 
 /**************************************************************/
-/* TestProximity: Returns TRUE if the specified number falls  */
-/*   within the specified range, otherwise FALSE is returned. */
+/* TestProximity: Returns true if the specified number falls  */
+/*   within the specified range, otherwise false is returned. */
 /**************************************************************/
-static int TestProximity(
+static bool TestProximity(
   double theNumber,
   double range)
   {
-   if ((theNumber >= (- range)) && (theNumber <= range)) return TRUE;
-   else return FALSE;
+   if ((theNumber >= (- range)) && (theNumber <= range)) return true;
+   else return false;
   }
 
 /********************************************************/
@@ -171,12 +178,12 @@ static void DomainErrorMessage(
   void *theEnv,
   const char *functionName)
   {
-   PrintErrorID(theEnv,"EMATHFUN",1,FALSE);
+   PrintErrorID(theEnv,"EMATHFUN",1,false);
    EnvPrintRouter(theEnv,WERROR,"Domain error for ");
    EnvPrintRouter(theEnv,WERROR,functionName);
    EnvPrintRouter(theEnv,WERROR," function.\n");
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
   }
 
 /************************************************************/
@@ -188,12 +195,12 @@ static void ArgumentOverflowErrorMessage(
   void *theEnv,
   const char *functionName)
   {
-   PrintErrorID(theEnv,"EMATHFUN",2,FALSE);
+   PrintErrorID(theEnv,"EMATHFUN",2,false);
    EnvPrintRouter(theEnv,WERROR,"Argument overflow for ");
    EnvPrintRouter(theEnv,WERROR,functionName);
    EnvPrintRouter(theEnv,WERROR," function.\n");
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
   }
 
 /************************************************************/
@@ -205,588 +212,805 @@ static void SingularityErrorMessage(
   void *theEnv,
   const char *functionName)
   {
-   PrintErrorID(theEnv,"EMATHFUN",3,FALSE);
+   PrintErrorID(theEnv,"EMATHFUN",3,false);
    EnvPrintRouter(theEnv,WERROR,"Singularity at asymptote in ");
    EnvPrintRouter(theEnv,WERROR,functionName);
    EnvPrintRouter(theEnv,WERROR," function.\n");
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
   }
 
 /*************************************/
 /* CosFunction: H/L access routine   */
 /*   for the cos function.           */
 /*************************************/
-globle double CosFunction(
-  void *theEnv)
+void CosFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
-
-   if (SingleNumberCheck(theEnv,"cos",&num) == FALSE) return(0.0);
-   return(cos(num));
+   if (SingleNumberCheck(context,"cos",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+     
+   mCVSetFloat(returnValue,cos(mCVToFloat(returnValue)));
   }
 
 /*************************************/
 /* SinFunction: H/L access routine   */
 /*   for the sin function.           */
 /*************************************/
-globle double SinFunction(
-  void *theEnv)
+void SinFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"sin",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"sin",&num) == FALSE) return(0.0);
-   return(sin(num));
+   mCVSetFloat(returnValue,sin(mCVToFloat(returnValue)));
   }
 
 /*************************************/
 /* TanFunction: H/L access routine   */
 /*   for the tan function.           */
 /*************************************/
-globle double TanFunction(
-  void *theEnv)
+void TanFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num, tv;
+   CLIPSFloat tv;
 
-   if (SingleNumberCheck(theEnv,"tan",&num) == FALSE) return (0.0);
-   tv = cos(num);
-   if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
+   if (SingleNumberCheck(context,"tan",returnValue) == false)
      {
-      SingularityErrorMessage(theEnv,"tan");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
 
-   return(sin(num) / tv);
+   tv = cos(mCVToFloat(returnValue));
+   if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
+     {
+      SingularityErrorMessage(UDFContextEnvironment(context),"tan");
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   mCVSetFloat(returnValue,sin(mCVToFloat(returnValue)) / tv);
   }
 
 /*************************************/
 /* SecFunction: H/L access routine   */
 /*   for the sec function.           */
 /*************************************/
-globle double SecFunction(
-  void *theEnv)
+void SecFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num, tv;
+   double tv;
 
-   if (SingleNumberCheck(theEnv,"sec",&num) == FALSE) return(0.0);
-
-   tv = cos(num);
-   if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
+   if (SingleNumberCheck(context,"sec",returnValue) == false)
      {
-      SingularityErrorMessage(theEnv,"sec");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
 
-   return(1.0 / tv);
+   tv = cos(mCVToFloat(returnValue));
+   if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
+     {
+      SingularityErrorMessage(UDFContextEnvironment(context),"sec");
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   mCVSetFloat(returnValue,1.0 / tv);
   }
 
 /*************************************/
 /* CscFunction: H/L access routine   */
 /*   for the csc function.           */
 /*************************************/
-globle double CscFunction(
-  void *theEnv)
+void CscFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num, tv;
+   double tv;
 
-   if (SingleNumberCheck(theEnv,"csc",&num) == FALSE) return(0.0);
-   tv = sin(num);
-   if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
+   if (SingleNumberCheck(context,"csc",returnValue) == false)
      {
-      SingularityErrorMessage(theEnv,"csc");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
 
-   return(1.0 / tv);
+   tv = sin(mCVToFloat(returnValue));
+   if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
+     {
+      SingularityErrorMessage(UDFContextEnvironment(context),"csc");
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   mCVSetFloat(returnValue,1.0 / tv);
   }
 
 /*************************************/
 /* CotFunction: H/L access routine   */
 /*   for the cot function.           */
 /*************************************/
-globle double CotFunction(
-  void *theEnv)
+void CotFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-    double num, tv;
+    double tv;
 
-    if (SingleNumberCheck(theEnv,"cot",&num) == FALSE) return(0.0);
+    if (SingleNumberCheck(context,"cot",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-    tv = sin(num);
+    tv = sin(mCVToFloat(returnValue));
     if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
       {
-       SingularityErrorMessage(theEnv,"cot");
-       return(0.0);
+       SingularityErrorMessage(UDFContextEnvironment(context),"cot");
+       mCVSetFloat(returnValue,0.0);
+       return;
       }
 
-    return(cos(num) / tv);
+    mCVSetFloat(returnValue,cos(mCVToFloat(returnValue)) / tv);
   }
 
 /**************************************/
 /* AcosFunction: H/L access routine   */
 /*   for the acos function.           */
 /**************************************/
-globle double AcosFunction(
-  void *theEnv)
+void AcosFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"acos",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"acos",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
+   
    if ((num > 1.0) || (num < -1.0))
      {
-      DomainErrorMessage(theEnv,"acos");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"acos");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-    return(acos(num));
+     
+    mCVSetFloat(returnValue,acos(num));
   }
 
 /**************************************/
 /* AsinFunction: H/L access routine   */
 /*   for the asin function.           */
 /**************************************/
-globle double AsinFunction(
-  void *theEnv)
+void AsinFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"asin",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"asin",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if ((num > 1.0) || (num < -1.0))
      {
-      DomainErrorMessage(theEnv,"asin");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"asin");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(asin(num));
+     
+   mCVSetFloat(returnValue,asin(num));
   }
 
 /**************************************/
 /* AtanFunction: H/L access routine   */
 /*   for the atan function.           */
 /**************************************/
-globle double AtanFunction(
-  void *theEnv)
+void AtanFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"atan",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"atan",&num) == FALSE) return(0.0);
-   return(atan(num));
+   mCVSetFloat(returnValue,atan(mCVToFloat(returnValue)));
   }
 
 /**************************************/
 /* AsecFunction: H/L access routine   */
 /*   for the asec function.           */
 /**************************************/
-globle double AsecFunction(
-  void *theEnv)
+void AsecFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"asec",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"asec",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if ((num < 1.0) && (num > -1.0))
      {
-      DomainErrorMessage(theEnv,"asec");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"asec");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
+     
     num = 1.0 / num;
-    return(acos(num));
+    mCVSetFloat(returnValue,acos(num));
   }
 
 /**************************************/
 /* AcscFunction: H/L access routine   */
 /*   for the acsc function.           */
 /**************************************/
-globle double AcscFunction(
-  void *theEnv)
+void AcscFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"acsc",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"acsc",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if ((num < 1.0) && (num > -1.0))
      {
-      DomainErrorMessage(theEnv,"acsc");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"acsc");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
+     
     num = 1.0 / num;
-    return(asin(num));
+    mCVSetFloat(returnValue,asin(num));
   }
 
 /**************************************/
 /* AcotFunction: H/L access routine   */
 /*   for the acot function.           */
 /**************************************/
-globle double AcotFunction(
-  void *theEnv)
+void AcotFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"acot",&num) == FALSE) return(0.0);
-   if (TestProximity(num,1e-25) == TRUE)  return(PID2);
+   if (SingleNumberCheck(context,"acot",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+     
+   num = mCVToFloat(returnValue);
+   if (TestProximity(num,1e-25) == true)
+     {
+      mCVSetFloat(returnValue,PID2);
+      return;
+     }
+     
    num = 1.0 / num;
-   return(atan(num));
+   mCVSetFloat(returnValue,atan(num));
   }
 
 /**************************************/
 /* CoshFunction: H/L access routine   */
 /*   for the cosh function.           */
 /**************************************/
-globle double CoshFunction(
-  void *theEnv)
+void CoshFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"cosh",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"cosh",&num) == FALSE) return(0.0);
-   return(cosh(num));
+   mCVSetFloat(returnValue,cosh(mCVToFloat(returnValue)));
   }
 
 /**************************************/
 /* SinhFunction: H/L access routine   */
 /*   for the sinh function.           */
 /**************************************/
-globle double SinhFunction(
-  void *theEnv)
+void SinhFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"sinh",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"sinh",&num) == FALSE) return(0.0);
-   return(sinh(num));
+   mCVSetFloat(returnValue,sinh(mCVToFloat(returnValue)));
   }
 
 /**************************************/
 /* TanhFunction: H/L access routine   */
 /*   for the tanh function.           */
 /**************************************/
-globle double TanhFunction(
-  void *theEnv)
+void TanhFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"tanh",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"tanh",&num) == FALSE) return(0.0);
-   return(tanh(num));
+   mCVSetFloat(returnValue,tanh(mCVToFloat(returnValue)));
   }
 
 /**************************************/
 /* SechFunction: H/L access routine   */
 /*   for the sech function.           */
 /**************************************/
-globle double SechFunction(
-  void *theEnv)
+void SechFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"sech",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"sech",&num) == FALSE) return(0.0);
-   return(1.0 / cosh(num));
+   mCVSetFloat(returnValue,1.0 / cosh(mCVToFloat(returnValue)));
   }
 
 /**************************************/
 /* CschFunction: H/L access routine   */
 /*   for the csch function.           */
 /**************************************/
-globle double CschFunction(
-  void *theEnv)
+void CschFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
+   void *theEnv = UDFContextEnvironment(context);
+   
+   if (SingleNumberCheck(context,"csch",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"csch",&num) == FALSE) return(0.0);
+   num = mCVToFloat(returnValue);
    if (num == 0.0)
      {
       SingularityErrorMessage(theEnv,"csch");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   else if (TestProximity(num,1e-25) == TRUE)
+   else if (TestProximity(num,1e-25) == true)
      {
       ArgumentOverflowErrorMessage(theEnv,"csch");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(1.0 / sinh(num));
+     
+   mCVSetFloat(returnValue,1.0 / sinh(num));
   }
 
 /**************************************/
 /* CothFunction: H/L access routine   */
 /*   for the coth function.           */
 /**************************************/
-globle double CothFunction(
-  void *theEnv)
+void CothFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
+   void *theEnv = UDFContextEnvironment(context);
 
-   if (SingleNumberCheck(theEnv,"coth",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"coth",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if (num == 0.0)
      {
       SingularityErrorMessage(theEnv,"coth");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   else if (TestProximity(num,1e-25) == TRUE)
+   else if (TestProximity(num,1e-25) == true)
      {
       ArgumentOverflowErrorMessage(theEnv,"coth");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(1.0 / tanh(num));
+     
+   mCVSetFloat(returnValue,1.0 / tanh(num));
   }
 
 /***************************************/
 /* AcoshFunction: H/L access routine   */
 /*   for the acosh function.           */
 /***************************************/
-globle double AcoshFunction(
-  void *theEnv)
+void AcoshFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"acosh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"acosh",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if (num < 1.0)
      {
-      DomainErrorMessage(theEnv,"acosh");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"acosh");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(genacosh(num));
+     
+   mCVSetFloat(returnValue,genacosh(num));
   }
 
 /***************************************/
 /* AsinhFunction: H/L access routine   */
 /*   for the asinh function.           */
 /***************************************/
-globle double AsinhFunction(
-  void *theEnv)
+void AsinhFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"asinh",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"asinh",&num) == FALSE) return(0.0);
-   return(genasinh(num));
+   mCVSetFloat(returnValue,genasinh(mCVToFloat(returnValue)));
   }
 
 /***************************************/
 /* AtanhFunction: H/L access routine   */
 /*   for the atanh function.           */
 /***************************************/
-globle double AtanhFunction(
-  void *theEnv)
+void AtanhFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"atanh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"atanh",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if ((num >= 1.0) || (num <= -1.0))
      {
-      DomainErrorMessage(theEnv,"atanh");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"atanh");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(genatanh(num));
+     
+   mCVSetFloat(returnValue,genatanh(num));
   }
 
 /***************************************/
 /* AsechFunction: H/L access routine   */
 /*   for the asech function.           */
 /***************************************/
-globle double AsechFunction(
-  void *theEnv)
+void AsechFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"asech",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"asech",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if ((num > 1.0) || (num <= 0.0))
      {
-      DomainErrorMessage(theEnv,"asech");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"asech");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(genasech(num));
+     
+   mCVSetFloat(returnValue,genasech(num));
   }
 
 /***************************************/
 /* AcschFunction: H/L access routine   */
 /*   for the acsch function.           */
 /***************************************/
-globle double AcschFunction(
-  void *theEnv)
+void AcschFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
-
-   if (SingleNumberCheck(theEnv,"acsch",&num) == FALSE) return(0.0);
+   CLIPSFloat num;
+   
+   if (SingleNumberCheck(context,"acsch",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+     
+   num = mCVToFloat(returnValue);
    if (num == 0.0)
      {
-      DomainErrorMessage(theEnv,"acsch");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"acsch");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(genacsch(num));
+     
+   mCVSetFloat(returnValue,genacsch(num));
   }
 
 /***************************************/
 /* AcothFunction: H/L access routine   */
 /*   for the acoth function.           */
 /***************************************/
-globle double AcothFunction(
-  void *theEnv)
+void AcothFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"acoth",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"acoth",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if ((num <= 1.0) && (num >= -1.0))
      {
-      DomainErrorMessage(theEnv,"acoth");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"acoth");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(genacoth(num));
+     
+   mCVSetFloat(returnValue,genacoth(num));
   }
 
 /*************************************/
 /* ExpFunction: H/L access routine   */
 /*   for the exp function.           */
 /*************************************/
-globle double ExpFunction(
-  void *theEnv)
+void ExpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"exp",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"exp",&num) == FALSE) return(0.0);
-   return(exp(num));
+   mCVSetFloat(returnValue,exp(mCVToFloat(returnValue)));
   }
 
 /*************************************/
 /* LogFunction: H/L access routine   */
 /*   for the log function.           */
 /*************************************/
-globle double LogFunction(
-  void *theEnv)
+void LogFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
+   void *theEnv = UDFContextEnvironment(context);
 
-   if (SingleNumberCheck(theEnv,"log",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"log",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if (num < 0.0)
      {
       DomainErrorMessage(theEnv,"log");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
    else if (num == 0.0)
      {
       ArgumentOverflowErrorMessage(theEnv,"log");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
 
-   return(log(num));
+   mCVSetFloat(returnValue,log(num));
   }
 
 /***************************************/
 /* Log10Function: H/L access routine   */
 /*   for the log10 function.           */
 /***************************************/
-globle double Log10Function(
-  void *theEnv)
+void Log10Function(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
+   void *theEnv = UDFContextEnvironment(context);
 
-   if (SingleNumberCheck(theEnv,"log10",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"log10",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+
+   num = mCVToFloat(returnValue);
    if (num < 0.0)
      {
       DomainErrorMessage(theEnv,"log10");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
    else if (num == 0.0)
      {
       ArgumentOverflowErrorMessage(theEnv,"log10");
-      return(0.0);
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
 
-    return(log10(num));
+    mCVSetFloat(returnValue,log10(num));
    }
 
 /**************************************/
 /* SqrtFunction: H/L access routine   */
 /*   for the sqrt function.           */
 /**************************************/
-globle double SqrtFunction(
-  void *theEnv)
+void SqrtFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   CLIPSFloat num;
 
-   if (SingleNumberCheck(theEnv,"sqrt",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(context,"sqrt",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
+   
+   num = mCVToFloat(returnValue);
    if (num < 0.00000)
      {
-      DomainErrorMessage(theEnv,"sqrt");
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"sqrt");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
-   return(sqrt(num));
+     
+   mCVSetFloat(returnValue,sqrt(num));
   }
 
 /*************************************/
 /* PowFunction: H/L access routine   */
 /*   for the pow function.           */
 /*************************************/
-globle double PowFunction(
-  void *theEnv)
+void PowFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT value1, value2;
+   CLIPSValue value1, value2;
+   CLIPSFloat num1, num2;
 
-   if (EnvArgCountCheck(theEnv,"**",EXACTLY,2) == -1) return(0.0);
+   /*==================================*/
+   /* Check for two numeric arguments. */
+   /*==================================*/
 
-   if (EnvArgTypeCheck(theEnv,"**",1,FLOAT,&value1) == FALSE) return(0.0);
-   if (EnvArgTypeCheck(theEnv,"**",2,FLOAT,&value2) == FALSE) return(0.0);
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,&value1))
+     { return; }
 
-    if (((DOToDouble(value1) == 0.0) &&
-        (DOToDouble(value2) <= 0.0)) ||
-       ((DOToDouble(value1) < 0.0) &&
-        (dtrunc((double) DOToDouble(value2)) != DOToDouble(value2))))
+   if (! UDFNthArgument(context,2,NUMBER_TYPES,&value2))
+     { return; }
+
+    /*=====================*/
+    /* Domain error check. */
+    /*=====================*/
+    
+    num1 = mCVToFloat(&value1);
+    num2 = mCVToFloat(&value2);
+    
+    if (((num1 == 0.0) && (num2 <= 0.0)) ||
+       ((num1 < 0.0) && (dtrunc(num2) != num2)))
      {
-      DomainErrorMessage(theEnv,"**");
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
-      return(0.0);
+      DomainErrorMessage(UDFContextEnvironment(context),"**");
+      mCVSetFloat(returnValue,0.0);
+      return;
      }
 
-   return (pow(DOToDouble(value1),DOToDouble(value2)));
+   /*============================*/
+   /* Compute and set the value. */
+   /*============================*/
+   
+   mCVSetFloat(returnValue,pow(num1,num2));
   }
 
 /*************************************/
 /* ModFunction: H/L access routine   */
 /*   for the mod function.           */
 /*************************************/
-globle void ModFunction(
-  void *theEnv,
-  DATA_OBJECT_PTR result)
+void ModFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT item1, item2;
-   double fnum1, fnum2;
-   long long lnum1, lnum2;
+   CLIPSFloat fnum1, fnum2;
+   CLIPSInteger lnum1, lnum2;
+   void *theEnv = UDFContextEnvironment(context);
 
-   if (EnvArgCountCheck(theEnv,"mod",EXACTLY,2) == -1)
-     {
-      result->type = INTEGER;
-      result->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
+   /*==================================*/
+   /* Check for two numeric arguments. */
+   /*==================================*/
+   
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,&item1))
+     { return; }
 
-   if (EnvArgTypeCheck(theEnv,"mod",1,INTEGER_OR_FLOAT,&item1) == FALSE)
-     {
-      result->type = INTEGER;
-      result->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
+   if (! UDFNthArgument(context,2,NUMBER_TYPES,&item2))
+     { return; }
 
-   if (EnvArgTypeCheck(theEnv,"mod",2,INTEGER_OR_FLOAT,&item2) == FALSE)
-     {
-      result->type = INTEGER;
-      result->value = (void *) EnvAddLong(theEnv,0L);
-      return;
-     }
+   /*===========================*/
+   /* Check for divide by zero. */
+   /*===========================*/
 
-   if (((item2.type == INTEGER) ? (ValueToLong(item2.value) == 0L) : FALSE) ||
-       ((item2.type == FLOAT) ? ValueToDouble(item2.value) == 0.0 : FALSE))
+   if ((mCVIsType(&item2,INTEGER_TYPE) ? (mCVToInteger(&item2) == 0L) : false) ||
+       (mCVIsType(&item2,FLOAT_TYPE) ? (mCVToFloat(&item2) == 0.0) : false))
      {
       DivideByZeroErrorMessage(theEnv,"mod");
-      SetEvaluationError(theEnv,TRUE);
-      result->type = INTEGER;
-      result->value = (void *) EnvAddLong(theEnv,0L);
+      EnvSetEvaluationError(theEnv,true);
+      mCVSetInteger(returnValue,0);
       return;
      }
 
-   if ((item1.type == FLOAT) || (item2.type == FLOAT))
+   /*===========================*/
+   /* Compute the return value. */
+   /*===========================*/
+   
+   if (mCVIsType(&item1,FLOAT_TYPE) || mCVIsType(&item2,FLOAT_TYPE))
      {
-      fnum1 = CoerceToDouble(item1.type,item1.value);
-      fnum2 = CoerceToDouble(item2.type,item2.value);
-      result->type = FLOAT;
-      result->value = (void *) EnvAddDouble(theEnv,fnum1 - (dtrunc(fnum1 / fnum2) * fnum2));
+      fnum1 = mCVToFloat(&item1);
+      fnum2 = mCVToFloat(&item2);
+      mCVSetFloat(returnValue,fnum1 - (dtrunc(fnum1 / fnum2) * fnum2));
      }
    else
      {
-      lnum1 = DOToLong(item1);
-      lnum2 = DOToLong(item2);
-      result->type = INTEGER;
-      result->value = (void *) EnvAddLong(theEnv,lnum1 - (lnum1 / lnum2) * lnum2);
+      lnum1 = mCVToInteger(&item1);
+      lnum2 = mCVToInteger(&item2);
+      mCVSetInteger(returnValue,lnum1 - (lnum1 / lnum2) * lnum2);
      }
   }
 
@@ -794,85 +1018,102 @@ globle void ModFunction(
 /* PiFunction: H/L access routine   */
 /*   for the pi function.           */
 /************************************/
-globle double PiFunction(
-  void *theEnv)
+void PiFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-
-   if (EnvArgCountCheck(theEnv,"pi",EXACTLY,0) == -1) return(acos(-1.0));
-   return(acos(-1.0));
+   mCVSetFloat(returnValue,acos(-1.0));
   }
 
 /****************************************/
 /* DegRadFunction: H/L access routine   */
 /*   for the deg-rad function.          */
 /****************************************/
-globle double DegRadFunction(
-  void *theEnv)
+void DegRadFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"deg-rad",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"deg-rad",&num) == FALSE) return(0.0);
-   return(num * PI / 180.0);
+   mCVSetFloat(returnValue,mCVToFloat(returnValue) * PI / 180.0);
   }
 
 /****************************************/
 /* RadDegFunction: H/L access routine   */
 /*   for the rad-deg function.          */
 /****************************************/
-globle double RadDegFunction(
-  void *theEnv)
+void RadDegFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"rad-deg",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"rad-deg",&num) == FALSE) return(0.0);
-   return(num * 180.0 / PI);
+   mCVSetFloat(returnValue,mCVToFloat(returnValue) * 180.0 / PI);
   }
 
 /*****************************************/
 /* DegGradFunction: H/L access routine   */
 /*   for the deg-grad function.          */
 /*****************************************/
-globle double DegGradFunction(
-  void *theEnv)
+void DegGradFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"deg-grad",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"deg-grad",&num) == FALSE) return(0.0);
-   return(num / 0.9);
+   mCVSetFloat(returnValue,mCVToFloat(returnValue) / 0.9);
   }
 
 /*****************************************/
 /* GradDegFunction: H/L access routine   */
 /*   for the grad-deg function.          */
 /*****************************************/
-globle double GradDegFunction(
-  void *theEnv)
+void GradDegFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   double num;
+   if (SingleNumberCheck(context,"grad-deg",returnValue) == false)
+     {
+      mCVSetFloat(returnValue,0.0);
+      return;
+     }
 
-   if (SingleNumberCheck(theEnv,"grad-deg",&num) == FALSE) return(0.0);
-   return(num * 0.9);
+   mCVSetFloat(returnValue,mCVToFloat(returnValue) * 0.9);
   }
 
 /***************************************/
 /* RoundFunction: H/L access routine   */
 /*   for the round function.           */
 /***************************************/
-globle long long RoundFunction(
-  void *theEnv)
-  {
-   DATA_OBJECT result;
+void RoundFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
+  {     
+   /*======================================*/
+   /* Check that the argument is a number. */
+   /*======================================*/
 
-   if (EnvArgCountCheck(theEnv,"round",EXACTLY,1) == -1)
-     { return(0LL); }
+   if (! UDFNthArgument(context,1,NUMBER_TYPES,returnValue))
+     { return; }
 
-   if (EnvArgTypeCheck(theEnv,"round",1,INTEGER_OR_FLOAT,&result) == FALSE)
-     { return(0LL); }
-
-   if (result.type == INTEGER)
-     { return(ValueToLong(result.value)); }
-   else
-     { return((long long) ceil(ValueToDouble(result.value) - 0.5)); }
+   /*==============================*/
+   /* Round float type to integer. */
+   /*==============================*/
+   
+   if (mCVIsType(returnValue,FLOAT_TYPE))
+     { mCVSetInteger(returnValue,ceil(mCVToFloat(returnValue) - 0.5)); }
   }
 
 /*******************************************/

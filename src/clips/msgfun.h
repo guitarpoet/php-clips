@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -32,9 +32,15 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Option printing of carriage return for the     */
+/*            SlotVisibilityViolationError function.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_msgfun
+
+#pragma once
+
 #define _H_msgfun
 
 typedef struct handlerSlotReference
@@ -43,10 +49,8 @@ typedef struct handlerSlotReference
    long slotID;
   } HANDLER_SLOT_REFERENCE;
 
-#ifndef _H_object
-#include "object.h"
-#endif
 #include "msgpass.h"
+#include "object.h"
 
 #define BEGIN_TRACE ">>"
 #define END_TRACE   "<<"
@@ -63,46 +67,36 @@ typedef struct handlerSlotReference
 #define LOOKUP_HANDLER_INDEX   0
 #define LOOKUP_HANDLER_ADDRESS 1
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MSGFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void             UnboundHandlerErr(void *);
-   LOCALE void             PrintNoHandlerError(void *,const char *);
-   LOCALE int              CheckHandlerArgCount(void *);
-   LOCALE void             SlotAccessViolationError(void *,const char *,intBool,void *);
-   LOCALE void             SlotVisibilityViolationError(void *,SLOT_DESC *,DEFCLASS *);
+   void             UnboundHandlerErr(void *);
+   void             PrintNoHandlerError(void *,const char *);
+   bool             CheckHandlerArgCount(void *);
+   void             SlotAccessViolationError(void *,const char *,bool,void *);
+   void             SlotVisibilityViolationError(void *,SLOT_DESC *,DEFCLASS *,bool);
 
 #if ! RUN_TIME
-   LOCALE void             NewSystemHandler(void *,const char *,const char *,const char *,int);
-   LOCALE HANDLER         *InsertHandlerHeader(void *,DEFCLASS *,SYMBOL_HN *,int);
+   void             NewSystemHandler(void *,const char *,const char *,const char *,int);
+   HANDLER         *InsertHandlerHeader(void *,DEFCLASS *,SYMBOL_HN *,int);
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-   LOCALE HANDLER         *NewHandler(void);
-   LOCALE int              HandlersExecuting(DEFCLASS *);
-   LOCALE int              DeleteHandler(void *,DEFCLASS *,SYMBOL_HN *,int,int);
-   LOCALE void             DeallocateMarkedHandlers(void *,DEFCLASS *);
+   HANDLER         *NewHandler(void);
+   bool             HandlersExecuting(DEFCLASS *);
+   bool             DeleteHandler(void *,DEFCLASS *,SYMBOL_HN *,int,bool);
+   void             DeallocateMarkedHandlers(void *,DEFCLASS *);
 #endif
-   LOCALE unsigned         HandlerType(void *,const char *,const char *);
-   LOCALE int              CheckCurrentMessage(void *,const char *,int);
-   LOCALE void             PrintHandler(void *,const char *,HANDLER *,int);
-   LOCALE HANDLER         *FindHandlerByAddress(DEFCLASS *,SYMBOL_HN *,unsigned);
-   LOCALE int              FindHandlerByIndex(DEFCLASS *,SYMBOL_HN *,unsigned);
-   LOCALE int              FindHandlerNameGroup(DEFCLASS *,SYMBOL_HN *);
-   LOCALE void             HandlerDeleteError(void *,const char *);
+   unsigned         HandlerType(void *,const char *,const char *);
+   bool             CheckCurrentMessage(void *,const char *,bool);
+   void             PrintHandler(void *,const char *,HANDLER *,bool);
+   HANDLER         *FindHandlerByAddress(DEFCLASS *,SYMBOL_HN *,unsigned);
+   int              FindHandlerByIndex(DEFCLASS *,SYMBOL_HN *,unsigned);
+   int              FindHandlerNameGroup(DEFCLASS *,SYMBOL_HN *);
+   void             HandlerDeleteError(void *,const char *);
 
 #if DEBUGGING_FUNCTIONS
-   LOCALE void             DisplayCore(void *,const char *,HANDLER_LINK *,int);
-   LOCALE HANDLER_LINK    *FindPreviewApplicableHandlers(void *,DEFCLASS *,SYMBOL_HN *);
-   LOCALE void             WatchMessage(void *,const char *,const char *);
-   LOCALE void             WatchHandler(void *,const char *,HANDLER_LINK *,const char *);
+   void             DisplayCore(void *,const char *,HANDLER_LINK *,int);
+   HANDLER_LINK    *FindPreviewApplicableHandlers(void *,DEFCLASS *,SYMBOL_HN *);
+   void             WatchMessage(void *,const char *,const char *);
+   void             WatchHandler(void *,const char *,HANDLER_LINK *,const char *);
 #endif
 
 #endif /* _H_msgfun */

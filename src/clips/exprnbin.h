@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           EXPRESSION BLOAD/BSAVE HEADER FILE        */
    /*******************************************************/
@@ -23,35 +23,25 @@
 /*************************************************************/
 
 #ifndef _H_exprnbin
+
+#pragma once
+
 #define _H_exprnbin
 
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _EXPRNBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#include "expressn.h"
 
 #define ExpressionPointer(i) ((struct expr *) (((i) == -1L) ? NULL : &ExpressionData(theEnv)->ExpressionArray[i]))
 #define HashedExpressionPointer(i) ExpressionPointer(i)
 
-   LOCALE void                        AllocateExpressions(void *);
-   LOCALE void                        RefreshExpressions(void *);
-   LOCALE void                        ClearBloadedExpressions(void *);
-   LOCALE void                        FindHashedExpressions(void *);
-   LOCALE void                        BsaveHashedExpressions(void *,FILE *);
-   LOCALE void                        BsaveConstructExpressions(void *,FILE *);
-   LOCALE void                        BsaveExpression(void *,struct expr *,FILE *);
+   void                        AllocateExpressions(void *);
+   void                        RefreshExpressions(void *);
+   void                        ClearBloadedExpressions(void *);
+   void                        FindHashedExpressions(void *);
+   void                        BsaveHashedExpressions(void *,FILE *);
+   void                        BsaveConstructExpressions(void *,FILE *);
+   void                        BsaveExpression(void *,struct expr *,FILE *);
 
 #endif /* _H_exprnbin */
 

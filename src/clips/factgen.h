@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*        FACT RETE FUNCTION GENERATION HEADER FILE    */
    /*******************************************************/
@@ -21,25 +21,18 @@
 /*            Increased maximum values for pattern/slot      */
 /*            indices.                                       */
 /*                                                           */
+/*      6.40: Fact ?var:slot references in deffunctions and  */
+/*            defrule actions.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factgen
 
+#pragma once
+
 #define _H_factgen
 
-#ifndef _H_reorder
 #include "reorder.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTGEN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 /**********************************************************/
 /* factGetVarPN1Call: This structure is used to store the */
@@ -214,17 +207,19 @@ struct factCheckLengthPNCall
 /* GLOBAL EXTERNAL FUNCTION DEFINITIONS */
 /****************************************/
 
-   LOCALE void                       InitializeFactReteFunctions(void *);
-   LOCALE struct expr               *FactPNVariableComparison(void *,struct lhsParseNode *,
+   void                       InitializeFactReteFunctions(void *);
+   struct expr               *FactPNVariableComparison(void *,struct lhsParseNode *,
                                                               struct lhsParseNode *);
-   LOCALE struct expr               *FactJNVariableComparison(void *,struct lhsParseNode *,
-                                                              struct lhsParseNode *,int);
-   LOCALE void                       FactReplaceGetvar(void *,struct expr *,struct lhsParseNode *,int);
-   LOCALE void                       FactReplaceGetfield(void *,struct expr *,struct lhsParseNode *);
-   LOCALE struct expr               *FactGenPNConstant(void *,struct lhsParseNode *);
-   LOCALE struct expr               *FactGenGetfield(void *,struct lhsParseNode *);
-   LOCALE struct expr               *FactGenGetvar(void *,struct lhsParseNode *,int);
-   LOCALE struct expr               *FactGenCheckLength(void *,struct lhsParseNode *);
-   LOCALE struct expr               *FactGenCheckZeroLength(void *,unsigned);
+   struct expr               *FactJNVariableComparison(void *,struct lhsParseNode *,
+                                                              struct lhsParseNode *,bool);
+   void                       FactReplaceGetvar(void *,struct expr *,struct lhsParseNode *,int);
+   void                       FactReplaceGetfield(void *,struct expr *,struct lhsParseNode *);
+   struct expr               *FactGenPNConstant(void *,struct lhsParseNode *);
+   struct expr               *FactGenGetfield(void *,struct lhsParseNode *);
+   struct expr               *FactGenGetvar(void *,struct lhsParseNode *,int);
+   struct expr               *FactGenCheckLength(void *,struct lhsParseNode *);
+   struct expr               *FactGenCheckZeroLength(void *,unsigned);
+   int                        FactSlotReferenceVar(void *,EXPRESSION *,void *);
+   int                        RuleFactSlotReferenceVar(void *,EXPRESSION *,struct lhsParseNode *);
 
 #endif /* _H_factgen */

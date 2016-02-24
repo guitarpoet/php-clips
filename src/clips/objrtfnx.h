@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -35,25 +35,18 @@
 /*************************************************************/
 
 #ifndef _H_objrtfnx
+
+#pragma once
+
 #define _H_objrtfnx
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
-#ifndef _H_conscomp
 #include "conscomp.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_object
-#include "object.h"
-#endif
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_objrtmch
+#include "object.h"
 #include "objrtmch.h"
-#endif
 
 struct ObjectMatchVar1
   {
@@ -194,7 +187,7 @@ struct objectReteData
    OBJECT_MATCH_ACTION *ObjectMatchActionQueue;
    OBJECT_PATTERN_NODE *ObjectPatternNetworkPointer;
    OBJECT_ALPHA_NODE *ObjectPatternNetworkTerminalPointer;
-   intBool DelayObjectPatternMatching;
+   bool DelayObjectPatternMatching;
    unsigned long long CurrentObjectMatchTimeTag;
    long long UseEntityTimeTag;
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM && CONSTRUCT_COMPILER && (! RUN_TIME)
@@ -204,18 +197,8 @@ struct objectReteData
 
 #define ObjectReteData(theEnv) ((struct objectReteData *) GetEnvironmentData(theEnv,OBJECT_RETE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTFNX_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    InstallObjectPrimitives(void *);
-   LOCALE intBool                 ObjectCmpConstantFunction(void *,void *,DATA_OBJECT *);
+   void                    InstallObjectPrimitives(void *);
+   bool                    ObjectCmpConstantFunction(void *,void *,DATA_OBJECT *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

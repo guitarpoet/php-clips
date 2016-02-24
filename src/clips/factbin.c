@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                FACT BSAVE/BLOAD MODULE              */
    /*******************************************************/
@@ -24,23 +24,20 @@
 /*                                                           */
 /*************************************************************/
 
-#define _FACTBIN_SOURCE_
-
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "tmpltdef.h"
 #include "bload.h"
 #include "bsave.h"
+#include "envrnmnt.h"
+#include "memalloc.h"
+#include "moduldef.h"
 #include "reteutil.h"
 #include "rulebin.h"
-#include "moduldef.h"
-#include "envrnmnt.h"
+#include "tmpltdef.h"
 
 #include "factbin.h"
 
@@ -85,7 +82,7 @@ struct bsaveFactPatternNode
 /* FactBinarySetup: Initializes the binary load/save */
 /*   feature for the fact pattern network.           */
 /*****************************************************/
-globle void FactBinarySetup(
+void FactBinarySetup(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,FACTBIN_DATA,sizeof(struct factBinaryData),DeallocateFactBloadData);
@@ -114,7 +111,7 @@ static void DeallocateFactBloadData(
    int i;
    
    for (i = 0; i < FactBinaryData(theEnv)->NumberOfPatterns; i++)
-     { DestroyAlphaMemory(theEnv,&FactBinaryData(theEnv)->FactPatternArray[i].header,FALSE); }
+     { DestroyAlphaMemory(theEnv,&FactBinaryData(theEnv)->FactPatternArray[i].header,false); }
 
    space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
    if (space != 0) genfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);

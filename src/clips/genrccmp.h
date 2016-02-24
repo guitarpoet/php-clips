@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -34,28 +34,18 @@
 /*************************************************************/
 
 #ifndef _H_genrccmp
+
+#pragma once
+
 #define _H_genrccmp
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GENRCCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
 #include "genrcfun.h"
 
-   LOCALE void                           SetupGenericsCompiler(void *);
-   LOCALE void                           PrintGenericFunctionReference(void *,FILE *,DEFGENERIC *,int,int);
-   LOCALE void                           DefgenericCModuleReference(void *,FILE *,int,int,int);
+   void                           SetupGenericsCompiler(void *);
+   void                           PrintGenericFunctionReference(void *,FILE *,DEFGENERIC *,int,int);
+   void                           DefgenericCModuleReference(void *,FILE *,int,int,int);
 
 #endif /* _H_genrccmp */
 

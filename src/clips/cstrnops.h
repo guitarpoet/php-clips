@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           CONSTRAINT OPERATIONS HEADER FILE         */
    /*******************************************************/
@@ -21,31 +21,20 @@
 /*************************************************************/
 
 #ifndef _H_cstrnops
+
+#pragma once
+
 #define _H_cstrnops
 
 #if (! RUN_TIME)
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_constrnt
 #include "constrnt.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CSTRNOPS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct constraintRecord       *IntersectConstraints(void *,struct constraintRecord *,struct constraintRecord *);
+   struct constraintRecord       *IntersectConstraints(void *,struct constraintRecord *,struct constraintRecord *);
 #if (! BLOAD_ONLY)
-   LOCALE struct constraintRecord       *UnionConstraints(void *,struct constraintRecord *,struct constraintRecord *);
-   LOCALE void                           RemoveConstantFromConstraint(void *,int,void *,CONSTRAINT_RECORD *);
+   struct constraintRecord       *UnionConstraints(void *,struct constraintRecord *,struct constraintRecord *);
+   void                           RemoveConstantFromConstraint(void *,int,void *,CONSTRAINT_RECORD *);
 #endif
 
 #endif /* (! RUN_TIME) */

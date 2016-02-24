@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                     MAIN MODULE                     */
    /*******************************************************/
@@ -18,6 +18,8 @@
 /*                                                           */
 /*      6.24: Moved UserFunctions and EnvUserFunctions to    */
 /*            the new userfunctions.c file.                  */
+/*                                                           */
+/*      6.40: Moved CatchCtrlC functionality into this file. */
 /*                                                           */
 /*************************************************************/
 
@@ -43,6 +45,24 @@
 
 #include "clips.h"
 
+#if   UNIX_V || LINUX || DARWIN || UNIX_7 || WIN_GCC || WIN_MVC
+#include <signal.h>
+#endif
+
+/***************************************/
+/* LOCAL INTERNAL FUNCTION DEFINITIONS */
+/***************************************/
+
+#if UNIX_V || LINUX || DARWIN || UNIX_7 || WIN_GCC || WIN_MVC
+   static void                    CatchCtrlC(int);
+#endif
+
+/***************************************/
+/* LOCAL INTERNAL VARIABLE DEFINITIONS */
+/***************************************/
+
+   static void                   *mainEnv;
+
 /****************************************/
 /* main: Starts execution of the expert */
 /*   system development environment.    */
@@ -51,11 +71,18 @@ int main(
   int argc,
   char *argv[])
   {
-   void *theEnv;
+   mainEnv = CreateEnvironment();
+   RerouteStdin(mainEnv,argc,argv);
 
-   theEnv = CreateEnvironment();
-   RerouteStdin(theEnv,argc,argv);
-   CommandLoop(theEnv);
+#if UNIX_V || LINUX || DARWIN || UNIX_7 || WIN_GCC || WIN_MVC
+   signal(SIGINT,CatchCtrlC);
+#endif
+
+   CommandLoop(mainEnv);
+
+#if UNIX_V || LINUX || DARWIN || UNIX_7 || WIN_GCC || WIN_MVC
+   signal(SIGINT,CatchCtrlC);
+#endif
 
    /*==================================================================*/
    /* Control does not normally return from the CommandLoop function.  */
@@ -64,17 +91,24 @@ int main(
    /* are running software that helps detect memory leaks, you need to */
    /* add function calls here to deallocate memory still being used by */
    /* CLIPS. If you have a multi-threaded application, no environments */
-   /* can be currently executing. If the ALLOW_ENVIRONMENT_GLOBALS     */
-   /* flag in setup.h has been set to TRUE (the default value), you    */
-   /* call the DeallocateEnvironmentData function which will call      */
-   /* DestroyEnvironment for each existing environment and then        */
-   /* deallocate the remaining data used to keep track of allocated    */
-   /* environments. Otherwise, you must explicitly call                */
-   /* DestroyEnvironment for each environment you create.              */
+   /* can be currently executing.                                      */
    /*==================================================================*/
    
-   /* DeallocateEnvironmentData(); */
-   /* DestroyEnvironment(theEnv); */
+   DestroyEnvironment(mainEnv);
    
    return(-1);
   }
+
+#if UNIX_V || LINUX || DARWIN || UNIX_7 || WIN_GCC || WIN_MVC || DARWIN
+/***************/
+/* CatchCtrlC: */
+/***************/
+static void CatchCtrlC(
+  int sgnl)
+  {
+   EnvSetHaltExecution(mainEnv,true);
+   CloseAllBatchSources(mainEnv);
+   signal(SIGINT,CatchCtrlC);
+  }
+#endif
+

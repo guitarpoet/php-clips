@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            STRING I/O ROUTER HEADER FILE            */
    /*******************************************************/
@@ -31,12 +31,12 @@
 /*************************************************************/
 
 #ifndef _H_strngrtr
+
+#pragma once
+
 #define _H_strngrtr
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
 #define STRING_ROUTER_DATA 48
 
@@ -45,7 +45,6 @@ struct stringRouter
    const char *name;
    const char *readString;
    char *writeString;
-   //char *str;
    size_t currentPosition;
    size_t maximumPosition;
    int readWriteType;
@@ -59,26 +58,16 @@ struct stringRouterData
 
 #define StringRouterData(theEnv) ((struct stringRouterData *) GetEnvironmentData(theEnv,STRING_ROUTER_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _STRNGRTR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
 /**************************/
 /* I/O ROUTER DEFINITIONS */
 /**************************/
 
-   LOCALE void                           InitializeStringRouter(void *);
-   LOCALE int                            OpenStringSource(void *,const char *,const char *,size_t);
-   LOCALE int                            OpenTextSource(void *,const char *,const char *,size_t,size_t);
-   LOCALE int                            CloseStringSource(void *,const char *);
-   LOCALE int                            OpenStringDestination(void *,const char *,char *,size_t);
-   LOCALE int                            CloseStringDestination(void *,const char *);
+   void                           InitializeStringRouter(void *);
+   bool                           OpenStringSource(void *,const char *,const char *,size_t);
+   int                            OpenTextSource(void *,const char *,const char *,size_t,size_t);
+   int                            CloseStringSource(void *,const char *);
+   int                            OpenStringDestination(void *,const char *,char *,size_t);
+   int                            CloseStringDestination(void *,const char *);
 
 #endif /* _H_strngrtr */
 

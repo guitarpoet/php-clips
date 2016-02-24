@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*                  DEFMODULE MODULE                   */
    /*******************************************************/
@@ -37,32 +37,30 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Callbacks must be environment aware.           */
+/*                                                           */
 /*************************************************************/
-
-#define _MODULDEF_SOURCE_
 
 #include "setup.h"
 
 #include <stdio.h>
 #include <string.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "constant.h"
-#include "router.h"
-#include "extnfunc.h"
 #include "argacces.h"
-#include "constrct.h"
-#include "modulpsr.h"
-#include "modulcmp.h"
-#include "modulbsc.h"
-#include "utility.h"
-#include "envrnmnt.h"
-
 #if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE
 #include "bload.h"
 #include "modulbin.h"
 #endif
+#include "constant.h"
+#include "constrct.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
+#include "memalloc.h"
+#include "modulbsc.h"
+#include "modulcmp.h"
+#include "modulpsr.h"
+#include "router.h"
+#include "utility.h"
 
 #include "moduldef.h"
 
@@ -71,20 +69,21 @@
 /***************************************/
 
 #if (! RUN_TIME)
-   static void                       ReturnDefmodule(void *,struct defmodule *,intBool);
+   static void                       ReturnDefmodule(void *,struct defmodule *,bool);
 #endif
    static void                       DeallocateDefmoduleData(void *);
 
-/**************************************************************/
-/* InitializeDefmodules: Initializes the defmodule construct. */
-/**************************************************************/
-globle void AllocateDefmoduleGlobals(
+/************************************************/
+/* AllocateDefmoduleGlobals: Initializes global */
+/*   variables used by the defmodule construct. */
+/************************************************/
+void AllocateDefmoduleGlobals(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,DEFMODULE_DATA,sizeof(struct defmoduleData),NULL);
    AddEnvironmentCleanupFunction(theEnv,"defmodules",DeallocateDefmoduleData,-1000);
-   DefmoduleData(theEnv)->CallModuleChangeFunctions = TRUE;
-   DefmoduleData(theEnv)->MainModuleRedefinable = TRUE;
+   DefmoduleData(theEnv)->CallModuleChangeFunctions = true;
+   DefmoduleData(theEnv)->MainModuleRedefinable = true;
   }
 
 /****************************************************/
@@ -131,7 +130,7 @@ static void DeallocateDefmoduleData(
    while (tmpDMPtr != NULL)
      {
       nextDMPtr = tmpDMPtr->next;
-      ReturnDefmodule(theEnv,tmpDMPtr,TRUE);
+      ReturnDefmodule(theEnv,tmpDMPtr,true);
       tmpDMPtr = nextDMPtr;
      }
 
@@ -169,7 +168,7 @@ static void DeallocateDefmoduleData(
 /**************************************************************/
 /* InitializeDefmodules: Initializes the defmodule construct. */
 /**************************************************************/
-globle void InitializeDefmodules(
+void InitializeDefmodules(
   void *theEnv)
   {
    DefmoduleBasicCommands(theEnv);
@@ -184,13 +183,13 @@ globle void InitializeDefmodules(
 #endif
 
 #if (! RUN_TIME) && DEFMODULE_CONSTRUCT
-   EnvDefineFunction2(theEnv,"get-current-module", 'w',
-                   PTIEF GetCurrentModuleCommand,
-                   "GetCurrentModuleCommand", "00");
+   EnvAddUDF(theEnv,"get-current-module", "y",
+                    GetCurrentModuleCommand,
+                   "GetCurrentModuleCommand", 0,0,NULL,NULL);
 
-   EnvDefineFunction2(theEnv,"set-current-module", 'w',
-                   PTIEF SetCurrentModuleCommand,
-                   "SetCurrentModuleCommand", "11w");
+   EnvAddUDF(theEnv,"set-current-module", "y",
+                    SetCurrentModuleCommand,
+                   "SetCurrentModuleCommand", 1,1,"y",NULL);
 #endif
   }
 
@@ -198,7 +197,7 @@ globle void InitializeDefmodules(
 /* RegisterModuleItem: Called to register a construct */
 /*   which can be placed within a module.             */
 /******************************************************/
-globle int RegisterModuleItem(
+int RegisterModuleItem(
    void *theEnv,
    const char *theItem,
    void *(*allocateFunction)(void *),
@@ -236,7 +235,7 @@ globle int RegisterModuleItem(
 /***********************************************************/
 /* GetListOfModuleItems: Returns the list of module items. */
 /***********************************************************/
-globle struct moduleItem *GetListOfModuleItems(
+struct moduleItem *GetListOfModuleItems(
   void *theEnv)
   {
    return (DefmoduleData(theEnv)->ListOfModuleItems);
@@ -245,7 +244,7 @@ globle struct moduleItem *GetListOfModuleItems(
 /***************************************************************/
 /* GetNumberOfModuleItems: Returns the number of module items. */
 /***************************************************************/
-globle int GetNumberOfModuleItems(
+int GetNumberOfModuleItems(
   void *theEnv)
   {
    return (DefmoduleData(theEnv)->NumberOfModuleItems);
@@ -255,7 +254,7 @@ globle int GetNumberOfModuleItems(
 /* FindModuleItem: Finds the module item data structure */
 /*   corresponding to the specified name.               */
 /********************************************************/
-globle struct moduleItem *FindModuleItem(
+struct moduleItem *FindModuleItem(
   void *theEnv,
   const char *theName)
   {
@@ -273,7 +272,7 @@ globle struct moduleItem *FindModuleItem(
 /* EnvGetCurrentModule: Returns a pointer */
 /*   to the current module.               */
 /******************************************/
-globle void *EnvGetCurrentModule(
+void *EnvGetCurrentModule(
   void *theEnv)
   {
    return ((void *) DefmoduleData(theEnv)->CurrentModule);
@@ -282,7 +281,7 @@ globle void *EnvGetCurrentModule(
 /**************************************************************/
 /* EnvSetCurrentModule: Sets the value of the current module. */
 /**************************************************************/
-globle void *EnvSetCurrentModule(
+void *EnvSetCurrentModule(
   void *theEnv,
   void *vNewValue)
   {
@@ -331,14 +330,14 @@ globle void *EnvSetCurrentModule(
 /*   prevents SetCurrentModule() from calling change    */
 /*   functions                                          */
 /********************************************************/
-globle void SaveCurrentModule(
+void SaveCurrentModule(
   void *theEnv)
   {
    MODULE_STACK_ITEM *tmp;
 
    tmp = get_struct(theEnv,moduleStackItem);
    tmp->changeFlag = DefmoduleData(theEnv)->CallModuleChangeFunctions;
-   DefmoduleData(theEnv)->CallModuleChangeFunctions = FALSE;
+   DefmoduleData(theEnv)->CallModuleChangeFunctions = false;
    tmp->theModule = DefmoduleData(theEnv)->CurrentModule;
    tmp->next = DefmoduleData(theEnv)->ModuleStack;
    DefmoduleData(theEnv)->ModuleStack = tmp;
@@ -349,7 +348,7 @@ globle void SaveCurrentModule(
 /*   ability of SetCurrentModule() to call changed        */
 /*   functions to previous state                          */
 /**********************************************************/
-globle void RestoreCurrentModule(
+void RestoreCurrentModule(
   void *theEnv)
   {
    MODULE_STACK_ITEM *tmp;
@@ -367,7 +366,7 @@ globle void RestoreCurrentModule(
 /*   indicated, then the module item for the current module  */
 /*   is returned.                                            */
 /*************************************************************/
-globle void *GetModuleItem(
+void *GetModuleItem(
   void *theEnv,
   struct defmodule *theModule,
   int moduleItemIndex)
@@ -388,7 +387,7 @@ globle void *GetModuleItem(
 /*   indicated, then the module item for the current module */
 /*   is returned.                                           */
 /************************************************************/
-globle void SetModuleItem(
+void SetModuleItem(
   void *theEnv,
   struct defmodule *theModule,
   int moduleItemIndex,
@@ -407,7 +406,7 @@ globle void SetModuleItem(
 /******************************************************/
 /* CreateMainModule: Creates the default MAIN module. */
 /******************************************************/
-globle void CreateMainModule(
+void CreateMainModule(
   void *theEnv)
   {
    struct defmodule *newDefmodule;
@@ -477,7 +476,7 @@ globle void CreateMainModule(
 /*   value. Normally used when initializing a run-time module or     */
 /*   when bloading a binary file to install the list of defmodules.  */
 /*********************************************************************/
-globle void SetListOfDefmodules(
+void SetListOfDefmodules(
   void *theEnv,
   void *defmodulePtr)
   {
@@ -493,7 +492,7 @@ globle void SetListOfDefmodules(
 /*   defmodule in the ListOfDefmodules. Otherwise returns the next  */
 /*   defmodule following the defmodule passed as an argument.       */
 /********************************************************************/
-globle void *EnvGetNextDefmodule(
+void *EnvGetNextDefmodule(
   void *theEnv,
   void *defmodulePtr)
   {
@@ -507,7 +506,7 @@ globle void *EnvGetNextDefmodule(
 /* EnvGetDefmoduleName: Returns the name */
 /*   of the specified defmodule.         */
 /*****************************************/
-globle const char *EnvGetDefmoduleName(
+const char *EnvGetDefmoduleName(
   void *theEnv,
   void *defmodulePtr)
   { 
@@ -522,7 +521,7 @@ globle const char *EnvGetDefmoduleName(
 /* EnvGetDefmodulePPForm: Returns the pretty print */
 /*   representation of the specified defmodule.    */
 /***************************************************/
-globle const char *EnvGetDefmodulePPForm(
+const char *EnvGetDefmodulePPForm(
   void *theEnv,
   void *defmodulePtr)
   { 
@@ -539,7 +538,7 @@ globle const char *EnvGetDefmodulePPForm(
 /* RemoveAllDefmodules: Removes all defmodules */
 /*   from the current environment.             */
 /***********************************************/
-globle void RemoveAllDefmodules(
+void RemoveAllDefmodules(
   void *theEnv)
   {
    struct defmodule *nextDefmodule;
@@ -547,7 +546,7 @@ globle void RemoveAllDefmodules(
    while (DefmoduleData(theEnv)->ListOfDefmodules != NULL)
      {
       nextDefmodule = DefmoduleData(theEnv)->ListOfDefmodules->next;
-      ReturnDefmodule(theEnv,DefmoduleData(theEnv)->ListOfDefmodules,FALSE);
+      ReturnDefmodule(theEnv,DefmoduleData(theEnv)->ListOfDefmodules,false);
       DefmoduleData(theEnv)->ListOfDefmodules = nextDefmodule;
      }
 
@@ -562,7 +561,7 @@ globle void RemoveAllDefmodules(
 static void ReturnDefmodule(
   void *theEnv,
   struct defmodule *theDefmodule,
-  intBool environmentClear)
+  bool environmentClear)
   {
    int i;
    struct moduleItem *theItem;
@@ -670,7 +669,7 @@ static void ReturnDefmodule(
 /* EnvFindDefmodule: Searches for a defmodule in the list of defmodules. */
 /*   Returns a pointer to the defmodule if found, otherwise NULL.     */
 /**********************************************************************/
-globle void *EnvFindDefmodule(
+void *EnvFindDefmodule(
   void *theEnv,
   const char *defmoduleName)
   {
@@ -695,48 +694,60 @@ globle void *EnvFindDefmodule(
 /* GetCurrentModuleCommand: H/L access routine   */
 /*   for the get-current-module command.         */
 /*************************************************/
-globle void *GetCurrentModuleCommand(
-  void *theEnv)
+void GetCurrentModuleCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    struct defmodule *theModule;
-
-   EnvArgCountCheck(theEnv,"get-current-module",EXACTLY,0);
-
+   Environment *theEnv = UDFContextEnvironment(context);
+   
    theModule = (struct defmodule *) EnvGetCurrentModule(theEnv);
 
-   if (theModule == NULL) return((SYMBOL_HN *) EnvFalseSymbol(theEnv));
+   if (theModule == NULL)
+     {
+      mCVSetBoolean(returnValue,false);
+      return;
+     }
 
-   return((SYMBOL_HN *) EnvAddSymbol(theEnv,ValueToString(theModule->name)));
+   CVSetCLIPSSymbol(returnValue,theModule->name);
   }
 
 /*************************************************/
 /* SetCurrentModuleCommand: H/L access routine   */
 /*   for the set-current-module command.         */
 /*************************************************/
-globle void *SetCurrentModuleCommand(
-  void *theEnv)
+void SetCurrentModuleCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT argPtr;
+   CLIPSValue theArg;
    const char *argument;
    struct defmodule *theModule;
-   SYMBOL_HN *defaultReturn;
+   SYMBOL_HN *oldModuleName;
+   Environment *theEnv = UDFContextEnvironment(context);
+
+   /*=======================*/
+   /* Set the return value. */
+   /*=======================*/
+
+   theModule = ((struct defmodule *) EnvGetCurrentModule(theEnv));
+   if (theModule == NULL)
+     {
+      mCVSetBoolean(returnValue,false);
+      return;
+     }
+   
+   oldModuleName = theModule->name;
+   CVSetCLIPSSymbol(returnValue,oldModuleName);
 
    /*=====================================================*/
    /* Check for the correct number and type of arguments. */
    /*=====================================================*/
 
-   theModule = ((struct defmodule *) EnvGetCurrentModule(theEnv));
-   if (theModule == NULL) return((SYMBOL_HN *) EnvFalseSymbol(theEnv));
+   if (! UDFFirstArgument(context,SYMBOL_TYPE,&theArg))
+     { return; }
 
-   defaultReturn = (SYMBOL_HN *) EnvAddSymbol(theEnv,ValueToString(((struct defmodule *) EnvGetCurrentModule(theEnv))->name));
-
-   if (EnvArgCountCheck(theEnv,"set-current-module",EXACTLY,1) == -1)
-     { return(defaultReturn); }
-
-   if (EnvArgTypeCheck(theEnv,"set-current-module",1,SYMBOL,&argPtr) == FALSE)
-     { return(defaultReturn); }
-
-   argument = DOToString(argPtr);
+   argument = mCVToString(&theArg);
 
    /*================================================*/
    /* Set the current module to the specified value. */
@@ -747,16 +758,10 @@ globle void *SetCurrentModuleCommand(
    if (theModule == NULL)
      {
       CantFindItemErrorMessage(theEnv,"defmodule",argument);
-      return(defaultReturn);
+      return;
      }
 
    EnvSetCurrentModule(theEnv,(void *) theModule);
-
-   /*================================*/
-   /* Return the new current module. */
-   /*================================*/
-
-   return((SYMBOL_HN *) defaultReturn);
   }
 
 /*************************************************/
@@ -764,67 +769,38 @@ globle void *SetCurrentModuleCommand(
 /*   to the list of functions to be called after */
 /*   a module change occurs.                     */
 /*************************************************/
-globle void AddAfterModuleChangeFunction(
+void AddAfterModuleChangeFunction(
   void *theEnv,
   const char *name,
   void (*func)(void *),
   int priority)
   {
    DefmoduleData(theEnv)->AfterModuleChangeFunctions =
-     AddFunctionToCallList(theEnv,name,priority,func,DefmoduleData(theEnv)->AfterModuleChangeFunctions,TRUE);
+     AddFunctionToCallList(theEnv,name,priority,func,DefmoduleData(theEnv)->AfterModuleChangeFunctions);
   }
 
 /************************************************/
 /* IllegalModuleSpecifierMessage: Error message */
 /*   for the illegal use of a module specifier. */
 /************************************************/
-globle void IllegalModuleSpecifierMessage(
+void IllegalModuleSpecifierMessage(
   void *theEnv)
   {
-   PrintErrorID(theEnv,"MODULDEF",1,TRUE);
+   PrintErrorID(theEnv,"MODULDEF",1,true);
    EnvPrintRouter(theEnv,WERROR,"Illegal use of the module specifier.\n");
   }
 
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle void *FindDefmodule(
-  const char *defmoduleName)
+/*********************************************/
+/* GetNumberOfDefmodules: Returns the number */
+/*   of defmodules currently defined.        */
+/*********************************************/
+long GetNumberOfDefmodules(
+  void *theEnv)
   {
-   return EnvFindDefmodule(GetCurrentEnvironment(),defmoduleName);
+#if DEFMODULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY)
+   return(DefmoduleData(theEnv)->NumberOfDefmodules);
+#else
+   return 1L;
+#endif
   }
-
-globle void *GetCurrentModule()
-  {
-   return EnvGetCurrentModule(GetCurrentEnvironment());
-  }
-
-globle const char *GetDefmoduleName(
-  void *defmodulePtr)
-  {
-   return EnvGetDefmoduleName(GetCurrentEnvironment(),defmodulePtr);
-  }
-
-globle const char *GetDefmodulePPForm(
-  void *defmodulePtr)
-  {
-   return EnvGetDefmodulePPForm(GetCurrentEnvironment(),defmodulePtr);
-  }
-
-globle void *GetNextDefmodule(
-  void *defmodulePtr)
-  {
-   return EnvGetNextDefmodule(GetCurrentEnvironment(),defmodulePtr);
-  }
-
-globle void *SetCurrentModule(
-  void *vNewValue)
-  {
-   return EnvSetCurrentModule(GetCurrentEnvironment(),vNewValue);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 

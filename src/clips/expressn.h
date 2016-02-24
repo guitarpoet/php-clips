@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               EXPRESSION HEADER FILE                */
    /*******************************************************/
@@ -32,14 +32,16 @@
 
 #ifndef _H_expressn
 
+#pragma once
+
 #define _H_expressn
 
 struct expr;
 struct exprHashNode;
 
-#ifndef _H_exprnops
+typedef struct expr EXPRESSION;
+
 #include "exprnops.h"
-#endif
 
 /******************************/
 /* Expression Data Structures */
@@ -55,8 +57,6 @@ struct expr
 
 #define arg_list argList
 #define next_arg nextArg
-
-typedef struct expr EXPRESSION;
 
 typedef struct exprHashNode
   {
@@ -116,10 +116,10 @@ struct expressionData
 #endif
 #if (! RUN_TIME)
    SAVED_CONTEXTS *svContexts;
-   int ReturnContext;
-   int BreakContext;
+   bool ReturnContext;
+   bool BreakContext;
 #endif
-   intBool SequenceOpMode;
+   bool SequenceOpMode;
   };
 
 #define ExpressionData(theEnv) ((struct expressionData *) GetEnvironmentData(theEnv,EXPRESSION_DATA))
@@ -128,31 +128,21 @@ struct expressionData
 /* Global Functions */
 /********************/
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _EXPRESSN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           ReturnExpression(void *,struct expr *);
-   LOCALE void                           ExpressionInstall(void *,struct expr *);
-   LOCALE void                           ExpressionDeinstall(void *,struct expr *);
-   LOCALE struct expr                   *PackExpression(void *,struct expr *);
-   LOCALE void                           ReturnPackedExpression(void *,struct expr *);
-   LOCALE void                           InitExpressionData(void *);
-   LOCALE void                           InitExpressionPointers(void *);
+   void                           ReturnExpression(void *,struct expr *);
+   void                           ExpressionInstall(void *,struct expr *);
+   void                           ExpressionDeinstall(void *,struct expr *);
+   struct expr                   *PackExpression(void *,struct expr *);
+   void                           ReturnPackedExpression(void *,struct expr *);
+   void                           InitExpressionData(void *);
+   void                           InitExpressionPointers(void *);
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-   LOCALE EXPRESSION                    *AddHashedExpression(void *,EXPRESSION *);
+   EXPRESSION                    *AddHashedExpression(void *,EXPRESSION *);
 #endif
 #if (! RUN_TIME)
-   LOCALE void                           RemoveHashedExpression(void *,EXPRESSION *);
+   void                           RemoveHashedExpression(void *,EXPRESSION *);
 #endif
 #if BLOAD_AND_BSAVE || BLOAD_ONLY || BLOAD || CONSTRUCT_COMPILER
-   LOCALE long                           HashedExpressionIndex(void *,EXPRESSION *);
+   long                           HashedExpressionIndex(void *,EXPRESSION *);
 #endif
 
 #endif

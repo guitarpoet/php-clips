@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            SYSTEM DEPENDENT HEADER FILE             */
    /*******************************************************/
@@ -74,77 +74,61 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Refactored code to reduce header dependencies  */
+/*            in sysdep.c.                                   */
+/*                                                           */
+/*            Added genchdir function for changing the       */
+/*            current directory.                             */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_sysdep
+
+#pragma once
+
 #define _H_sysdep
 
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
-
 #include <setjmp.h>
 
-#if WIN_MVC
-#include <dos.h>
-#endif
+   void                        SetRedrawFunction(void *,void (*)(void *));
+   void                        SetPauseEnvFunction(void *,void (*)(void *));
+   void                        SetContinueEnvFunction(void *,void (*)(void *,int));
+   void                        (*GetRedrawFunction(void *))(void *);
+   void                        (*GetPauseEnvFunction(void *))(void *);
+   void                        (*GetContinueEnvFunction(void *))(void *,int);
+   double                      gentime(void);
+   void                        gensystem(void *theEnv,const char *);
+   int                         GenOpenReadBinary(void *,const char *,const char *);
+   void                        GetSeekCurBinary(void *,long);
+   void                        GetSeekSetBinary(void *,long);
+   void                        GenTellBinary(void *,long *);
+   void                        GenCloseBinary(void *);
+   void                        GenReadBinary(void *,void *,size_t);
+   FILE                       *GenOpen(void *,const char *,const char *);
+   int                         GenClose(void *,FILE *);
+   void                        genexit(void *,int);
+   int                         genrand(void);
+   void                        genseed(int);
+   bool                        genremove(const char *);
+   bool                        genrename(const char *,const char *);
+   char                       *gengetcwd(char *,int);
+   void                        GenWrite(void *,size_t,FILE *);
+   int                       (*EnvSetBeforeOpenFunction(void *,int (*)(void *)))(void *);
+   int                       (*EnvSetAfterOpenFunction(void *,int (*)(void *)))(void *);
+   int                         gensprintf(char *,const char *,...);
+   char                       *genstrcpy(char *,const char *);
+   char                       *genstrncpy(char *,const char *,size_t);
+   char                       *genstrcat(char *,const char *);
+   char                       *genstrncat(char *,const char *,size_t);
+   int                         genchdir(const char *);
+   void                        SetJmpBuffer(void *,jmp_buf *);
+   void                        genprintfile(void *,FILE *,const char *);
+   int                         gengetchar(void *);
+   int                         genungetchar(void *,int);
+   void                        InitializeSystemDependentData(void *);
+   void                        InitializeNonportableFeatures(void *);
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _SYSDEP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                        InitializeEnvironment(void);
-   LOCALE void                        EnvInitializeEnvironment(void *,struct symbolHashNode **,struct floatHashNode **,
-															   struct integerHashNode **,struct bitMapHashNode **,
-															   struct externalAddressHashNode **);
-   LOCALE void                        SetRedrawFunction(void *,void (*)(void *));
-   LOCALE void                        SetPauseEnvFunction(void *,void (*)(void *));
-   LOCALE void                        SetContinueEnvFunction(void *,void (*)(void *,int));
-   LOCALE void                        (*GetRedrawFunction(void *))(void *);
-   LOCALE void                        (*GetPauseEnvFunction(void *))(void *);
-   LOCALE void                        (*GetContinueEnvFunction(void *))(void *,int);
-   LOCALE void                        RerouteStdin(void *,int,char *[]);
-   LOCALE double                      gentime(void);
-   LOCALE void                        gensystem(void *theEnv);
-   LOCALE void                        VMSSystem(char *);
-   LOCALE int                         GenOpenReadBinary(void *,const char *,const char *);
-   LOCALE void                        GetSeekCurBinary(void *,long);
-   LOCALE void                        GetSeekSetBinary(void *,long);
-   LOCALE void                        GenTellBinary(void *,long *);
-   LOCALE void                        GenCloseBinary(void *);
-   LOCALE void                        GenReadBinary(void *,void *,size_t);
-   LOCALE FILE                       *GenOpen(void *,const char *,const char *);
-   LOCALE int                         GenClose(void *,FILE *);
-   LOCALE void                        genexit(void *,int);
-   LOCALE int                         genrand(void);
-   LOCALE void                        genseed(int);
-   LOCALE int                         genremove(const char *);
-   LOCALE int                         genrename(const char *,const char *);
-   LOCALE char                       *gengetcwd(char *,int);
-   LOCALE void                        GenWrite(void *,size_t,FILE *);
-   LOCALE int                       (*EnvSetBeforeOpenFunction(void *,int (*)(void *)))(void *);
-   LOCALE int                       (*EnvSetAfterOpenFunction(void *,int (*)(void *)))(void *);
-   LOCALE int                         gensprintf(char *,const char *,...);
-   LOCALE char                       *genstrcpy(char *,const char *);
-   LOCALE char                       *genstrncpy(char *,const char *,size_t);
-   LOCALE char                       *genstrcat(char *,const char *);
-   LOCALE char                       *genstrncat(char *,const char *,size_t);
-   LOCALE void                        SetJmpBuffer(void *,jmp_buf *);
-   LOCALE void                        genprintfile(void *,FILE *,const char *);
-   LOCALE int                         gengetchar(void *);
-   LOCALE int                         genungetchar(void *,int);
-   
 #endif /* _H_sysdep */
 
 

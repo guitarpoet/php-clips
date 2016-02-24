@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/20/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               FACT COMMANDS HEADER FILE             */
    /*******************************************************/
@@ -43,47 +43,28 @@
 /*************************************************************/
 
 #ifndef _H_factcom
+
+#pragma once
+
 #define _H_factcom
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTCOM_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FactCommandDefinitions(void *);
-   LOCALE void                           AssertCommand(void *,DATA_OBJECT_PTR);
-   LOCALE void                           RetractCommand(void *);
-   LOCALE void                           AssertStringFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           FactsCommand(void *);
-   LOCALE void                           EnvFacts(void *,const char *,void *,long long,long long,long long);
-   LOCALE int                            SetFactDuplicationCommand(void *);
-   LOCALE int                            GetFactDuplicationCommand(void *);
-   LOCALE int                            SaveFactsCommand(void *);
-   LOCALE int                            LoadFactsCommand(void *);
-   LOCALE int                            EnvSaveFacts(void *,const char *,int,struct expr *);
-   LOCALE int                            EnvLoadFacts(void *,const char *);
-   LOCALE int                            EnvLoadFactsFromString(void *,const char *,long);
-   LOCALE long long                      FactIndexFunction(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           Facts(const char *,void *,long long,long long,long long);
-#endif
-   LOCALE intBool                        LoadFacts(const char *);
-   LOCALE intBool                        SaveFacts(const char *,int,struct expr *);
-   LOCALE intBool                        LoadFactsFromString(const char *,int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           FactCommandDefinitions(void *);
+   void                           AssertCommand(UDFContext *,CLIPSValue *);
+   void                           RetractCommand(UDFContext *,CLIPSValue *);
+   void                           AssertStringFunction(UDFContext *,CLIPSValue *);
+   void                           FactsCommand(UDFContext *,CLIPSValue *);
+   void                           EnvFacts(void *,const char *,void *,long long,long long,long long);
+   void                           SetFactDuplicationCommand(UDFContext *,CLIPSValue *);
+   void                           GetFactDuplicationCommand(UDFContext *,CLIPSValue *);
+   void                           SaveFactsCommand(UDFContext *,CLIPSValue *);
+   void                           LoadFactsCommand(UDFContext *,CLIPSValue *);
+   bool                           EnvSaveFacts(void *,const char *,int);
+   bool                           EnvSaveFactsDriver(void *,const char *,int,struct expr *);
+   bool                           EnvLoadFacts(void *,const char *);
+   bool                           EnvLoadFactsFromString(void *,const char *,long);
+   void                           FactIndexFunction(UDFContext *,CLIPSValue *);
 
 #endif /* _H_factcom */
 

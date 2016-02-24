@@ -267,8 +267,8 @@ PHP_FUNCTION(clips_exec) {
 			RouteCommand(p_clips_env,s_str, FALSE);
 		}
 		FlushPPBuffer(p_clips_env);
-		SetHaltExecution(p_clips_env,FALSE);
-		SetEvaluationError(p_clips_env,FALSE);
+		EnvSetHaltExecution(p_clips_env,FALSE);
+		EnvSetEvaluationError(p_clips_env,FALSE);
 		FlushCommandString(p_clips_env);
 
 		CleanCurrentGarbageFrame(p_clips_env,NULL);
@@ -368,7 +368,7 @@ PHP_FUNCTION(clips_query_facts) {
 			pf_fact != NULL;
 			pf_fact = (struct fact *) EnvGetNextFact(p_clips_env, pf_fact)) {
 		if(pf_fact) {
-			struct deftemplate* pt_template = (struct deftemplate *) FactDeftemplate(pf_fact);
+			struct deftemplate* pt_template = (struct deftemplate *) EnvFactDeftemplate(p_clips_env, pf_fact);
 			if(strcmp("initial-fact", ValueToString(pt_template->header.name)) == 0 || // Skipping the initial-fact
 				(s_template_name && strcmp(s_template_name, ValueToString(pt_template->header.name)) != 0)) {
 				// We don't need to get this fact

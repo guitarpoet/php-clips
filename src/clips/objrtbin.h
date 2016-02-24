@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -32,6 +32,9 @@
 /*************************************************************/
 
 #ifndef _H_objrtbin
+
+#pragma once
+
 #define _H_objrtbin
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
@@ -49,17 +52,7 @@ struct objectReteBinaryData
 #define ObjectReteBinaryData(theEnv) ((struct objectReteBinaryData *) GetEnvironmentData(theEnv,OBJECTRETEBIN_DATA))
 
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    SetupObjectPatternsBload(void *);
+   void                    SetupObjectPatternsBload(void *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

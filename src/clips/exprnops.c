@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             EXPRESSION OPERATIONS MODULE            */
    /*******************************************************/
@@ -27,24 +27,21 @@
 /*                                                           */
 /*************************************************************/
 
-#define _EXPRNOPS_SOURCE_
-
 #include "setup.h"
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-#include "memalloc.h"
-#include "envrnmnt.h"
-#include "router.h"
-#include "extnfunc.h"
 #include "cstrnchk.h"
-#include "prntutil.h"
-#include "cstrnutl.h"
 #include "cstrnops.h"
+#include "cstrnutl.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
+#include "memalloc.h"
+#include "prntutil.h"
+#include "router.h"
 
 #include "exprnops.h"
 
@@ -54,7 +51,7 @@
 /* CheckArgumentAgainstRestriction: Compares an argument to a */
 /*   function to the set of restrictions for that function to */
 /*   determine if any incompatibilities exist. If so, the     */
-/*   value TRUE is returned, otherwise FALSE is returned.     */
+/*   value true is returned, otherwise false is returned.     */
 /*   Restrictions checked are:                                */
 /*     a - external address                                   */
 /*     d - float                                              */
@@ -79,7 +76,7 @@
 /*     y - fact address                                       */
 /*     z - fact address, integer, or symbol (*)               */
 /**************************************************************/
-globle int CheckArgumentAgainstRestriction(
+bool CheckArgumentAgainstRestriction(
   void *theEnv,
   struct expr *theExpression,
   int theRestriction)
@@ -119,7 +116,7 @@ globle int CheckArgumentAgainstRestriction(
    if (UnmatchableConstraint(cr3))
      {
       RemoveConstraint(theEnv,cr3);
-      return(TRUE);
+      return(true);
      }
 
    /*===================================================*/
@@ -127,16 +124,70 @@ globle int CheckArgumentAgainstRestriction(
    /*===================================================*/
 
    RemoveConstraint(theEnv,cr3);
-   return(FALSE);
+   return(false);
+  }
+
+/*************************************/
+/* CheckArgumentAgainstRestriction2: */
+/*************************************/
+bool CheckArgumentAgainstRestriction2(
+  void *theEnv,
+  struct expr *theExpression,
+  unsigned theRestriction)
+  {
+   CONSTRAINT_RECORD *cr1, *cr2, *cr3;
+
+   /*=============================================*/
+   /* Generate a constraint record for the actual */
+   /* argument passed to the function.            */
+   /*=============================================*/
+
+   cr1 = ExpressionToConstraintRecord(theEnv,theExpression);
+
+   /*================================================*/
+   /* Generate a constraint record based on the type */
+   /* of argument expected by the function.          */
+   /*================================================*/
+
+   cr2 = ArgumentTypeToConstraintRecord2(theEnv,theRestriction);
+
+   /*===============================================*/
+   /* Intersect the two constraint records and then */
+   /* discard them.                                 */
+   /*===============================================*/
+
+   cr3 = IntersectConstraints(theEnv,cr1,cr2);
+
+   RemoveConstraint(theEnv,cr1);
+   RemoveConstraint(theEnv,cr2);
+
+   /*====================================================*/
+   /* If the intersection of the two constraint records  */
+   /* is empty, then the argument passed to the function */
+   /* doesn't satisfy the restrictions for the argument. */
+   /*====================================================*/
+
+   if (UnmatchableConstraint(cr3))
+     {
+      RemoveConstraint(theEnv,cr3);
+      return(true);
+     }
+
+   /*===================================================*/
+   /* The argument satisfies the function restrictions. */
+   /*===================================================*/
+
+   RemoveConstraint(theEnv,cr3);
+   return(false);
   }
 
 #endif /* (! RUN_TIME) */
 
-/************************************************************/
-/* ConstantExpression: Returns TRUE if the expression */
-/*   is a constant, otherwise FALSE.                  */
-/************************************************************/
-globle intBool ConstantExpression(
+/******************************************************/
+/* ConstantExpression: Returns true if the expression */
+/*   is a constant, otherwise false.                  */
+/******************************************************/
+bool ConstantExpression(
   struct expr *testPtr)
   {
    while (testPtr != NULL)
@@ -146,18 +197,18 @@ globle intBool ConstantExpression(
           (testPtr->type != INSTANCE_NAME) && (testPtr->type != INSTANCE_ADDRESS) &&
 #endif
           (testPtr->type != INTEGER) && (testPtr->type != FLOAT))
-        { return(FALSE); }
+        { return(false); }
       testPtr = testPtr->nextArg;
      }
 
-   return(TRUE);
+   return(true);
   }
 
-/************************************************/
-/* ConstantType: Returns TRUE if the type */
-/*   is a constant, otherwise FALSE.      */
-/************************************************/
-globle intBool ConstantType(
+/******************************************/
+/* ConstantType: Returns true if the type */
+/*   is a constant, otherwise false.      */
+/******************************************/
+bool ConstantType(
   int theType)
   {
    switch (theType)
@@ -170,17 +221,17 @@ globle intBool ConstantType(
       case INSTANCE_NAME:
       case INSTANCE_ADDRESS:
 #endif
-        return(TRUE);
+        return(true);
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /*****************************************************************************/
 /* IdenticalExpression: Determines if two expressions are identical. Returns */
-/*   TRUE if the expressions are identical, otherwise FALSE is returned.     */
+/*   true if the expressions are identical, otherwise false is returned.     */
 /*****************************************************************************/
-globle intBool IdenticalExpression(
+bool IdenticalExpression(
   struct expr *firstList,
   struct expr *secondList)
   {
@@ -198,17 +249,17 @@ globle intBool IdenticalExpression(
       /*=========================*/
 
       if (firstList->type != secondList->type)
-        { return(FALSE); }
+        { return(false); }
 
       if (firstList->value != secondList->value)
-        { return (FALSE); }
+        { return (false); }
 
       /*==============================*/
       /* Compare the arguments lists. */
       /*==============================*/
 
-      if (IdenticalExpression(firstList->argList,secondList->argList) == FALSE)
-        { return(FALSE); }
+      if (IdenticalExpression(firstList->argList,secondList->argList) == false)
+        { return(false); }
      }
 
    /*=====================================================*/
@@ -217,13 +268,13 @@ globle intBool IdenticalExpression(
    /* other.                                              */
    /*=====================================================*/
 
-   if (firstList != secondList) return(FALSE);
+   if (firstList != secondList) return(false);
 
    /*============================*/
    /* Expressions are identical. */
    /*============================*/
 
-   return(TRUE);
+   return(true);
   }
 
 /****************************************************/
@@ -232,7 +283,7 @@ globle intBool IdenticalExpression(
 /*   the nextArg pointer but not the argList        */
 /*   pointer.                                       */
 /****************************************************/
-globle int CountArguments(
+int CountArguments(
   struct expr *testPtr)
   {
    int size = 0;
@@ -249,7 +300,7 @@ globle int CountArguments(
 /******************************************/
 /* CopyExpresssion: Copies an expression. */
 /******************************************/
-globle struct expr *CopyExpression(
+struct expr *CopyExpression(
   void *theEnv,
   struct expr *original)
   {
@@ -277,19 +328,19 @@ globle struct expr *CopyExpression(
 
 /************************************************************/
 /* ExpressionContainsVariables: Determines if an expression */
-/*   contains any variables. Returns TRUE if the expression */
-/*   contains any variables, otherwise FALSE is returned.   */
+/*   contains any variables. Returns true if the expression */
+/*   contains any variables, otherwise false is returned.   */
 /************************************************************/
-globle intBool ExpressionContainsVariables(
+bool ExpressionContainsVariables(
   struct expr *theExpression,
-  intBool globalsAreVariables)
+  bool globalsAreVariables)
   {
    while (theExpression != NULL)
      {
       if (theExpression->argList != NULL)
         {
          if (ExpressionContainsVariables(theExpression->argList,globalsAreVariables))
-           { return(TRUE); }
+           { return(true); }
         }
 
       if ((theExpression->type == MF_VARIABLE) ||
@@ -297,20 +348,20 @@ globle intBool ExpressionContainsVariables(
           (theExpression->type == FACT_ADDRESS) ||
           (((theExpression->type == GBL_VARIABLE) ||
             (theExpression->type == MF_GBL_VARIABLE)) &&
-           (globalsAreVariables == TRUE)))
-        { return(TRUE); }
+           (globalsAreVariables == true)))
+        { return(true); }
 
       theExpression = theExpression->nextArg;
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /*****************************************/
 /* ExpressionSize: Returns the number of */
 /*   structures stored in an expression. */
 /*****************************************/
-globle long ExpressionSize(
+long ExpressionSize(
   struct expr *testPtr)
   {
    long size = 0;
@@ -329,7 +380,7 @@ globle long ExpressionSize(
 /* GenConstant: Generates a constant expression */
 /*   value of type string, symbol, or number.   */
 /************************************************/
-globle struct expr *GenConstant(
+struct expr *GenConstant(
   void *theEnv,
   unsigned short type,
   void *value)
@@ -348,7 +399,7 @@ globle struct expr *GenConstant(
 /*************************************************/
 /* PrintExpression: Pretty prints an expression. */
 /*************************************************/
-globle void PrintExpression(
+void PrintExpression(
   void *theEnv,
   const char *fileid,
   struct expr *theExpression)
@@ -406,7 +457,7 @@ globle void PrintExpression(
 /*   is more efficient to add the arguments of one of the "and"          */
 /*   expressions to the list of arguments for the other and expression). */
 /*************************************************************************/
-globle struct expr *CombineExpressions(
+struct expr *CombineExpressions(
   void *theEnv,
   struct expr *expr1,
   struct expr *expr2)
@@ -510,7 +561,7 @@ globle struct expr *CombineExpressions(
 /*********************/
 /* NegateExpression: */
 /*********************/
-globle struct expr *NegateExpression(
+struct expr *NegateExpression(
   void *theEnv,
   struct expr *theExpression)
   {
@@ -548,7 +599,7 @@ globle struct expr *NegateExpression(
 /* AppendExpressions: Attaches an expression to the end */
 /*   of another expression's nextArg list.              */
 /********************************************************/
-globle struct expr *AppendExpressions(
+struct expr *AppendExpressions(
   struct expr *expr1,
   struct expr *expr2)
   {

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/20/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              FACTS MANAGER HEADER FILE              */
    /*******************************************************/
@@ -53,30 +53,29 @@
 /*            being executed during fact assertions via      */
 /*            JoinOperationInProgress mechanism.             */
 /*                                                           */
+/*      6.40: Modify command preserves fact id and address.  */
+/*                                                           */
+/*            Watch facts for modify command only prints     */
+/*            changed slots.                                 */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factmngr
+
+#pragma once
 
 #define _H_factmngr
 
 struct fact;
 
-#ifndef _H_facthsh
-#include "facthsh.h"
-#endif
-#ifndef _H_conscomp
+typedef struct fact Fact;
+
 #include "conscomp.h"
-#endif
-#ifndef _H_pattern
-#include "pattern.h"
-#endif
-#include "multifld.h"
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_tmpltdef
+#include "facthsh.h"
+#include "multifld.h"
+#include "pattern.h"
 #include "tmpltdef.h"
-#endif
 
 struct fact
   {
@@ -90,6 +89,7 @@ struct fact
    struct fact *nextFact;
    struct fact *previousTemplateFact;
    struct fact *nextTemplateFact;
+   struct multifield *basisSlots;
    struct multifield theProposition;
   };
   
@@ -97,7 +97,7 @@ struct fact
 
 struct factsData
   {
-   int ChangeToFactList;
+   bool ChangeToFactList;
 #if DEBUGGING_FUNCTIONS
    unsigned WatchFacts;
 #endif
@@ -119,7 +119,7 @@ struct factsData
 #endif
    struct factHashEntry **FactHashTable;
    unsigned long FactHashTableSize;
-   intBool FactDuplication;
+   bool FactDuplication;
 #if DEFRULE_CONSTRUCT
    struct fact             *CurrentPatternFact;
    struct multifieldMarker *CurrentPatternMarks;
@@ -129,89 +129,57 @@ struct factsData
   
 #define FactData(theEnv) ((struct factsData *) GetEnvironmentData(theEnv,FACTS_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _FACTMNGR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                          *EnvAssert(void *,void *);
-   LOCALE void                          *EnvAssertString(void *,const char *);
-   LOCALE struct fact                   *EnvCreateFact(void *,void *);
-   LOCALE void                           EnvDecrementFactCount(void *,void *);
-   LOCALE long long                      EnvFactIndex(void *,void *);
-   LOCALE intBool                        EnvGetFactSlot(void *,void *,const char *,DATA_OBJECT *);
-   LOCALE void                           PrintFactWithIdentifier(void *,const char *,struct fact *);
-   LOCALE void                           PrintFact(void *,const char *,struct fact *,int,int);
-   LOCALE void                           PrintFactIdentifierInLongForm(void *,const char *,void *);
-   LOCALE intBool                        EnvRetract(void *,void *);
-   LOCALE void                           RemoveAllFacts(void *);
-   LOCALE struct fact                   *CreateFactBySize(void *,unsigned);
-   LOCALE void                           FactInstall(void *,struct fact *);
-   LOCALE void                           FactDeinstall(void *,struct fact *);
-   LOCALE void                          *EnvGetNextFact(void *,void *);
-   LOCALE void                          *GetNextFactInScope(void *theEnv,void *);
-   LOCALE void                           EnvGetFactPPForm(void *,char *,size_t,void *);
-   LOCALE int                            EnvGetFactListChanged(void *);
-   LOCALE void                           EnvSetFactListChanged(void *,int);
-   LOCALE unsigned long                  GetNumberOfFacts(void *);
-   LOCALE void                           InitializeFacts(void *);
-   LOCALE struct fact                   *FindIndexedFact(void *,long long);
-   LOCALE void                           EnvIncrementFactCount(void *,void *);
-   LOCALE void                           PrintFactIdentifier(void *,const char *,void *);
-   LOCALE void                           DecrementFactBasisCount(void *,void *);
-   LOCALE void                           IncrementFactBasisCount(void *,void *);
-   LOCALE void                           ReturnFact(void *,struct fact *);
-   LOCALE void                           MatchFactFunction(void *,void *);
-   LOCALE intBool                        EnvPutFactSlot(void *,void *,const char *,DATA_OBJECT *);
-   LOCALE intBool                        EnvAssignFactSlotDefaults(void *,void *);
-   LOCALE intBool                        CopyFactSlotValues(void *,void *,void *);
-   LOCALE intBool                        DeftemplateSlotDefault(void *,struct deftemplate *,
-                                                                struct templateSlot *,DATA_OBJECT *,int);
-   LOCALE intBool                        EnvAddAssertFunction(void *,const char *,
+   void                          *EnvAssert(void *,void *);
+   void                          *AssertDriver(void *,void *,long long,struct fact *,struct fact *,char *);
+   void                          *EnvAssertString(void *,const char *);
+   struct fact                   *EnvCreateFact(void *,void *);
+   void                           EnvDecrementFactCount(void *,void *);
+   long long                      EnvFactIndex(void *,void *);
+   bool                           EnvGetFactSlot(void *,void *,const char *,DATA_OBJECT *);
+   void                           PrintFactWithIdentifier(void *,const char *,struct fact *,const char *);
+   void                           PrintFact(void *,const char *,struct fact *,bool,bool,const char *);
+   void                           PrintFactIdentifierInLongForm(void *,const char *,void *);
+   bool                           EnvRetract(void *,void *);
+   bool                           RetractDriver(void *,void *,bool,char *);
+   void                           RemoveAllFacts(void *);
+   struct fact                   *CreateFactBySize(void *,unsigned);
+   void                           FactInstall(void *,struct fact *);
+   void                           FactDeinstall(void *,struct fact *);
+   void                          *EnvGetNextFact(void *,void *);
+   void                          *GetNextFactInScope(void *theEnv,void *);
+   void                           EnvGetFactPPForm(void *,char *,size_t,void *);
+   bool                           EnvGetFactListChanged(void *);
+   void                           EnvSetFactListChanged(void *,bool);
+   unsigned long                  GetNumberOfFacts(void *);
+   void                           InitializeFacts(void *);
+   struct fact                   *FindIndexedFact(void *,long long);
+   void                           EnvIncrementFactCount(void *,void *);
+   void                           PrintFactIdentifier(void *,const char *,void *);
+   void                           DecrementFactBasisCount(void *,void *);
+   void                           IncrementFactBasisCount(void *,void *);
+   bool                           FactIsDeleted(void *,void *);
+   void                           ReturnFact(void *,struct fact *);
+   void                           MatchFactFunction(void *,void *);
+   bool                           EnvPutFactSlot(void *,void *,const char *,DATA_OBJECT *);
+   bool                           EnvAssignFactSlotDefaults(void *,void *);
+   bool                           CopyFactSlotValues(void *,void *,void *);
+   bool                           DeftemplateSlotDefault(void *,struct deftemplate *,
+                                                                struct templateSlot *,DATA_OBJECT *,bool);
+   bool                           EnvAddAssertFunction(void *,const char *,
                                                               void (*)(void *,void *),int);
-   LOCALE intBool                        EnvAddAssertFunctionWithContext(void *,const char *,
+   bool                           EnvAddAssertFunctionWithContext(void *,const char *,
                                                                          void (*)(void *,void *),int,void *);
-   LOCALE intBool                        EnvRemoveAssertFunction(void *,const char *);
-   LOCALE intBool                        EnvAddRetractFunction(void *,const char *,
+   bool                           EnvRemoveAssertFunction(void *,const char *);
+   bool                           EnvAddRetractFunction(void *,const char *,
                                                                     void (*)(void *,void *),int);
-   LOCALE intBool                        EnvAddRetractFunctionWithContext(void *,const char *,
+   bool                           EnvAddRetractFunctionWithContext(void *,const char *,
                                                                           void (*)(void *,void *),int,void *);
-   LOCALE intBool                        EnvRemoveRetractFunction(void *,const char *);
-   LOCALE intBool                        EnvAddModifyFunction(void *,const char *,
+   bool                           EnvRemoveRetractFunction(void *,const char *);
+   bool                           EnvAddModifyFunction(void *,const char *,
                                                               void (*)(void *,void *,void *),int);
-   LOCALE intBool                        EnvAddModifyFunctionWithContext(void *,const char *,
+   bool                           EnvAddModifyFunctionWithContext(void *,const char *,
                                                                          void (*)(void *,void *,void *),int,void *);
-   LOCALE intBool                        EnvRemoveModifyFunction(void *,const char *);
-
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        AddAssertFunction(const char *,void (*)(void *,void *),int);
-   LOCALE intBool                        AddModifyFunction(const char *,void (*)(void *,void *,void *),int);
-   LOCALE intBool                        AddRetractFunction(const char *,void (*)(void *,void *),int);
-   LOCALE void                          *Assert(void *);
-   LOCALE void                          *AssertString(const char *);
-   LOCALE intBool                        AssignFactSlotDefaults(void *,void *);
-   LOCALE struct fact                   *CreateFact(void *);
-   LOCALE void                           DecrementFactCount(void *);
-   LOCALE long long                      FactIndex(void *);
-   LOCALE int                            GetFactListChanged(void *);
-   LOCALE void                           GetFactPPForm(char *,unsigned,void *);
-   LOCALE intBool                        GetFactSlot(void *,const char *,DATA_OBJECT *);
-   LOCALE void                          *GetNextFact(void *);
-   LOCALE void                           IncrementFactCount(void *);
-   LOCALE intBool                        PutFactSlot(void *,const char *,DATA_OBJECT *);
-   LOCALE intBool                        RemoveAssertFunction(const char *);
-   LOCALE intBool                        RemoveModifyFunction(const char *);
-   LOCALE intBool                        RemoveRetractFunction(const char *);
-   LOCALE intBool                        Retract(void *);
-   LOCALE void                           SetFactListChanged(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   bool                           EnvRemoveModifyFunction(void *,const char *);
 
 #endif /* _H_factmngr */
 

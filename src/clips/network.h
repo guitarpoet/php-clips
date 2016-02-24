@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                 NETWORK HEADER FILE                 */
    /*******************************************************/
@@ -22,19 +22,17 @@
 
 #ifndef _H_network
 
+#pragma once
+
 #define _H_network
 
-struct patternNodeHeader;
-struct joinNode;
 struct alphaMemoryHash;
-
-#ifndef _H_match
-#include "match.h"
-#endif
-
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
+struct betaMemory;
+struct joinLink;
+struct joinNode;
+struct patternNodeHashEntry;
+struct patternNodeHeader;
+struct expr; // TBD Can this be removed
 
 struct patternNodeHeader
   {
@@ -51,6 +49,9 @@ struct patternNodeHeader
    unsigned int endSlot : 1;
    unsigned int selector : 1;
   };
+
+#include "expressn.h"
+#include "match.h"
 
 struct patternNodeHashEntry
   {

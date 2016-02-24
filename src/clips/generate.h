@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                GENERATE HEADER FILE                 */
    /*******************************************************/
@@ -30,31 +30,17 @@
 
 #ifndef _H_generate
 
+#pragma once
+
 #define _H_generate
 
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_reorder
-#include "reorder.h"
-#endif
-#ifndef _H_analysis
 #include "analysis.h"
-#endif
+#include "expressn.h"
+#include "reorder.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GENERATE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FieldConversion(void *,struct lhsParseNode *,struct lhsParseNode *,struct nandFrame *);
-   LOCALE struct expr                   *GetvarReplace(void *,struct lhsParseNode *,int,struct nandFrame *);
-   LOCALE void                           AddNandUnification(void *,struct lhsParseNode *,struct nandFrame *);
+   void                           FieldConversion(void *,struct lhsParseNode *,struct lhsParseNode *,struct nandFrame *);
+   struct expr                   *GetvarReplace(void *,struct lhsParseNode *,bool,struct nandFrame *);
+   void                           AddNandUnification(void *,struct lhsParseNode *,struct nandFrame *);
 
 #endif /* _H_generate */
 

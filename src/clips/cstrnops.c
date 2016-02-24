@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            CONSTRAINT OPERATIONS MODULE             */
    /*******************************************************/
@@ -22,26 +22,23 @@
 /*                                                           */
 /*************************************************************/
 
-#define _CSTRNOPS_SOURCE_
-
 #include "setup.h"
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 
 #if (! RUN_TIME)
 
 #include "constant.h"
-#include "envrnmnt.h"
-#include "memalloc.h"
-#include "router.h"
-#include "extnfunc.h"
-#include "scanner.h"
-#include "multifld.h"
 #include "constrnt.h"
 #include "cstrnchk.h"
 #include "cstrnutl.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
+#include "memalloc.h"
+#include "multifld.h"
+#include "router.h"
+#include "scanner.h"
 
 #include "cstrnops.h"
 
@@ -52,7 +49,7 @@
    static void                     IntersectNumericExpressions(void *,
                                                                CONSTRAINT_RECORD *,
                                                                CONSTRAINT_RECORD *,
-                                                               CONSTRAINT_RECORD *,int);
+                                                               CONSTRAINT_RECORD *,bool);
    static void                     IntersectAllowedValueExpressions(void *,
                                                                     CONSTRAINT_RECORD *,
                                                                     CONSTRAINT_RECORD *,
@@ -61,7 +58,7 @@
                                                                     CONSTRAINT_RECORD *,
                                                                     CONSTRAINT_RECORD *,
                                                                     CONSTRAINT_RECORD *);
-   static int                      FindItemInExpression(int,void *,int,struct expr *);
+   static bool                     FindItemInExpression(int,void *,bool,struct expr *);
    static void                     UpdateRestrictionFlags(CONSTRAINT_RECORD *);
 #if (! BLOAD_ONLY)
    static void                     UnionRangeMinMaxValueWithList(void *,
@@ -72,7 +69,7 @@
    static void                     UnionNumericExpressions(void *,
                                                          CONSTRAINT_RECORD *,
                                                          CONSTRAINT_RECORD *,
-                                                         CONSTRAINT_RECORD *,int);
+                                                         CONSTRAINT_RECORD *,bool);
    static struct expr             *AddToUnionList(void *,
                                                   struct expr *,struct expr *,
                                                   CONSTRAINT_RECORD *);
@@ -84,20 +81,20 @@
                                                                 CONSTRAINT_RECORD *,
                                                                 CONSTRAINT_RECORD *,
                                                                 CONSTRAINT_RECORD *);
-   static int                      RestrictionOnType(int,CONSTRAINT_RECORD *);
+   static bool                     RestrictionOnType(int,CONSTRAINT_RECORD *);
 #endif
 
 /**************************************************************/
 /* IntersectConstraints: Creates a new constraint record that */
 /*   is the intersection of two other constraint records.     */
 /**************************************************************/
-globle struct constraintRecord *IntersectConstraints(
+struct constraintRecord *IntersectConstraints(
   void *theEnv,
   CONSTRAINT_RECORD *c1,
   CONSTRAINT_RECORD *c2)
   {
    struct constraintRecord *rv;
-   int c1Changed = FALSE, c2Changed = FALSE;
+   bool c1Changed = false, c2Changed = false;
 
    /*=================================================*/
    /* If both constraint records are NULL,then create */
@@ -107,7 +104,7 @@ globle struct constraintRecord *IntersectConstraints(
    if ((c1 == NULL) && (c2 == NULL))
      {
       rv = GetConstraintRecord(theEnv);
-      rv->multifieldsAllowed = TRUE;
+      rv->multifieldsAllowed = true;
       return(rv);
      }
 
@@ -134,35 +131,35 @@ globle struct constraintRecord *IntersectConstraints(
    if ((c1->multifieldsAllowed != c2->multifieldsAllowed) &&
        (c1->singlefieldsAllowed != c2->singlefieldsAllowed))
      {
-      rv->anyAllowed = FALSE;
+      rv->anyAllowed = false;
       return(rv);
      }
 
    if (c1->multifieldsAllowed && c2->multifieldsAllowed)
-     { rv->multifieldsAllowed = TRUE; }
+     { rv->multifieldsAllowed = true; }
    else
-     { rv->multifieldsAllowed = FALSE; }
+     { rv->multifieldsAllowed = false; }
 
    if (c1->singlefieldsAllowed && c2->singlefieldsAllowed)
-     { rv->singlefieldsAllowed = TRUE; }
+     { rv->singlefieldsAllowed = true; }
    else
-     { rv->singlefieldsAllowed = FALSE; }
+     { rv->singlefieldsAllowed = false; }
 
-   if (c1->anyAllowed && c2->anyAllowed) rv->anyAllowed = TRUE;
+   if (c1->anyAllowed && c2->anyAllowed) rv->anyAllowed = true;
    else
      {
       if (c1->anyAllowed)
         {
-         c1Changed = TRUE;
-         SetAnyAllowedFlags(c1,FALSE);
+         c1Changed = true;
+         SetAnyAllowedFlags(c1,false);
         }
       else if (c2->anyAllowed)
         {
-         c2Changed = TRUE;
-         SetAnyAllowedFlags(c2,FALSE);
+         c2Changed = true;
+         SetAnyAllowedFlags(c2,false);
         }
 
-      rv->anyAllowed = FALSE;
+      rv->anyAllowed = false;
       rv->symbolsAllowed = (c1->symbolsAllowed && c2->symbolsAllowed);
       rv->stringsAllowed = (c1->stringsAllowed && c2->stringsAllowed);
       rv->floatsAllowed = (c1->floatsAllowed && c2->floatsAllowed);
@@ -174,18 +171,18 @@ globle struct constraintRecord *IntersectConstraints(
       rv->multifieldsAllowed = (c1->multifieldsAllowed && c2->multifieldsAllowed);
       rv->factAddressesAllowed = (c1->factAddressesAllowed && c2->factAddressesAllowed);
 
-      if (c1Changed) SetAnyAllowedFlags(c1,TRUE);
-      if (c2Changed) SetAnyAllowedFlags(c2,TRUE);
+      if (c1Changed) SetAnyAllowedFlags(c1,true);
+      if (c2Changed) SetAnyAllowedFlags(c2,true);
      }
 
    /*=====================================*/
    /* Intersect the allowed-values flags. */
    /*=====================================*/
 
-   if (c1->anyRestriction || c2->anyRestriction) rv->anyRestriction = TRUE;
+   if (c1->anyRestriction || c2->anyRestriction) rv->anyRestriction = true;
    else
      {
-      rv->anyRestriction = FALSE;
+      rv->anyRestriction = false;
       rv->symbolRestriction = (c1->symbolRestriction || c2->symbolRestriction);
       rv->stringRestriction = (c1->stringRestriction || c2->stringRestriction);
       rv->floatRestriction = (c1->floatRestriction || c2->floatRestriction);
@@ -201,8 +198,8 @@ globle struct constraintRecord *IntersectConstraints(
 
    IntersectAllowedValueExpressions(theEnv,c1,c2,rv);
    IntersectAllowedClassExpressions(theEnv,c1,c2,rv);
-   IntersectNumericExpressions(theEnv,c1,c2,rv,TRUE);
-   IntersectNumericExpressions(theEnv,c1,c2,rv,FALSE);
+   IntersectNumericExpressions(theEnv,c1,c2,rv,true);
+   IntersectNumericExpressions(theEnv,c1,c2,rv,false);
 
    /*==========================================*/
    /* Update the allowed-values flags based on */
@@ -221,7 +218,7 @@ globle struct constraintRecord *IntersectConstraints(
      {
       rv->multifield = IntersectConstraints(theEnv,c1->multifield,c2->multifield);
       if (UnmatchableConstraint(rv->multifield))
-        { rv->multifieldsAllowed = FALSE; }
+        { rv->multifieldsAllowed = false; }
      }
 
    /*========================*/
@@ -276,7 +273,7 @@ static void IntersectAllowedValueExpressions(
         theList2 != NULL;
         theList2 = theList2->nextArg)
      {
-      if (FindItemInExpression(theList2->type,theList2->value,TRUE,theHead))
+      if (FindItemInExpression(theList2->type,theList2->value,true,theHead))
         { /* The value is already in the list--Do nothing */ }
       else if (CheckAllowedValuesConstraint(theList2->type,theList2->value,constraint1) &&
                CheckAllowedValuesConstraint(theList2->type,theList2->value,constraint2))
@@ -340,7 +337,7 @@ static void IntersectAllowedClassExpressions(
         theList2 != NULL;
         theList2 = theList2->nextArg)
      {
-      if (FindItemInExpression(theList2->type,theList2->value,TRUE,theHead))
+      if (FindItemInExpression(theList2->type,theList2->value,true,theHead))
         { /* The value is already in the list--Do nothing */ }
       else if (CheckAllowedClassesConstraint(theEnv,theList2->type,theList2->value,constraint1) &&
                CheckAllowedClassesConstraint(theEnv,theList2->type,theList2->value,constraint2))
@@ -369,7 +366,7 @@ static void IntersectNumericExpressions(
   CONSTRAINT_RECORD *constraint1,
   CONSTRAINT_RECORD *constraint2,
   CONSTRAINT_RECORD *newConstraint,
-  int range)
+  bool range)
   {
    struct expr *tmpmin1, *tmpmax1, *tmpmin2, *tmpmax2, *theMin, *theMax;
    struct expr *theMinList, *theMaxList, *lastMin = NULL, *lastMax = NULL;
@@ -536,16 +533,16 @@ static void IntersectNumericExpressions(
      {
       if (range)
         {
-         if (newConstraint->anyAllowed) SetAnyAllowedFlags(newConstraint,FALSE);
-         newConstraint->integersAllowed = FALSE;
-         newConstraint->floatsAllowed = FALSE;
+         if (newConstraint->anyAllowed) SetAnyAllowedFlags(newConstraint,false);
+         newConstraint->integersAllowed = false;
+         newConstraint->floatsAllowed = false;
         }
       else
         {
-         SetAnyAllowedFlags(newConstraint,TRUE);
-         newConstraint->singlefieldsAllowed = FALSE;
-         newConstraint->multifieldsAllowed = FALSE;
-         newConstraint->anyAllowed = FALSE;
+         SetAnyAllowedFlags(newConstraint,true);
+         newConstraint->singlefieldsAllowed = false;
+         newConstraint->multifieldsAllowed = false;
+         newConstraint->anyAllowed = false;
         }
      }
   }
@@ -563,64 +560,64 @@ static void UpdateRestrictionFlags(
   {
    if ((rv->anyRestriction) && (rv->restrictionList == NULL))
      {
-      SetAnyAllowedFlags(rv,TRUE);
-      rv->anyAllowed = FALSE;
+      SetAnyAllowedFlags(rv,true);
+      rv->anyAllowed = false;
      }
 
    if ((rv->symbolRestriction) && (rv->symbolsAllowed))
-     { rv->symbolsAllowed = FindItemInExpression(SYMBOL,NULL,FALSE,rv->restrictionList); }
+     { rv->symbolsAllowed = FindItemInExpression(SYMBOL,NULL,false,rv->restrictionList); }
 
    if ((rv->stringRestriction)  && (rv->stringsAllowed))
-     { rv->stringsAllowed = FindItemInExpression(STRING,NULL,FALSE,rv->restrictionList); }
+     { rv->stringsAllowed = FindItemInExpression(STRING,NULL,false,rv->restrictionList); }
 
    if ((rv->floatRestriction) && (rv->floatsAllowed))
-     { rv->floatsAllowed = FindItemInExpression(FLOAT,NULL,FALSE,rv->restrictionList); }
+     { rv->floatsAllowed = FindItemInExpression(FLOAT,NULL,false,rv->restrictionList); }
 
    if ((rv->integerRestriction) && (rv->integersAllowed))
-     { rv->integersAllowed = FindItemInExpression(INTEGER,NULL,FALSE,rv->restrictionList); }
+     { rv->integersAllowed = FindItemInExpression(INTEGER,NULL,false,rv->restrictionList); }
 
    if ((rv->instanceNameRestriction) && (rv->instanceNamesAllowed))
-     { rv->instanceNamesAllowed = FindItemInExpression(INSTANCE_NAME,NULL,FALSE,rv->restrictionList); }
+     { rv->instanceNamesAllowed = FindItemInExpression(INSTANCE_NAME,NULL,false,rv->restrictionList); }
   }
 
 /*************************************************************/
 /* FindItemInExpression: Determines if a particular constant */
 /*   (such as 27) or a class of constants (such as integers) */
-/*   can be found in a list of constants. Returns TRUE if    */
-/*   such a constant can be found, otherwise FALSE.          */
+/*   can be found in a list of constants. Returns true if    */
+/*   such a constant can be found, otherwise false.          */
 /*************************************************************/
-static int FindItemInExpression(
+static bool FindItemInExpression(
   int theType,
   void *theValue,
-  int useValue,
+  bool useValue,
   struct expr *theList)
   {
    while (theList != NULL)
      {
       if (theList->type == theType)
         {
-         if (! useValue) return(TRUE);
-         else if (theList->value == theValue) return(TRUE);
+         if (! useValue) return(true);
+         else if (theList->value == theValue) return(true);
         }
 
       theList = theList->nextArg;
      }
 
-   return(FALSE);
+   return(false);
   }
 
 #if (! BLOAD_ONLY)
 
 /**************************************************/
 /* RestrictionOnType: Determines if a restriction */
-/*   is present for a specific type. Returns TRUE */
-/*   if there is, otherwise FALSE.                */
+/*   is present for a specific type. Returns true */
+/*   if there is, otherwise false.                */
 /**************************************************/
-static int RestrictionOnType(
+static bool RestrictionOnType(
   int theType,
   CONSTRAINT_RECORD *theConstraint)
   {
-   if (theConstraint == NULL) return(FALSE);
+   if (theConstraint == NULL) return(false);
 
    if ((theConstraint->anyRestriction) ||
        (theConstraint->symbolRestriction && (theType == SYMBOL)) ||
@@ -630,22 +627,22 @@ static int RestrictionOnType(
        (theConstraint->classRestriction && ((theType == INSTANCE_ADDRESS) ||
                                             (theType == INSTANCE_NAME))) ||
        (theConstraint->instanceNameRestriction && (theType == INSTANCE_NAME)))
-     { return(TRUE); }
+     { return(true); }
 
-   return(FALSE);
+   return(false);
   }
 
 /**********************************************************/
 /* UnionConstraints: Creates a new constraint record that */
 /*   is the union of two other constraint records.        */
 /**********************************************************/
-globle struct constraintRecord *UnionConstraints(
+struct constraintRecord *UnionConstraints(
   void *theEnv,
   CONSTRAINT_RECORD *c1,
   CONSTRAINT_RECORD *c2)
   {
    struct constraintRecord *rv;
-   int c1Changed = FALSE, c2Changed = FALSE;
+   bool c1Changed = false, c2Changed = false;
 
    /*=================================================*/
    /* If both constraint records are NULL,then create */
@@ -678,15 +675,15 @@ globle struct constraintRecord *UnionConstraints(
    /*==========================*/
 
    if (c1->multifieldsAllowed || c2->multifieldsAllowed)
-     { rv->multifieldsAllowed = TRUE; }
+     { rv->multifieldsAllowed = true; }
 
    if (c1->singlefieldsAllowed || c2->singlefieldsAllowed)
-     { rv->singlefieldsAllowed = TRUE; }
+     { rv->singlefieldsAllowed = true; }
 
-   if (c1->anyAllowed || c2->anyAllowed) rv->anyAllowed = TRUE;
+   if (c1->anyAllowed || c2->anyAllowed) rv->anyAllowed = true;
    else
      {
-      rv->anyAllowed = FALSE;
+      rv->anyAllowed = false;
       rv->symbolsAllowed = (c1->symbolsAllowed || c2->symbolsAllowed);
       rv->stringsAllowed = (c1->stringsAllowed || c2->stringsAllowed);
       rv->floatsAllowed = (c1->floatsAllowed || c2->floatsAllowed);
@@ -702,21 +699,21 @@ globle struct constraintRecord *UnionConstraints(
    /* Union the allowed-values flags. */
    /*=================================*/
 
-   if (c1->anyRestriction && c2->anyRestriction) rv->anyRestriction = TRUE;
+   if (c1->anyRestriction && c2->anyRestriction) rv->anyRestriction = true;
    else
      {
       if (c1->anyRestriction)
         {
-         c1Changed = TRUE;
-         SetAnyRestrictionFlags(c1,FALSE);
+         c1Changed = true;
+         SetAnyRestrictionFlags(c1,false);
         }
       else if (c2->anyRestriction)
         {
-         c2Changed = TRUE;
-         SetAnyRestrictionFlags(c2,FALSE);
+         c2Changed = true;
+         SetAnyRestrictionFlags(c2,false);
         }
 
-      rv->anyRestriction = FALSE;
+      rv->anyRestriction = false;
       rv->symbolRestriction = (c1->symbolRestriction && c2->symbolRestriction);
       rv->stringRestriction = (c1->stringRestriction && c2->stringRestriction);
       rv->floatRestriction = (c1->floatRestriction && c2->floatRestriction);
@@ -724,8 +721,8 @@ globle struct constraintRecord *UnionConstraints(
       rv->classRestriction = (c1->classRestriction && c2->classRestriction);
       rv->instanceNameRestriction = (c1->instanceNameRestriction && c2->instanceNameRestriction);
 
-      if (c1Changed) SetAnyRestrictionFlags(c1,FALSE);
-      else if (c2Changed) SetAnyRestrictionFlags(c2,FALSE);
+      if (c1Changed) SetAnyRestrictionFlags(c1,false);
+      else if (c2Changed) SetAnyRestrictionFlags(c2,false);
      }
 
    /*========================================*/
@@ -735,8 +732,8 @@ globle struct constraintRecord *UnionConstraints(
 
    UnionAllowedValueExpressions(theEnv,c1,c2,rv);
    UnionAllowedClassExpressions(theEnv,c1,c2,rv);
-   UnionNumericExpressions(theEnv,c1,c2,rv,TRUE);
-   UnionNumericExpressions(theEnv,c1,c2,rv,FALSE);
+   UnionNumericExpressions(theEnv,c1,c2,rv,true);
+   UnionNumericExpressions(theEnv,c1,c2,rv,false);
 
    /*========================================*/
    /* If multifields are allowed, then union */
@@ -763,7 +760,7 @@ static void UnionNumericExpressions(
   CONSTRAINT_RECORD *constraint1,
   CONSTRAINT_RECORD *constraint2,
   CONSTRAINT_RECORD *newConstraint,
-  int range)
+  bool range)
   {
    struct expr *tmpmin, *tmpmax;
    struct expr *theMinList, *theMaxList;
@@ -863,14 +860,14 @@ static void UnionNumericExpressions(
      {
       if (range)
         {
-         if (newConstraint->anyAllowed) SetAnyAllowedFlags(newConstraint,FALSE);
-         newConstraint->integersAllowed = FALSE;
-         newConstraint->floatsAllowed = FALSE;
+         if (newConstraint->anyAllowed) SetAnyAllowedFlags(newConstraint,false);
+         newConstraint->integersAllowed = false;
+         newConstraint->floatsAllowed = false;
         }
       else
         {
-         SetAnyAllowedFlags(newConstraint,TRUE);
-         newConstraint->anyAllowed = TRUE;
+         SetAnyAllowedFlags(newConstraint,true);
+         newConstraint->anyAllowed = true;
         }
      }
   }
@@ -1078,7 +1075,7 @@ static struct expr *AddToUnionList(
   CONSTRAINT_RECORD *theConstraint)
   {
    struct expr *theList2;
-   int flag;
+   bool flag;
 
    /*======================================*/
    /* Loop through each value in the list  */
@@ -1092,7 +1089,7 @@ static struct expr *AddToUnionList(
       /* in the unioned list.              */
       /*===================================*/
 
-      flag = TRUE;
+      flag = true;
       for (theList2 = theHead;
            theList2 != NULL;
            theList2 = theList2->nextArg)
@@ -1100,7 +1097,7 @@ static struct expr *AddToUnionList(
          if ((theList1->type == theList2->type) &&
              (theList1->value == theList2->value))
            {
-            flag = FALSE;
+            flag = false;
             break;
            }
         }
@@ -1134,7 +1131,7 @@ static struct expr *AddToUnionList(
 /*   value (including any duplicates) from the      */
 /*   restriction list of a constraint record.       */
 /****************************************************/
-globle void RemoveConstantFromConstraint(
+void RemoveConstantFromConstraint(
   void *theEnv,
   int theType,
   void *theValue,

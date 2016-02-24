@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*          CONSTRUCT BINARY LOAD/SAVE MODULE          */
    /*******************************************************/
@@ -32,7 +32,6 @@
 
 #include "moduldef.h"
 
-#define _CSTRCBIN_SOURCE_
 #include "cstrcbin.h"
 
 #if BLOAD_AND_BSAVE
@@ -49,11 +48,11 @@
   SIDE EFFECTS : Id set and items marked
   NOTES        : None
  ***************************************************/
-globle void MarkConstructHeaderNeededItems(
+void MarkConstructHeaderNeededItems(
   struct constructHeader *theConstruct,
   long theBsaveID)
   {
-   theConstruct->name->neededSymbol = TRUE;
+   theConstruct->name->neededSymbol = true;
    theConstruct->bsaveID = theBsaveID;
   }
 
@@ -74,7 +73,7 @@ globle void MarkConstructHeaderNeededItems(
                  used for the whichModule id of
                  this construct.
  ******************************************************/
-globle void AssignBsaveConstructHeaderVals(
+void AssignBsaveConstructHeaderVals(
   struct bsaveConstructHeader *theBsaveConstruct,
   struct constructHeader *theConstruct)
   {
@@ -106,7 +105,7 @@ globle void AssignBsaveConstructHeaderVals(
   SIDE EFFECTS : Header values set
   NOTES        : None
  ***************************************************/
-LOCALE void UpdateConstructHeader(
+void UpdateConstructHeader(
   void *theEnv,
   struct bsaveConstructHeader *theBsaveConstruct,
   struct constructHeader *theConstruct,
@@ -143,7 +142,7 @@ LOCALE void UpdateConstructHeader(
   SIDE EFFECTS : Busy counts fo ephemerals decremented
   NOTES        : None
  *******************************************************/
-globle void UnmarkConstructHeader(
+void UnmarkConstructHeader(
   void *theEnv,
   struct constructHeader *theConstruct)
   {

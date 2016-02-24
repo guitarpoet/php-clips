@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                    SCANNER MODULE                   */
    /*******************************************************/
@@ -32,27 +32,24 @@
 /*                                                           */
 /*************************************************************/
 
-#define _SCANNER_SOURCE_
-
 #include <ctype.h>
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "setup.h"
+
 #include "constant.h"
 #include "envrnmnt.h"
+#include "memalloc.h"
 #include "router.h"
 #include "symbol.h"
-#include "utility.h"
-#include "memalloc.h"
 #include "sysdep.h"
+#include "utility.h"
 
 #include "scanner.h"
-
-#include <stdlib.h>
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
@@ -67,7 +64,7 @@
 /* InitializeScannerData: Allocates environment */
 /*    data for scanner routines.                */
 /************************************************/
-globle void InitializeScannerData(
+void InitializeScannerData(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,SCANNER_DATA,sizeof(struct scannerData),DeallocateScannerData);
@@ -92,7 +89,7 @@ static void DeallocateScannerData(
 /*   symbol or string, an integer table location if it is an integer), */
 /*   and the pretty print representation.                              */
 /***********************************************************************/
-globle void GetToken(
+void GetToken(
  void *theEnv,
  const char *logicalName,
  struct token *theToken)
@@ -431,7 +428,7 @@ static void *ScanSymbol(
 #if OBJECT_SYSTEM
    if (count > 2)
      {
-      if ((ScannerData(theEnv)->GlobalString[0] == '[') ? (ScannerData(theEnv)->GlobalString[count-1] == ']') : FALSE)
+      if ((ScannerData(theEnv)->GlobalString[0] == '[') ? (ScannerData(theEnv)->GlobalString[count-1] == ']') : false)
         {
          *type = INSTANCE_NAME;
          inchar = ']';
@@ -485,9 +482,9 @@ static void *ScanString(
       inchar = EnvGetcRouter(theEnv,logicalName);
      }
 
-   if ((inchar == EOF) && (ScannerData(theEnv)->IgnoreCompletionErrors == FALSE))
+   if ((inchar == EOF) && (ScannerData(theEnv)->IgnoreCompletionErrors == false))
      { 
-      PrintErrorID(theEnv,"SCANNER",1,TRUE);
+      PrintErrorID(theEnv,"SCANNER",1,true);
       EnvPrintRouter(theEnv,WERROR,"Encountered End-Of-File while scanning a string\n"); 
      }
 
@@ -517,8 +514,8 @@ static void ScanNumber(
   {
    int count = 0;
    int inchar, phase;
-   int digitFound = FALSE;
-   int processFloat = FALSE;
+   bool digitFound = false;
+   bool processFloat = false;
    double fvalue;
    long long lvalue;
    unsigned short type;
@@ -542,7 +539,7 @@ static void ScanNumber(
          if (isdigit(inchar))
            {
             phase = 0;
-            digitFound = TRUE;
+            digitFound = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
            }
@@ -554,14 +551,14 @@ static void ScanNumber(
            }
          else if (inchar == '.')
            {
-            processFloat = TRUE;
+            processFloat = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
             phase = 1;
            }
          else if ((inchar == 'E') || (inchar == 'e'))
            {
-            processFloat = TRUE;
+            processFloat = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
             phase = 2;
@@ -583,20 +580,20 @@ static void ScanNumber(
         {
          if (isdigit(inchar))
            {
-            digitFound = TRUE;
+            digitFound = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
            }
          else if (inchar == '.')
            {
-            processFloat = TRUE;
+            processFloat = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
             phase = 1;
            }
          else if ((inchar == 'E') || (inchar == 'e'))
            {
-            processFloat = TRUE;
+            processFloat = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
             phase = 2;
@@ -618,7 +615,7 @@ static void ScanNumber(
         {
          if (isdigit(inchar))
            {
-            digitFound = TRUE;
+            digitFound = true;
             ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
             count++;
            }
@@ -661,7 +658,7 @@ static void ScanNumber(
                    (inchar == ' ') || (inchar == ';') ||
                    ((isprint(inchar) == 0) && (! IsUTF8MultiByteStart(inchar))) )
            {
-            digitFound = FALSE;
+            digitFound = false;
             phase = 5;
            }
          else
@@ -685,7 +682,7 @@ static void ScanNumber(
                    ((isprint(inchar) == 0) && (! IsUTF8MultiByteStart(inchar))) )
            {
             if ((ScannerData(theEnv)->GlobalString[count-1] == '+') || (ScannerData(theEnv)->GlobalString[count-1] == '-'))
-              { digitFound = FALSE; }
+              { digitFound = false; }
             phase = 5;
            }
          else
@@ -740,7 +737,7 @@ static void ScanNumber(
 #endif
       if (errno)
         {
-         PrintWarningID(theEnv,"SCANNER",1,FALSE);
+         PrintWarningID(theEnv,"SCANNER",1,false);
          EnvPrintRouter(theEnv,WWARNING,"Over or underflow of long long integer.\n");
         }
       theToken->type = INTEGER;
@@ -754,7 +751,7 @@ static void ScanNumber(
 /***********************************************************/
 /* CopyToken: Copies values of one token to another token. */
 /***********************************************************/
-globle void CopyToken(
+void CopyToken(
   struct token *destination,
   struct token *source)
   {
@@ -767,7 +764,7 @@ globle void CopyToken(
 /* ResetLineCount: Resets the scanner's */
 /*   line count to zero.                */
 /****************************************/
-globle void ResetLineCount(
+void ResetLineCount(
   void *theEnv)
   {
    ScannerData(theEnv)->LineCount = 0;
@@ -776,7 +773,7 @@ globle void ResetLineCount(
 /***************************************************/
 /* GetLineCount: Returns the scanner's line count. */
 /***************************************************/
-globle long GetLineCount(
+long GetLineCount(
   void *theEnv)
   {
    return(ScannerData(theEnv)->LineCount);
@@ -786,7 +783,7 @@ globle long GetLineCount(
 /* SetLineCount: Sets the scanner's line count */
 /*   and returns the previous value.           */
 /***********************************************/
-globle long SetLineCount(
+long SetLineCount(
   void *theEnv,
   long value)
   {
@@ -803,7 +800,7 @@ globle long SetLineCount(
 /* IncrementLineCount: Increments */
 /*   the scanner's line count.    */
 /**********************************/
-globle void IncrementLineCount(
+void IncrementLineCount(
   void *theEnv)
   {
    ScannerData(theEnv)->LineCount++;
@@ -813,7 +810,7 @@ globle void IncrementLineCount(
 /* DecrementLineCount: Decrements */
 /*   the scanner's line count.    */
 /**********************************/
-globle void DecrementLineCount(
+void DecrementLineCount(
   void *theEnv)
   {
    ScannerData(theEnv)->LineCount--;

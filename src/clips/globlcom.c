@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              DEFGLOBAL COMMANDS MODULE              */
    /*******************************************************/
@@ -32,19 +32,16 @@
 /*                                                           */
 /*************************************************************/
 
-#define _GLOBLCOM_SOURCE_
-
 #include "setup.h"
 
 #if DEFGLOBAL_CONSTRUCT
 
-#include "extnfunc.h"
 #include "argacces.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
+#include "globldef.h"
 #include "prntutil.h"
 #include "router.h"
-#include "envrnmnt.h"
-
-#include "globldef.h"
 
 #include "globlcom.h"
 
@@ -59,18 +56,18 @@
 /************************************************************/
 /* DefglobalCommandDefinitions: Defines defglobal commands. */
 /************************************************************/
-globle void DefglobalCommandDefinitions(
+void DefglobalCommandDefinitions(
   void *theEnv)
   {
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"set-reset-globals",'b',
-                  SetResetGlobalsCommand,"SetResetGlobalsCommand", "11");
-   EnvDefineFunction2(theEnv,"get-reset-globals",'b',
-                   GetResetGlobalsCommand,"GetResetGlobalsCommand", "00");
+   EnvAddUDF(theEnv,"set-reset-globals","b",
+                   SetResetGlobalsCommand,"SetResetGlobalsCommand", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"get-reset-globals","b",
+                    GetResetGlobalsCommand,"GetResetGlobalsCommand", 0,0,NULL,NULL);
 
 #if DEBUGGING_FUNCTIONS
-   EnvDefineFunction2(theEnv,"show-defglobals",'v',
-                   PTIEF ShowDefglobalsCommand,"ShowDefglobalsCommand", "01w");
+   EnvAddUDF(theEnv,"show-defglobals","v",
+                    ShowDefglobalsCommand,"ShowDefglobalsCommand", 0,1,"y",NULL);
 #endif
 
 #else
@@ -84,11 +81,13 @@ globle void DefglobalCommandDefinitions(
 /* SetResetGlobalsCommand: H/L access routine   */
 /*   for the get-reset-globals command.         */
 /************************************************/
-globle int SetResetGlobalsCommand(
-  void *theEnv)
+void SetResetGlobalsCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int oldValue;
-   DATA_OBJECT arg_ptr;
+   bool oldValue;
+   DATA_OBJECT result;
+   void *theEnv = UDFContextEnvironment(context);
 
    /*===========================================*/
    /* Remember the old value of this attribute. */
@@ -96,40 +95,34 @@ globle int SetResetGlobalsCommand(
 
    oldValue = EnvGetResetGlobals(theEnv);
 
-   /*============================================*/
-   /* Check for the correct number of arguments. */
-   /*============================================*/
-
-   if (EnvArgCountCheck(theEnv,"set-reset-globals",EXACTLY,1) == -1)
-     { return(oldValue); }
-
    /*===========================================*/
    /* Determine the new value of the attribute. */
    /*===========================================*/
 
-   EnvRtnUnknown(theEnv,1,&arg_ptr);
-
-   if ((arg_ptr.value == EnvFalseSymbol(theEnv)) && (arg_ptr.type == SYMBOL))
-     { EnvSetResetGlobals(theEnv,FALSE); }
+   if (! UDFFirstArgument(context,ANY_TYPE,&result))
+     { return; }
+   
+   if (CVIsFalseSymbol(&result))
+     { EnvSetResetGlobals(theEnv,false); }
    else
-     { EnvSetResetGlobals(theEnv,TRUE); }
+     { EnvSetResetGlobals(theEnv,true); }
 
    /*========================================*/
    /* Return the old value of the attribute. */
    /*========================================*/
 
-   return(oldValue);
+   mCVSetBoolean(returnValue,oldValue);
   }
 
 /****************************************/
 /* EnvSetResetGlobals: C access routine */
 /*   for the set-reset-globals command. */
 /****************************************/
-globle intBool EnvSetResetGlobals(
+bool EnvSetResetGlobals(
   void *theEnv,
-  int value)
+  bool value)
   {
-   int ov;
+   bool ov;
 
    ov = DefglobalData(theEnv)->ResetGlobals;
    DefglobalData(theEnv)->ResetGlobals = value;
@@ -140,24 +133,18 @@ globle intBool EnvSetResetGlobals(
 /* GetResetGlobalsCommand: H/L access routine   */
 /*   for the get-reset-globals command.         */
 /************************************************/
-globle int GetResetGlobalsCommand(
-  void *theEnv)
+void GetResetGlobalsCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   int oldValue;
-
-   oldValue = EnvGetResetGlobals(theEnv);
-
-   if (EnvArgCountCheck(theEnv,"get-reset-globals",EXACTLY,0) == -1)
-     { return(oldValue); }
-
-   return(oldValue);
+   mCVSetBoolean(returnValue,EnvGetResetGlobals(UDFContextEnvironment(context)));
   }
 
 /****************************************/
 /* EnvGetResetGlobals: C access routine */
 /*   for the get-reset-globals command. */
 /****************************************/
-globle intBool EnvGetResetGlobals(
+bool EnvGetResetGlobals(
   void *theEnv)
   {   
    return(DefglobalData(theEnv)->ResetGlobals); 
@@ -169,14 +156,16 @@ globle intBool EnvGetResetGlobals(
 /* ShowDefglobalsCommand: H/L access routine   */
 /*   for the show-defglobals command.          */
 /***********************************************/
-globle void ShowDefglobalsCommand(
-  void *theEnv)
+void ShowDefglobalsCommand(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    struct defmodule *theModule;
-   int numArgs, error;
+   int numArgs;
+   bool error;
+   void *theEnv = UDFContextEnvironment(context);
 
-   if ((numArgs = EnvArgCountCheck(theEnv,"show-defglobals",NO_MORE_THAN,1)) == -1) return;
-
+   numArgs = UDFArgumentCount(context);
    if (numArgs == 1)
      {
       theModule = GetModuleName(theEnv,"show-defglobals",1,&error);
@@ -192,14 +181,14 @@ globle void ShowDefglobalsCommand(
 /* EnvShowDefglobals: C access routine */
 /*   for the show-defglobals command.  */
 /***************************************/
-globle void EnvShowDefglobals(
+void EnvShowDefglobals(
   void *theEnv,
   const char *logicalName,
   void *vTheModule)
   {
    struct defmodule *theModule = (struct defmodule *) vTheModule;
    struct constructHeader *constructPtr;
-   int allModules = FALSE;
+   bool allModules = false;
    struct defmoduleItemHeader *theModuleItem;
 
    /*=======================================*/
@@ -210,7 +199,7 @@ globle void EnvShowDefglobals(
    if (theModule == NULL)
      {
       theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
-      allModules = TRUE;
+      allModules = true;
      }
 
    /*======================================================*/
@@ -244,7 +233,7 @@ globle void EnvShowDefglobals(
            constructPtr != NULL;
            constructPtr = constructPtr->next)
         {
-         if (EvaluationData(theEnv)->HaltExecution == TRUE) return;
+         if (EvaluationData(theEnv)->HaltExecution == true) return;
 
          if (allModules) EnvPrintRouter(theEnv,logicalName,"   ");
          PrintDefglobalValueForm(theEnv,logicalName,(void *) constructPtr);
@@ -279,36 +268,6 @@ static void PrintDefglobalValueForm(
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool GetResetGlobals()
-  {   
-   return EnvGetResetGlobals(GetCurrentEnvironment());
-  }
-
-globle intBool SetResetGlobals(
-  int value)
-  {
-   return EnvSetResetGlobals(GetCurrentEnvironment(),value);
-  }
-
-#if DEBUGGING_FUNCTIONS
-
-globle void ShowDefglobals(
-  const char *logicalName,
-  void *vTheModule)
-  {
-   EnvShowDefglobals(GetCurrentEnvironment(),logicalName,vTheModule);
-  }
-
-#endif /* DEBUGGING_FUNCTIONS */
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFGLOBAL_CONSTRUCT */
 

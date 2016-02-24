@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             EXPRESSION BSAVE/BLOAD MODULE           */
    /*******************************************************/
@@ -22,23 +22,20 @@
 /*                                                           */
 /*************************************************************/
 
-#define _EXPRNBIN_SOURCE_
-
 #include "setup.h"
 
 #if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "dffctdef.h"
-#include "moduldef.h"
-#include "constrct.h"
-#include "extnfunc.h"
 #include "bload.h"
 #include "bsave.h"
+#include "constrct.h"
+#include "dffctdef.h"
 #include "envrnmnt.h"
+#include "extnfunc.h"
+#include "memalloc.h"
+#include "moduldef.h"
 
 #if DEFRULE_CONSTRUCT
 #include "network.h"
@@ -79,7 +76,7 @@
 /*   required for loading the binary image of expressions  */
 /*   and allocates that amount of space.                   */
 /***********************************************************/
-globle void AllocateExpressions(
+void AllocateExpressions(
   void *theEnv)
   {
    size_t space;
@@ -98,7 +95,7 @@ globle void AllocateExpressions(
 /* RefreshExpressions: Refreshes the pointers */
 /*   used by the expression binary image.     */
 /**********************************************/
-globle void RefreshExpressions(
+void RefreshExpressions(
   void *theEnv)
   {
    if (ExpressionData(theEnv)->ExpressionArray == NULL) return;
@@ -245,7 +242,7 @@ static void UpdateExpression(
 /* ClearBloadedExpressions: Clears the space */
 /*   utilized by an expression binary image. */
 /*********************************************/
-globle void ClearBloadedExpressions(
+void ClearBloadedExpressions(
   void *theEnv)
   {
    unsigned long int i;
@@ -318,7 +315,7 @@ globle void ClearBloadedExpressions(
   SIDE EFFECTS : Atoms marked and ids set
   NOTES        : None
  ***************************************************/
-globle void FindHashedExpressions(
+void FindHashedExpressions(
   void *theEnv)
   {
    register unsigned i;
@@ -341,7 +338,7 @@ globle void FindHashedExpressions(
   SIDE EFFECTS : Expressions written
   NOTES        : None
  ***************************************************/
-globle void BsaveHashedExpressions(
+void BsaveHashedExpressions(
   void *theEnv,
   FILE *fp)
   {
@@ -357,7 +354,7 @@ globle void BsaveHashedExpressions(
 /* BsaveConstructExpressions: Writes all expression needed by  */
 /*   constructs for this binary image to the binary save file. */
 /***************************************************************/
-globle void BsaveConstructExpressions(
+void BsaveConstructExpressions(
   void *theEnv,
   FILE *fp)
   {
@@ -376,7 +373,7 @@ globle void BsaveConstructExpressions(
 /* BsaveExpression: Recursively saves  */
 /*   an expression to the binary file. */
 /***************************************/
-globle void BsaveExpression(
+void BsaveExpression(
   void *theEnv,
   struct expr *testPtr,
   FILE *fp)

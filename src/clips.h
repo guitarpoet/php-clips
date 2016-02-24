@@ -5,6 +5,7 @@
 #define PHP_CLIPS_ENGINE_VERSION "6.30"
 
 #include "../config.h"
+#include "bool.h"
 #include <stdio.h>
 #include "php.h"
 #include "php_ini.h"

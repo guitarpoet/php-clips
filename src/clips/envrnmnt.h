@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                ENVRNMNT HEADER FILE                 */
    /*******************************************************/
@@ -39,24 +39,22 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Refactored code to reduce header dependencies  */
+/*            in sysdep.c.                                   */
+/*                                                           */
+/*            Removed support for environment globals.       */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_envrnmnt
+
+#pragma once
+
 #define _H_envrnmnt
 
-#ifndef _H_symbol
+#include <stdbool.h>
+
 #include "symbol.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _ENVRNMNT_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 #define USER_ENVIRONMENT_DATA 70
 #define MAXIMUM_ENVIRONMENT_POSITIONS 100
@@ -69,10 +67,9 @@ struct environmentCleanupFunction
    struct environmentCleanupFunction *next;
   };
 
-struct environmentData
+typedef struct environmentData
   {   
    unsigned int initialized : 1;
-   unsigned long environmentIndex;
    void *context;
    void *routerContext;
    void *functionContext;
@@ -81,7 +78,7 @@ struct environmentData
    void (**cleanupFunctions)(void *);
    struct environmentCleanupFunction *listOfCleanupEnvironmentFunctions;
    struct environmentData *next;
-  };
+  } Environment;
 
 typedef struct environmentData ENVIRONMENT_DATA;
 typedef struct environmentData * ENVIRONMENT_DATA_PTR;
@@ -89,28 +86,20 @@ typedef struct environmentData * ENVIRONMENT_DATA_PTR;
 #define GetEnvironmentData(theEnv,position) (((struct environmentData *) theEnv)->theData[position])
 #define SetEnvironmentData(theEnv,position,value) (((struct environmentData *) theEnv)->theData[position] = value)
 
-   LOCALE intBool                        AllocateEnvironmentData(void *,unsigned int,unsigned long,void (*)(void *));
-   LOCALE intBool                        DeallocateEnvironmentData(void);
-#if ALLOW_ENVIRONMENT_GLOBALS
-   LOCALE void                           SetCurrentEnvironment(void *);
-   LOCALE intBool                        SetCurrentEnvironmentByIndex(unsigned long);
-   LOCALE void                          *GetEnvironmentByIndex(unsigned long);
-   LOCALE void                          *GetCurrentEnvironment(void);
-   LOCALE unsigned long                  GetEnvironmentIndex(void *);
-#endif
-   LOCALE void                          *CreateEnvironment(void);
-   LOCALE void                          *CreateRuntimeEnvironment(struct symbolHashNode **,struct floatHashNode **,
+   bool                           AllocateEnvironmentData(void *,unsigned int,unsigned long,void (*)(void *));
+   void                          *CreateEnvironment(void);
+   void                          *CreateRuntimeEnvironment(struct symbolHashNode **,struct floatHashNode **,
                                                                   struct integerHashNode **,struct bitMapHashNode **);
-   LOCALE intBool                        DestroyEnvironment(void *);
-   LOCALE intBool                        AddEnvironmentCleanupFunction(void *,const char *,void (*)(void *),int);
-   LOCALE void                          *GetEnvironmentContext(void *);
-   LOCALE void                          *SetEnvironmentContext(void *,void *);
-   LOCALE void                          *GetEnvironmentRouterContext(void *);
-   LOCALE void                          *SetEnvironmentRouterContext(void *,void *);
-   LOCALE void                          *GetEnvironmentFunctionContext(void *);
-   LOCALE void                          *SetEnvironmentFunctionContext(void *,void *);
-   LOCALE void                          *GetEnvironmentCallbackContext(void *);
-   LOCALE void                          *SetEnvironmentCallbackContext(void *,void *);
+   bool                           DestroyEnvironment(void *);
+   bool                           AddEnvironmentCleanupFunction(void *,const char *,void (*)(void *),int);
+   void                          *GetEnvironmentContext(void *);
+   void                          *SetEnvironmentContext(void *,void *);
+   void                          *GetEnvironmentRouterContext(void *);
+   void                          *SetEnvironmentRouterContext(void *,void *);
+   void                          *GetEnvironmentFunctionContext(void *);
+   void                          *SetEnvironmentFunctionContext(void *,void *);
+   void                          *GetEnvironmentCallbackContext(void *);
+   void                          *SetEnvironmentCallbackContext(void *,void *);
 
 #endif /* _H_envrnmnt */
 

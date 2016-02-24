@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*          CONSTRAINT CONSTRUCTS-TO-C MODULE          */
    /*******************************************************/
@@ -30,8 +30,6 @@
 /*                                                           */
 /*************************************************************/
 
-#define _CSTRNCMP_SOURCE_
-
 #include "setup.h"
 
 #if CONSTRUCT_COMPILER && (! RUN_TIME)
@@ -51,7 +49,7 @@
 /*   record code for a run-time module created */
 /*   using the constructs-to-c function.       */
 /***********************************************/
-globle int ConstraintsToCode(
+int ConstraintsToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -62,7 +60,7 @@ globle int ConstraintsToCode(
   int maxIndices)
   {
    int i, j, count;
-   int newHeader = TRUE;
+   bool newHeader = true;
    FILE *fp;
    int version = 1;
    int arrayVersion = 1;
@@ -90,7 +88,7 @@ globle int ConstraintsToCode(
    if ((! EnvGetDynamicConstraintChecking(theEnv)) && (numberOfConstraints != 0))
      {
       numberOfConstraints = 0;
-      PrintWarningID(theEnv,"CSTRNCMP",1,FALSE);
+      PrintWarningID(theEnv,"CSTRNCMP",1,false);
       EnvPrintRouter(theEnv,WWARNING,"Constraints are not saved with a constructs-to-c image\n");
       EnvPrintRouter(theEnv,WWARNING,"  when dynamic constraint checking is disabled.\n");
      }
@@ -108,7 +106,7 @@ globle int ConstraintsToCode(
    /* Create the file. */
    /*==================*/
 
-   if ((fp = NewCFile(theEnv,fileName,pathName,fileNameBuffer,fileID,version,FALSE)) == NULL) return(-1);
+   if ((fp = NewCFile(theEnv,fileName,pathName,fileNameBuffer,fileID,version,false)) == NULL) return(-1);
 
    /*===================*/
    /* List the entries. */
@@ -126,7 +124,7 @@ globle int ConstraintsToCode(
          if (newHeader)
            {
             fprintf(fp,"CONSTRAINT_RECORD C%d_%d[] = {\n",imageID,arrayVersion);
-            newHeader = FALSE;
+            newHeader = false;
            }
 
          fprintf(fp,"{%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
@@ -194,8 +192,8 @@ globle int ConstraintsToCode(
             arrayVersion++;
             if (count < numberOfConstraints)
               {
-               if ((fp = NewCFile(theEnv,fileName,pathName,fileNameBuffer,1,version,FALSE)) == NULL) return(0);
-               newHeader = TRUE;
+               if ((fp = NewCFile(theEnv,fileName,pathName,fileNameBuffer,1,version,false)) == NULL) return(0);
+               newHeader = true;
               }
            }
          else
@@ -210,7 +208,7 @@ globle int ConstraintsToCode(
 /* PrintConstraintReference: Prints C code representation */
 /*   of a constraint record data structure reference.     */
 /**********************************************************/
-globle void PrintConstraintReference(
+void PrintConstraintReference(
   void *theEnv,
   FILE *fp,
   CONSTRAINT_RECORD *cPtr,

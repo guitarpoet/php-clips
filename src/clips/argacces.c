@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               ARGUMENT ACCESS MODULE                */
    /*******************************************************/
@@ -32,25 +32,28 @@
 /*                                                           */
 /*            Support for fact-address arguments.            */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
 /*************************************************************/
-
-#define _ARGACCES_SOURCE_
 
 #include "setup.h"
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
 
+#include "cstrnchk.h"
 #include "envrnmnt.h"
 #include "extnfunc.h"
-#include "router.h"
-#include "cstrnchk.h"
-#include "insfun.h"
 #include "factmngr.h"
+#include "insfun.h"
 #include "prntutil.h"
+#include "router.h"
 #include "sysdep.h"
 
 #include "argacces.h"
@@ -70,7 +73,7 @@
 /*   value of the argument is returned (i.e. the string "a" would  */
 /*   be returned for a, "a", and [a]).                             */
 /*******************************************************************/
-globle const char *EnvRtnLexeme(
+const char *EnvRtnLexeme(
   void *theEnv,
   int argumentPosition)
   {
@@ -92,8 +95,8 @@ globle const char *EnvRtnLexeme(
       NonexistantError(theEnv,"RtnLexeme",
                        ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                        argumentPosition);
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       return(NULL);
      }
 
@@ -118,8 +121,8 @@ globle const char *EnvRtnLexeme(
    ExpectedTypeError3(theEnv,"RtnLexeme",
                   ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                   argumentPosition,"symbol, string, or instance name");
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
    return(NULL);
   }
 
@@ -132,7 +135,7 @@ globle const char *EnvRtnLexeme(
 /*   the argument is returned (i.e. the float 3.0 would be         */
 /*   returned for 3.0 and 3).                                      */
 /*******************************************************************/
-globle double EnvRtnDouble(
+double EnvRtnDouble(
   void *theEnv,
   int argumentPosition)
   {
@@ -154,8 +157,8 @@ globle double EnvRtnDouble(
       NonexistantError(theEnv,"RtnDouble",
                        ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                        argumentPosition);
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       return(1.0);
      }
 
@@ -178,8 +181,8 @@ globle double EnvRtnDouble(
    ExpectedTypeError3(theEnv,"RtnDouble",
                   ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                   argumentPosition,"number");
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
    return(1.0);
   }
 
@@ -192,7 +195,7 @@ globle double EnvRtnDouble(
 /*   value of the argument is returned (i.e. the integer 4       */
 /*   would be returned for 4.3 and 4).                           */
 /*****************************************************************/
-globle long long EnvRtnLong(
+long long EnvRtnLong(
   void *theEnv,
   int argumentPosition)
   {
@@ -214,8 +217,8 @@ globle long long EnvRtnLong(
       NonexistantError(theEnv,"RtnLong",
                        ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                        argumentPosition);
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       return(1L);
      }
 
@@ -238,8 +241,8 @@ globle long long EnvRtnLong(
    ExpectedTypeError3(theEnv,"RtnLong",
                   ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                   argumentPosition,"number");
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
    return(1L);
   }
 
@@ -250,7 +253,7 @@ globle long long EnvRtnLong(
 /*   and type of the argument are returned in a DATA_OBJECT         */
 /*   structure provided by the calling function.                    */
 /********************************************************************/
-globle DATA_OBJECT_PTR EnvRtnUnknown(
+DATA_OBJECT_PTR EnvRtnUnknown(
   void *theEnv,
   int argumentPosition,
   DATA_OBJECT_PTR returnValue)
@@ -269,11 +272,12 @@ globle DATA_OBJECT_PTR EnvRtnUnknown(
 
    if (argPtr == NULL)
      {
+      returnValue->environment = theEnv;
       NonexistantError(theEnv,"RtnUnknown",
                        ValueToString(ExpressionFunctionCallName(EvaluationData(theEnv)->CurrentExpression)),
                        argumentPosition);
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       return(NULL);
      }
 
@@ -289,7 +293,7 @@ globle DATA_OBJECT_PTR EnvRtnUnknown(
 /* EnvRtnArgCount: Returns the length of the argument list */
 /*   for the function call currently being evaluated.      */
 /***********************************************************/
-globle int EnvRtnArgCount(
+int EnvRtnArgCount(
   void *theEnv)
   {
    int count = 0;
@@ -313,7 +317,7 @@ globle int EnvRtnArgCount(
 /*   arguments. The number of arguments is returned if no error occurs, */
 /*   otherwise -1 is returned.                                          */
 /************************************************************************/
-globle int EnvArgCountCheck(
+int EnvArgCountCheck(
   void *theEnv,
   const char *functionName,
   int countRelation,
@@ -347,8 +351,8 @@ globle int EnvArgCountCheck(
 
    ExpectedCountError(theEnv,functionName,countRelation,expectedNumber);
 
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
 
    return(-1);
   }
@@ -359,7 +363,7 @@ globle int EnvArgCountCheck(
 /*   range. The number of arguments passed to the function is   */
 /*   returned if no error occurs, otherwise -1 is returned.     */
 /****************************************************************/
-globle int EnvArgRangeCheck(
+int EnvArgRangeCheck(
   void *theEnv,
   const char *functionName,
   int min,
@@ -370,7 +374,7 @@ globle int EnvArgRangeCheck(
    numberOfArguments = EnvRtnArgCount(theEnv);
    if ((numberOfArguments < min) || (numberOfArguments > max))
      {
-      PrintErrorID(theEnv,"ARGACCES",1,FALSE);
+      PrintErrorID(theEnv,"ARGACCES",1,false);
       EnvPrintRouter(theEnv,WERROR,"Function ");
       EnvPrintRouter(theEnv,WERROR,functionName);
       EnvPrintRouter(theEnv,WERROR," expected at least ");
@@ -378,8 +382,8 @@ globle int EnvArgRangeCheck(
       EnvPrintRouter(theEnv,WERROR," and no more than ");
       PrintLongInteger(theEnv,WERROR,(long) max);
       EnvPrintRouter(theEnv,WERROR," arguments.\n");
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       return(-1);
      }
 
@@ -389,11 +393,11 @@ globle int EnvArgRangeCheck(
 /*************************************************************/
 /* EnvArgTypeCheck: Retrieves the nth argument passed to the */
 /*   function call currently being evaluated and determines  */
-/*   if it matches a specified type. Returns TRUE if the     */
+/*   if it matches a specified type. Returns true if the     */
 /*   argument was successfully retrieved and is of the       */
-/*   appropriate type, otherwise returns FALSE.              */
+/*   appropriate type, otherwise returns false.              */
 /*************************************************************/
-globle int EnvArgTypeCheck(
+bool EnvArgTypeCheck(
   void *theEnv,
   const char *functionName,
   int argumentPosition,
@@ -405,68 +409,68 @@ globle int EnvArgTypeCheck(
    /*========================*/
 
    EnvRtnUnknown(theEnv,argumentPosition,returnValue);
-   if (EvaluationData(theEnv)->EvaluationError) return(FALSE);
+   if (EvaluationData(theEnv)->EvaluationError) return(false);
 
    /*========================================*/
    /* If the argument's type exactly matches */
-   /* the expected type, then return TRUE.   */
+   /* the expected type, then return true.   */
    /*========================================*/
 
-   if (returnValue->type == expectedType) return (TRUE);
+   if (returnValue->type == expectedType) return (true);
 
    /*=============================================================*/
    /* Some expected types encompass more than one primitive type. */
    /* If the argument's type matches one of the primitive types   */
-   /* encompassed by the expected type, then return TRUE.         */
+   /* encompassed by the expected type, then return true.         */
    /*=============================================================*/
 
    if ((expectedType == INTEGER_OR_FLOAT) &&
        ((returnValue->type == INTEGER) || (returnValue->type == FLOAT)))
-     { return(TRUE); }
+     { return(true); }
 
    if ((expectedType == SYMBOL_OR_STRING) &&
        ((returnValue->type == SYMBOL) || (returnValue->type == STRING)))
-     { return(TRUE); }
+     { return(true); }
 
 #if OBJECT_SYSTEM
    if (((expectedType == SYMBOL_OR_STRING) || (expectedType == SYMBOL)) &&
        (returnValue->type == INSTANCE_NAME))
-     { return(TRUE); }
+     { return(true); }
 
    if ((expectedType == INSTANCE_NAME) &&
        ((returnValue->type == INSTANCE_NAME) || (returnValue->type == SYMBOL)))
-     { return(TRUE); }
+     { return(true); }
 
    if ((expectedType == INSTANCE_OR_INSTANCE_NAME) &&
        ((returnValue->type == INSTANCE_ADDRESS) ||
         (returnValue->type == INSTANCE_NAME) ||
         (returnValue->type == SYMBOL)))
-     { return(TRUE); }
+     { return(true); }
 #endif
 
    /*===========================================================*/
    /* If the expected type is float and the argument's type is  */
    /* integer (or vice versa), then convert the argument's type */
-   /* to match the expected type and then return TRUE.          */
+   /* to match the expected type and then return true.          */
    /*===========================================================*/
 
    if ((returnValue->type == INTEGER) && (expectedType == FLOAT))
      {
       returnValue->type = FLOAT;
       returnValue->value = (void *) EnvAddDouble(theEnv,(double) ValueToLong(returnValue->value));
-      return(TRUE);
+      return(true);
      }
 
    if ((returnValue->type == FLOAT) && (expectedType == INTEGER))
      {
       returnValue->type = INTEGER;
       returnValue->value = (void *) EnvAddLong(theEnv,(long long) ValueToDouble(returnValue->value));
-      return(TRUE);
+      return(true);
      }
 
    /*=====================================================*/
    /* The argument's type didn't match the expected type. */
-   /* Print an error message and return FALSE.            */
+   /* Print an error message and return false.            */
    /*=====================================================*/
 
    if (expectedType == FLOAT) ExpectedTypeError1(theEnv,functionName,argumentPosition,"float");
@@ -483,10 +487,10 @@ globle int EnvArgTypeCheck(
    else if (expectedType == INSTANCE_OR_INSTANCE_NAME) ExpectedTypeError1(theEnv,functionName,argumentPosition,"instance address or instance name");
 #endif
 
-   SetHaltExecution(theEnv,TRUE);
-   SetEvaluationError(theEnv,TRUE);
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
 
-   return(FALSE);
+   return(false);
   }
 
 /******************************************************************/
@@ -494,15 +498,15 @@ globle int EnvArgTypeCheck(
 /*  argument. This provides quicker retrieval than using some of  */
 /*  the other argument access routines. The numeric argument is   */
 /*  returned in a DATA_OBJECT supplied by the calling function.   */
-/*  TRUE is returned if a numeric argument was successfully       */
-/*  retrieved, otherwise FALSE is returned.                       */
+/*  true is returned if a numeric argument was successfully       */
+/*  retrieved, otherwise false is returned.                       */
 /******************************************************************/
-globle intBool GetNumericArgument(
+bool GetNumericArgument(
   void *theEnv,
   struct expr *theArgument,
   const char *functionName,
   DATA_OBJECT *result,
-  intBool convertToFloat,
+  bool convertToFloat,
   int whichArgument)
   {
    unsigned short theType;
@@ -530,22 +534,22 @@ globle intBool GetNumericArgument(
 
    /*==========================================*/
    /* If the argument is not float or integer, */
-   /* print an error message and return FALSE. */
+   /* print an error message and return false. */
    /*==========================================*/
 
    if ((theType != FLOAT) && (theType != INTEGER))
      {
       ExpectedTypeError1(theEnv,functionName,whichArgument,"integer or float");
-      SetHaltExecution(theEnv,TRUE);
-      SetEvaluationError(theEnv,TRUE);
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
       result->type = INTEGER;
       result->value = (void *) EnvAddLong(theEnv,0LL);
-      return(FALSE);
+      return(false);
      }
 
    /*==========================================================*/
    /* If the argument is an integer and the "convert to float" */
-   /* flag is TRUE, then convert the integer to a float.       */
+   /* flag is true, then convert the integer to a float.       */
    /*==========================================================*/
 
    if ((convertToFloat) && (theType == INTEGER))
@@ -556,13 +560,13 @@ globle intBool GetNumericArgument(
 
    /*============================================================*/
    /* The numeric argument was successfully retrieved. Store the */
-   /* argument in the user supplied DATA_OBJECT and return TRUE. */
+   /* argument in the user supplied DATA_OBJECT and return true. */
    /*============================================================*/
 
    result->type = theType;
    result->value = theValue;
 
-   return(TRUE);
+   return(true);
   }
 
 /*********************************************************************/
@@ -571,31 +575,31 @@ globle intBool GetNumericArgument(
 /*   logical name. If valid, the logical name is returned, otherwise */
 /*   NULL is returned.                                               */
 /*********************************************************************/
-globle const char *GetLogicalName(
-  void *theEnv,
-  int whichArgument,
+const char *GetLogicalName(
+  UDFContext *context,
   const char *defaultLogicalName)
   {
    const char *logicalName;
-   DATA_OBJECT result;
+   CLIPSValue theArg;
+   void *theEnv = UDFContextEnvironment(context);
 
-   EnvRtnUnknown(theEnv,whichArgument,&result);
+   if (! UDFNextArgument(context,ANY_TYPE,&theArg))
+     { return(NULL); }
 
-   if ((GetType(result) == SYMBOL) ||
-       (GetType(result) == STRING) ||
-       (GetType(result) == INSTANCE_NAME))
+   if (mCVIsType(&theArg,LEXEME_TYPES) ||
+       mCVIsType(&theArg,INSTANCE_NAME_TYPE))
      {
-      logicalName = ValueToString(result.value);
+      logicalName = mCVToString(&theArg);
       if ((strcmp(logicalName,"t") == 0) || (strcmp(logicalName,"T") == 0))
         { logicalName = defaultLogicalName; }
      }
-   else if (GetType(result) == FLOAT)
+   else if (mCVIsType(&theArg,FLOAT_TYPE))
      {
-      logicalName = ValueToString(EnvAddSymbol(theEnv,FloatToString(theEnv,DOToDouble(result))));
+      logicalName = ValueToString(EnvAddSymbol(theEnv,FloatToString(theEnv,mCVToFloat(&theArg))));
      }
-   else if (GetType(result) == INTEGER)
+   else if (mCVIsType(&theArg,INTEGER_TYPE))
      {
-      logicalName = ValueToString(EnvAddSymbol(theEnv,LongIntegerToString(theEnv,DOToLong(result))));
+      logicalName = ValueToString(EnvAddSymbol(theEnv,LongIntegerToString(theEnv,mCVToInteger(&theArg))));
      }
    else
      { logicalName = NULL; }
@@ -609,32 +613,26 @@ globle const char *GetLogicalName(
 /*   if it is a valid file name. If valid, the file name is */
 /*   returned, otherwise NULL is returned.                  */
 /************************************************************/
-globle const char *GetFileName(
-  void *theEnv,
-  const char *functionName,
-  int whichArgument)
+const char *GetFileName(
+  UDFContext *context)
   {
-   DATA_OBJECT result;
+   CLIPSValue theArg;
+   
+   if (! UDFNextArgument(context,LEXEME_TYPES,&theArg))
+     { return(NULL); }
 
-   EnvRtnUnknown(theEnv,whichArgument,&result);
-   if ((GetType(result) != STRING) && (GetType(result) != SYMBOL))
-     {
-      ExpectedTypeError1(theEnv,functionName,whichArgument,"file name");
-      return(NULL);
-     }
-
-   return(DOToString(result));
+   return(mCVToString(&theArg));
   }
 
 /******************************************************************/
 /* OpenErrorMessage: Generalized error message for opening files. */
 /******************************************************************/
-globle void OpenErrorMessage(
+void OpenErrorMessage(
   void *theEnv,
   const char *functionName,
   const char *fileName)
   {
-   PrintErrorID(theEnv,"ARGACCES",2,FALSE);
+   PrintErrorID(theEnv,"ARGACCES",2,false);
    EnvPrintRouter(theEnv,WERROR,"Function ");
    EnvPrintRouter(theEnv,WERROR,functionName);
    EnvPrintRouter(theEnv,WERROR," was unable to open file ");
@@ -649,16 +647,16 @@ globle void OpenErrorMessage(
 /*   name is returned or NULL is returned to indicate all   */
 /*   modules.                                               */
 /************************************************************/
-globle struct defmodule *GetModuleName(
+struct defmodule *GetModuleName(
   void *theEnv,
   const char *functionName,
   int whichArgument,
-  int *error)
+  bool *error)
   {
    DATA_OBJECT result;
    struct defmodule *theModule;
 
-   *error = FALSE;
+   *error = false;
 
    /*========================*/
    /* Retrieve the argument. */
@@ -673,7 +671,7 @@ globle struct defmodule *GetModuleName(
    if (GetType(result) != SYMBOL)
      {
       ExpectedTypeError1(theEnv,functionName,whichArgument,"defmodule name");
-      *error = TRUE;
+      *error = true;
       return(NULL);
      }
 
@@ -687,7 +685,7 @@ globle struct defmodule *GetModuleName(
       if (strcmp("*",DOToString(result)) != 0)
         {
          ExpectedTypeError1(theEnv,functionName,whichArgument,"defmodule name");
-         *error = TRUE;
+         *error = true;
         }
       return(NULL);
      }
@@ -707,28 +705,23 @@ globle struct defmodule *GetModuleName(
 /*   is used by functions such as ppdeftemplate, undefrule,     */
 /*   etc... to retrieve the construct name on which to operate. */
 /****************************************************************/
-globle const char *GetConstructName(
-  void *theEnv,
+const char *GetConstructName(
+  UDFContext *context,
   const char *functionName,
   const char *constructType)
   {
-   DATA_OBJECT result;
+   CLIPSValue result;
 
-   if (EnvRtnArgCount(theEnv) != 1)
+   if (! UDFFirstArgument(context,ANY_TYPE,&result))
+     { return(NULL); }
+
+   if (! mCVIsType(&result,SYMBOL_TYPE))
      {
-      ExpectedCountError(theEnv,functionName,EXACTLY,1);
+      UDFInvalidArgumentMessage(context,constructType);
       return(NULL);
      }
 
-   EnvRtnUnknown(theEnv,1,&result);
-
-   if (GetType(result) != SYMBOL)
-     {
-      ExpectedTypeError1(theEnv,functionName,1,constructType);
-      return(NULL);
-     }
-
-   return(DOToString(result));
+   return(mCVToString(&result));
   }
 
 /**************************************************************************/
@@ -740,7 +733,7 @@ static void NonexistantError(
   const char *functionName,
   int argumentPosition)
   {
-   PrintErrorID(theEnv,"ARGACCES",3,FALSE);
+   PrintErrorID(theEnv,"ARGACCES",3,false);
    EnvPrintRouter(theEnv,WERROR,"Function ");
    EnvPrintRouter(theEnv,WERROR,accessFunction);
    EnvPrintRouter(theEnv,WERROR," received a request from function ");
@@ -754,13 +747,13 @@ static void NonexistantError(
 /* ExpectedCountError: Prints the error message for an   */
 /*   incorrect number of arguments passed to a function. */
 /*********************************************************/
-globle void ExpectedCountError(
+void ExpectedCountError(
   void *theEnv,
   const char *functionName,
   int countRelation,
   int expectedNumber)
   {
-   PrintErrorID(theEnv,"ARGACCES",4,FALSE);
+   PrintErrorID(theEnv,"ARGACCES",4,false);
    EnvPrintRouter(theEnv,WERROR,"Function ");
    EnvPrintRouter(theEnv,WERROR,functionName);
 
@@ -784,57 +777,81 @@ globle void ExpectedCountError(
 /*  INPUTS       : 1) Name of the calling function           */
 /*                 2) The restriction list can be NULL       */
 /*                 3) The number of arguments                */
-/*  RETURNS      : TRUE if OK, FALSE otherwise               */
+/*  RETURNS      : true if OK, false otherwise               */
 /*  SIDE EFFECTS : EvaluationError set on errrors            */
 /*  NOTES        : Used to check generic function implicit   */
 /*                 method (system function) calls and system */
 /*                 function calls which have the sequence    */
 /*                 expansion operator in their argument list */
 /*************************************************************/
-globle intBool CheckFunctionArgCount(
+bool CheckFunctionArgCount(
   void *theEnv,
-  const char *functionName,
-  const char *restrictions,
+  struct FunctionDefinition *func,
   int argumentCount)
   {
-   register int minArguments, maxArguments;
+   int minArguments, maxArguments;
+   const char *functionName;
+   const char *restrictions;
    char theChar[2];
 
    theChar[0] = '0';
    theChar[1] = EOS;
 
+   functionName = func->callFunctionName->contents;
+   if (func->restrictions == NULL) restrictions = NULL;
+   else restrictions = func->restrictions->contents;
+     
    /*=====================================================*/
    /* If there are no restrictions, then there is no need */
    /* to check for the correct number of arguments.       */
    /*=====================================================*/
 
-   if (restrictions == NULL) return(TRUE);
+   if (func->returnValueType !='z')
+     { if (restrictions == NULL) return(true); }
 
    /*===========================================*/
    /* Determine the minimum number of arguments */
    /* required by the function.                 */
    /*===========================================*/
 
-   if (isdigit(restrictions[0]))
+   if (func->returnValueType !='z')
      {
-      theChar[0] = restrictions[0];
-      minArguments = atoi(theChar);
+      if (isdigit(restrictions[0]))
+        {
+         theChar[0] = restrictions[0];
+         minArguments = atoi(theChar);
+        }
+      else
+        { minArguments = UNBOUNDED; }
      }
    else
-     { minArguments = -1; }
-
+     { minArguments = func->minArgs; }
+   
    /*===========================================*/
    /* Determine the maximum number of arguments */
    /* required by the function.                 */
    /*===========================================*/
 
-   if (isdigit(restrictions[1]))
+   if (func->returnValueType !='z')
      {
-      theChar[0] = restrictions[1];
-      maxArguments = atoi(theChar);
+      if (isdigit(restrictions[1]))
+        {
+         theChar[0] = restrictions[1];
+         maxArguments = atoi(theChar);
+        }
+      else
+        { maxArguments = UNBOUNDED; }
      }
    else
-     { maxArguments = 10000; }
+     { maxArguments = func->maxArgs; }
+
+   /*=====================================*/
+   /* If the function has no restrictions */
+   /* on function arguments, return true. */
+   /*=====================================*/
+
+   if ((minArguments == UNBOUNDED) && (maxArguments == UNBOUNDED))
+     { return(true); }
 
    /*==============================================*/
    /* If the function expects exactly N arguments, */
@@ -846,10 +863,10 @@ globle intBool CheckFunctionArgCount(
       if (argumentCount != minArguments)
         {
          ExpectedCountError(theEnv,functionName,EXACTLY,minArguments);
-         SetEvaluationError(theEnv,TRUE);
-         return(FALSE);
+         EnvSetEvaluationError(theEnv,true);
+         return(false);
         }
-      return(TRUE);
+      return(true);
      }
 
    /*==================================*/
@@ -860,8 +877,8 @@ globle intBool CheckFunctionArgCount(
    if (argumentCount < minArguments)
      {
       ExpectedCountError(theEnv,functionName,AT_LEAST,minArguments);
-      SetEvaluationError(theEnv,TRUE);
-      return(FALSE);
+      EnvSetEvaluationError(theEnv,true);
+      return(false);
      }
 
    /*=================================*/
@@ -869,11 +886,11 @@ globle intBool CheckFunctionArgCount(
    /* arguments passed than expected. */
    /*=================================*/
 
-   if (argumentCount > maxArguments)
+   if ((maxArguments != UNBOUNDED) && (argumentCount > maxArguments))
      {
       ExpectedCountError(theEnv,functionName,NO_MORE_THAN,maxArguments);
-      SetEvaluationError(theEnv,TRUE);
-      return(FALSE);
+      EnvSetEvaluationError(theEnv,true);
+      return(false);
      }
 
    /*===============================*/
@@ -881,7 +898,24 @@ globle intBool CheckFunctionArgCount(
    /* within the expected range.    */
    /*===============================*/
 
-   return(TRUE);
+   return(true);
+  }
+
+/*******************************************************************/
+/* ExpectedTypeError0: Prints the error message for the wrong type */
+/*   of argument passed to a user or system defined function.      */
+/*******************************************************************/
+void ExpectedTypeError0(
+  void *theEnv,
+  const char *functionName,
+  int whichArg)
+  {
+   PrintErrorID(theEnv,"ARGACCES",5,false);
+   EnvPrintRouter(theEnv,WERROR,"Function ");
+   EnvPrintRouter(theEnv,WERROR,functionName);
+   EnvPrintRouter(theEnv,WERROR," expected argument #");
+   PrintLongInteger(theEnv,WERROR,(long int) whichArg);
+   EnvPrintRouter(theEnv,WERROR," to be of type ");
   }
 
 /*******************************************************************/
@@ -889,18 +923,13 @@ globle intBool CheckFunctionArgCount(
 /*   of argument passed to a user or system defined function. The  */
 /*   expected type is passed as a string to this function.         */
 /*******************************************************************/
-globle void ExpectedTypeError1(
+void ExpectedTypeError1(
   void *theEnv,
   const char *functionName,
   int whichArg,
   const char *expectedType)
   {
-   PrintErrorID(theEnv,"ARGACCES",5,FALSE);
-   EnvPrintRouter(theEnv,WERROR,"Function ");
-   EnvPrintRouter(theEnv,WERROR,functionName);
-   EnvPrintRouter(theEnv,WERROR," expected argument #");
-   PrintLongInteger(theEnv,WERROR,(long int) whichArg);
-   EnvPrintRouter(theEnv,WERROR," to be of type ");
+   ExpectedTypeError0(theEnv,functionName,whichArg);
    EnvPrintRouter(theEnv,WERROR,expectedType);
    EnvPrintRouter(theEnv,WERROR,"\n");
   }
@@ -911,7 +940,7 @@ globle void ExpectedTypeError1(
 /*   function. The expected type is derived by examining the  */
 /*   function's argument restriction list.                    */
 /**************************************************************/
-globle void ExpectedTypeError2(
+void ExpectedTypeError2(
   void *theEnv,
   const char *functionName,
   int whichArg)
@@ -941,7 +970,7 @@ static void ExpectedTypeError3(
   int argumentPosition,
   const char *type)
   {
-   PrintErrorID(theEnv,"ARGACCES",6,FALSE);
+   PrintErrorID(theEnv,"ARGACCES",6,false);
    EnvPrintRouter(theEnv,WERROR,"Function ");
    EnvPrintRouter(theEnv,WERROR,accessFunction);
    EnvPrintRouter(theEnv,WERROR," received a request from function ");
@@ -1031,72 +1060,10 @@ void IllegalLogicalNameMessage(
   void *theEnv,
   const char *theFunction)
   {
-   PrintErrorID(theEnv,"IOFUN",1,FALSE);
+   PrintErrorID(theEnv,"IOFUN",1,false);
    EnvPrintRouter(theEnv,WERROR,"Illegal logical name used for ");
    EnvPrintRouter(theEnv,WERROR,theFunction);
    EnvPrintRouter(theEnv,WERROR," function.\n");
   }
 
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle int ArgCountCheck(
-  const char *functionName,
-  int countRelation,
-  int expectedNumber)
-  {
-   return EnvArgCountCheck(GetCurrentEnvironment(),functionName,countRelation,expectedNumber);
-  }
-
-globle int ArgRangeCheck(
-  const char *functionName,
-  int min,
-  int max)
-  {
-   return EnvArgRangeCheck(GetCurrentEnvironment(),functionName,min,max);
-  }
-
-globle int ArgTypeCheck(
-  const char *functionName,
-  int argumentPosition,
-  int expectedType,
-  DATA_OBJECT_PTR returnValue)
-  {
-   return EnvArgTypeCheck(GetCurrentEnvironment(),functionName,argumentPosition,expectedType,returnValue);
-  }
-
-globle int RtnArgCount()
-  {
-   return EnvRtnArgCount(GetCurrentEnvironment());
-  }
-
-globle double RtnDouble(
-  int argumentPosition)
-  {
-   return EnvRtnDouble(GetCurrentEnvironment(),argumentPosition);
-  }
-
-globle const char *RtnLexeme(
-  int argumentPosition)
-  {
-   return EnvRtnLexeme(GetCurrentEnvironment(),argumentPosition);
-  }
-
-globle long long RtnLong(
-  int argumentPosition)
-  {
-   return EnvRtnLong(GetCurrentEnvironment(),argumentPosition);
-  }
-
-globle DATA_OBJECT_PTR RtnUnknown(
-  int argumentPosition,
-  DATA_OBJECT_PTR returnValue)
-  {
-   return EnvRtnUnknown(GetCurrentEnvironment(),argumentPosition,returnValue);
-  }
-
-#endif
 

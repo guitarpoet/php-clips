@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*       DEFGLOBAL CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -30,21 +30,13 @@
 
 #ifndef _H_globlcmp
 
+#pragma once
+
 #define _H_globlcmp
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GLOBLCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefglobalCompilerSetup(void *);
-   LOCALE void                           DefglobalCModuleReference(void *,FILE *,int,int,int);
-   LOCALE void                           DefglobalCConstructReference(void *,FILE *,void *,int,int);
+   void                           DefglobalCompilerSetup(void *);
+   void                           DefglobalCModuleReference(void *,FILE *,int,int,int);
+   void                           DefglobalCConstructReference(void *,FILE *,void *,int,int);
 
 #endif /* _H_globlcmp */
 

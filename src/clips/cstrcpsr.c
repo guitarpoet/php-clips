@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*              CONSTRUCT PARSER MODULE                */
    /*******************************************************/
@@ -41,16 +41,19 @@
 /*            Fixed linkage issue when BLOAD_ONLY compiler   */
 /*            flag is set to 1.                              */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
 /*************************************************************/
-
-#define _CSTRCPSR_SOURCE_
 
 #include "setup.h"
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 #include <string.h>
 
@@ -72,18 +75,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     FindConstructBeginning(void *,const char *,struct token *,int,int *);
-
-/************************************************/
-/* Load: C access routine for the load command. */
-/************************************************/
-#if ALLOW_ENVIRONMENT_GLOBALS
-globle int Load(
-  const char *fileName)
-  {
-   return EnvLoad(GetCurrentEnvironment(),fileName);
-  }
-#endif
+   static bool                    FindConstructBeginning(void *,const char *,struct token *,bool,bool *);
   
 /************************************************************/
 /* EnvLoad: C access routine for the load command. Returns  */
@@ -92,7 +84,7 @@ globle int Load(
 /*   and 1 if the file was opened and no errors occured     */
 /*   while loading.                                         */
 /************************************************************/
-globle int EnvLoad(
+int EnvLoad(
   void *theEnv,
   const char *fileName)
   {
@@ -144,7 +136,7 @@ globle int EnvLoad(
 /* EnvSetParsingFileName: Sets the file name currently */
 /*   being parsed by the load/batch command.           */
 /*******************************************************/
-globle void EnvSetParsingFileName(
+void EnvSetParsingFileName(
   void *theEnv,
   const char *fileName)
   {
@@ -168,7 +160,7 @@ globle void EnvSetParsingFileName(
 /* EnvGetParsingFileName: Returns the file name currently */
 /*   being parsed by the load/batch command.              */
 /**********************************************************/
-globle char *EnvGetParsingFileName(
+char *EnvGetParsingFileName(
   void *theEnv)
   {
    return ConstructData(theEnv)->ParsingFileName;
@@ -178,7 +170,7 @@ globle char *EnvGetParsingFileName(
 /* EnvSetErrorFileName: Sets the file name    */
 /*   associated with the last error detected. */
 /**********************************************/
-globle void EnvSetErrorFileName(
+void EnvSetErrorFileName(
   void *theEnv,
   const char *fileName)
   {
@@ -202,7 +194,7 @@ globle void EnvSetErrorFileName(
 /* EnvGetErrorFileName: Returns the file name */
 /*   associated with the last error detected. */
 /**********************************************/
-globle char *EnvGetErrorFileName(
+char *EnvGetErrorFileName(
   void *theEnv)
   {
    return ConstructData(theEnv)->ErrorFileName;
@@ -212,7 +204,7 @@ globle char *EnvGetErrorFileName(
 /* EnvSetWarningFileName: Sets the file name    */
 /*   associated with the last warning detected. */
 /************************************************/
-globle void EnvSetWarningFileName(
+void EnvSetWarningFileName(
   void *theEnv,
   const char *fileName)
   {
@@ -236,7 +228,7 @@ globle void EnvSetWarningFileName(
 /* EnvGetWarningFileName: Returns the file name */
 /*   associated with the last warning detected. */
 /************************************************/
-globle char *EnvGetWarningFileName(
+char *EnvGetWarningFileName(
   void *theEnv)
   {
    return ConstructData(theEnv)->WarningFileName;
@@ -246,16 +238,15 @@ globle char *EnvGetWarningFileName(
 /* LoadConstructsFromLogicalName: Loads a set of constructs into */
 /*   the current environment from a specified logical name.      */
 /*****************************************************************/
-globle int LoadConstructsFromLogicalName(
+int LoadConstructsFromLogicalName(
   void *theEnv,
   const char *readSource)
   {
    int constructFlag;
    struct token theToken;
-   int noErrors = TRUE;
-   int foundConstruct;
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
+   bool noErrors = true;
+   bool foundConstruct;
+   struct CLIPSBlock gcBlock;
    long oldLineCountValue;
    const char *oldLineCountRouter;
 
@@ -278,30 +269,27 @@ globle int LoadConstructsFromLogicalName(
    /* error flags in preparation for parsing. */
    /*=========================================*/
 
-   if (UtilityData(theEnv)->CurrentGarbageFrame->topLevel) SetHaltExecution(theEnv,FALSE);
-   SetEvaluationError(theEnv,FALSE);
+   if (UtilityData(theEnv)->CurrentGarbageFrame->topLevel) EnvSetHaltExecution(theEnv,false);
+   EnvSetEvaluationError(theEnv,false);
 
    /*==========================================*/
    /* Set up the frame for garbage collection. */
    /*==========================================*/
 
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   newGarbageFrame.priorFrame = oldGarbageFrame;
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
-
+   CLIPSBlockStart(theEnv,&gcBlock);
+   
    /*========================================================*/
    /* Find the beginning of the first construct in the file. */
    /*========================================================*/
 
    GetToken(theEnv,readSource,&theToken);
-   foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,FALSE,&noErrors);
+   foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,false,&noErrors);
 
    /*==================================================*/
    /* Parse the file until the end of file is reached. */
    /*==================================================*/
 
-   while ((foundConstruct == TRUE) && (GetHaltExecution(theEnv) == FALSE))
+   while ((foundConstruct == true) && (EnvGetHaltExecution(theEnv) == false))
      {
       /*===========================================================*/
       /* Clear the pretty print buffer in preparation for parsing. */
@@ -330,9 +318,9 @@ globle int LoadConstructsFromLogicalName(
 
          FlushParsingMessages(theEnv);
 
-         noErrors = FALSE;
+         noErrors = false;
          GetToken(theEnv,readSource,&theToken);
-         foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,TRUE,&noErrors);
+         foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,true,&noErrors);
         }
 
       /*======================================================*/
@@ -343,7 +331,7 @@ globle int LoadConstructsFromLogicalName(
         {
          FlushParsingMessages(theEnv);
          GetToken(theEnv,readSource,&theToken);
-         foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,FALSE,&noErrors);
+         foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,false,&noErrors);
         }
 
       /*=====================================================*/
@@ -368,7 +356,7 @@ globle int LoadConstructsFromLogicalName(
    /*========================================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((EnvGetWatchItem(theEnv,"compilations") != TRUE) && GetPrintWhileLoading(theEnv))
+   if ((EnvGetWatchItem(theEnv,"compilations") != true) && GetPrintWhileLoading(theEnv))
 #else
    if (GetPrintWhileLoading(theEnv))
 #endif
@@ -388,7 +376,7 @@ globle int LoadConstructsFromLogicalName(
    /* Remove the garbage collection frame. */
    /*======================================*/
    
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,NULL);
+   CLIPSBlockEnd(theEnv,&gcBlock,NULL);
    CallPeriodicTasks(theEnv);
 
    /*==============================*/
@@ -417,18 +405,18 @@ globle int LoadConstructsFromLogicalName(
 /********************************************************************/
 /* FindConstructBeginning: Searches for a left parenthesis followed */
 /*   by the name of a valid construct. Used by the load command to  */
-/*   find the next construct to be parsed. Returns TRUE is the      */
-/*   beginning of a construct was found, otherwise FALSE.           */
+/*   find the next construct to be parsed. Returns true is the      */
+/*   beginning of a construct was found, otherwise false.           */
 /********************************************************************/
-static int FindConstructBeginning(
+static bool FindConstructBeginning(
   void *theEnv,
   const char *readSource,
   struct token *theToken,
-  int errorCorrection,
-  int *noErrors)
+  bool errorCorrection,
+  bool *noErrors)
   {
-   int leftParenthesisFound = FALSE;
-   int firstAttempt = TRUE;
+   bool leftParenthesisFound = false;
+   bool firstAttempt = true;
 
    /*===================================================*/
    /* Process tokens until the beginning of a construct */
@@ -443,24 +431,24 @@ static int FindConstructBeginning(
       /*=====================================================*/
 
       if (theToken->type == LPAREN)
-        { leftParenthesisFound = TRUE; }
+        { leftParenthesisFound = true; }
 
       /*=================================================================*/
       /* The name of the construct follows the opening left parenthesis. */
-      /* If it is the name of a valid construct, then return TRUE.       */
+      /* If it is the name of a valid construct, then return true.       */
       /* Otherwise, reset the flags to look for the beginning of a       */
       /* construct. If error correction is being performed (i.e. the     */
       /* last construct parsed had an error in it), then don't bother to */
       /* print an error message, otherwise, print an error message.      */
       /*=================================================================*/
 
-      else if ((theToken->type == SYMBOL) && (leftParenthesisFound == TRUE))
+      else if ((theToken->type == SYMBOL) && (leftParenthesisFound == true))
         {
          /*===========================================================*/
          /* Is this a valid construct name (e.g., defrule, deffacts). */
          /*===========================================================*/
 
-         if (FindConstruct(theEnv,ValueToString(theToken->value)) != NULL) return(TRUE);
+         if (FindConstruct(theEnv,ValueToString(theToken->value)) != NULL) return(true);
 
          /*===============================================*/
          /* The construct name is invalid. Print an error */
@@ -469,9 +457,9 @@ static int FindConstructBeginning(
 
          if (firstAttempt && (! errorCorrection))
            {
-            errorCorrection = TRUE;
-            *noErrors = FALSE;
-            PrintErrorID(theEnv,"CSTRCPSR",1,TRUE);
+            errorCorrection = true;
+            *noErrors = false;
+            PrintErrorID(theEnv,"CSTRCPSR",1,true);
             EnvPrintRouter(theEnv,WERROR,"Expected the beginning of a construct.\n");
            }
 
@@ -480,8 +468,8 @@ static int FindConstructBeginning(
          /* looking for a left parenthesis again.                */
          /*======================================================*/
 
-         firstAttempt = FALSE;
-         leftParenthesisFound = FALSE;
+         firstAttempt = false;
+         leftParenthesisFound = false;
         }
 
       /*====================================================================*/
@@ -495,14 +483,14 @@ static int FindConstructBeginning(
         {
          if (firstAttempt && (! errorCorrection))
            {
-            errorCorrection = TRUE;
-            *noErrors = FALSE;
-            PrintErrorID(theEnv,"CSTRCPSR",1,TRUE);
+            errorCorrection = true;
+            *noErrors = false;
+            PrintErrorID(theEnv,"CSTRCPSR",1,true);
             EnvPrintRouter(theEnv,WERROR,"Expected the beginning of a construct.\n");
            }
 
-         firstAttempt = FALSE;
-         leftParenthesisFound = FALSE;
+         firstAttempt = false;
+         leftParenthesisFound = false;
         }
 
       /*============================================*/
@@ -513,10 +501,10 @@ static int FindConstructBeginning(
      }
 
    /*===================================================================*/
-   /* Couldn't find the beginning of a construct, so FALSE is returned. */
+   /* Couldn't find the beginning of a construct, so false is returned. */
    /*===================================================================*/
 
-   return(FALSE);
+   return(false);
   }
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
@@ -524,7 +512,7 @@ static int FindConstructBeginning(
 /*************************************************/
 /* FindError: Find routine for the error router. */
 /*************************************************/
-static int FindError(
+static bool FindError(
   void *theEnv,
   const char *logicalName)
   {
@@ -532,11 +520,11 @@ static int FindError(
 #pragma unused(theEnv)
 #endif
 
-   if ( (strcmp(logicalName,WERROR) == 0) ||
-        (strcmp(logicalName,WWARNING) == 0) )
-     { return(TRUE); }
+   if ((strcmp(logicalName,WERROR) == 0) ||
+       (strcmp(logicalName,WWARNING) == 0))
+     { return(true); }
 
-    return(FALSE);
+    return(false);
   }
 
 /***************************************************/
@@ -573,7 +561,7 @@ static int PrintError(
 /* CreateErrorCaptureRouter: Creates the error */
 /*   capture router if it doesn't exists.      */
 /***********************************************/
-globle void CreateErrorCaptureRouter(
+void CreateErrorCaptureRouter(
   void *theEnv)
   {
    /*===========================================================*/
@@ -608,7 +596,7 @@ globle void CreateErrorCaptureRouter(
 /* DeleteErrorCaptureRouter: Deletes the error */
 /*   capture router if it exists.              */
 /***********************************************/
-globle void DeleteErrorCaptureRouter(
+void DeleteErrorCaptureRouter(
    void *theEnv)
    {
    /*===========================================================*/
@@ -630,7 +618,7 @@ globle void DeleteErrorCaptureRouter(
 /* FlushParsingMessages: Invokes the callback routines */
 /*   for any existing warning/error messages.          */
 /*******************************************************/
-globle void FlushParsingMessages(
+void FlushParsingMessages(
   void *theEnv)
   {
    /*===========================================================*/
@@ -688,15 +676,14 @@ globle void FlushParsingMessages(
 /*   if the construct was parsed successfully, and 1 if    */
 /*   the construct was parsed unsuccessfully.              */
 /***********************************************************/
-globle int ParseConstruct(
+int ParseConstruct(
   void *theEnv,
   const char *name,
   const char *logicalName)
   {
    struct construct *currentPtr;
    int rv, ov;
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
+   struct CLIPSBlock gcBlock;
 
    /*=================================*/
    /* Look for a valid construct name */
@@ -710,30 +697,27 @@ globle int ParseConstruct(
    /* Set up the frame for garbage collection. */
    /*==========================================*/
 
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   newGarbageFrame.priorFrame = oldGarbageFrame;
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
-      
+   CLIPSBlockStart(theEnv,&gcBlock);
+   
    /*==================================*/
    /* Prepare the parsing environment. */
    /*==================================*/
 
-   ov = GetHaltExecution(theEnv);
-   SetEvaluationError(theEnv,FALSE);
-   SetHaltExecution(theEnv,FALSE);
+   ov = EnvGetHaltExecution(theEnv);
+   EnvSetEvaluationError(theEnv,false);
+   EnvSetHaltExecution(theEnv,false);
    ClearParsedBindNames(theEnv);
    PushRtnBrkContexts(theEnv);
-   ExpressionData(theEnv)->ReturnContext = FALSE;
-   ExpressionData(theEnv)->BreakContext = FALSE;
+   ExpressionData(theEnv)->ReturnContext = false;
+   ExpressionData(theEnv)->BreakContext = false;
 
    /*=======================================*/
    /* Call the construct's parsing routine. */
    /*=======================================*/
 
-   ConstructData(theEnv)->ParsingConstruct = TRUE;
+   ConstructData(theEnv)->ParsingConstruct = true;
    rv = (*currentPtr->parseFunction)(theEnv,logicalName);
-   ConstructData(theEnv)->ParsingConstruct = FALSE;
+   ConstructData(theEnv)->ParsingConstruct = false;
 
    /*===============================*/
    /* Restore environment settings. */
@@ -742,14 +726,14 @@ globle int ParseConstruct(
    PopRtnBrkContexts(theEnv);
 
    ClearParsedBindNames(theEnv);
-   SetPPBufferStatus(theEnv,OFF);
-   SetHaltExecution(theEnv,ov);
+   SetPPBufferStatus(theEnv,false);
+   EnvSetHaltExecution(theEnv,ov);
       
    /*======================================*/
    /* Remove the garbage collection frame. */
    /*======================================*/
    
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,NULL);
+   CLIPSBlockEnd(theEnv,&gcBlock,NULL);
    CallPeriodicTasks(theEnv);
 
    /*==============================*/
@@ -765,24 +749,24 @@ globle int ParseConstruct(
 /*   field of a construct. Returns name of the construct */
 /*   if no errors are detected, otherwise returns NULL.  */
 /*********************************************************/
-globle SYMBOL_HN *GetConstructNameAndComment(
+SYMBOL_HN *GetConstructNameAndComment(
   void *theEnv,
   const char *readSource,
   struct token *inputToken,
   const char *constructName,
   void *(*findFunction)(void *,const char *),
-  int (*deleteFunction)(void *,void *),
+  bool (*deleteFunction)(void *,void *),
   const char *constructSymbol,
-  int fullMessageCR,
-  int getComment,
-  int moduleNameAllowed,
-  int ignoreRedefinition)
+  bool fullMessageCR,
+  bool getComment,
+  bool moduleNameAllowed,
+  bool ignoreRedefinition)
   {
 #if (MAC_XCD) && (! DEBUGGING_FUNCTIONS)
 #pragma unused(fullMessageCR)
 #endif
    SYMBOL_HN *name, *moduleName;
-   int redefining = FALSE;
+   bool redefining = false;
    void *theConstruct;
    unsigned separatorPosition;
    struct defmodule *theModule;
@@ -795,7 +779,7 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    GetToken(theEnv,readSource,inputToken);
    if (inputToken->type != SYMBOL)
      {
-      PrintErrorID(theEnv,"CSTRCPSR",2,TRUE);
+      PrintErrorID(theEnv,"CSTRCPSR",2,true);
       EnvPrintRouter(theEnv,WERROR,"Missing name for ");
       EnvPrintRouter(theEnv,WERROR,constructName);
       EnvPrintRouter(theEnv,WERROR," construct\n");
@@ -811,7 +795,7 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    separatorPosition = FindModuleSeparator(ValueToString(name));
    if (separatorPosition)
      {
-      if (moduleNameAllowed == FALSE)
+      if (moduleNameAllowed == false)
         {
          SyntaxErrorMessage(theEnv,"module specifier");
          return(NULL);
@@ -879,12 +863,12 @@ globle SYMBOL_HN *GetConstructNameAndComment(
       theConstruct = (*findFunction)(theEnv,ValueToString(name));
       if (theConstruct != NULL)
         {
-         redefining = TRUE;
+         redefining = true;
          if (deleteFunction != NULL)
            {
-            if ((*deleteFunction)(theEnv,theConstruct) == FALSE)
+            if ((*deleteFunction)(theEnv,theConstruct) == false)
               {
-               PrintErrorID(theEnv,"CSTRCPSR",4,TRUE);
+               PrintErrorID(theEnv,"CSTRCPSR",4,true);
                EnvPrintRouter(theEnv,WERROR,"Cannot redefine ");
                EnvPrintRouter(theEnv,WERROR,constructName);
                EnvPrintRouter(theEnv,WERROR," ");
@@ -902,14 +886,14 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    /*=============================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) &&
+   if ((EnvGetWatchItem(theEnv,"compilations") == true) &&
        GetPrintWhileLoading(theEnv) && (! ConstructData(theEnv)->CheckSyntaxMode))
      {
       const char *outRouter = WDIALOG;
       if (redefining && (! ignoreRedefinition))
         {
          outRouter = WWARNING;
-         PrintWarningID(theEnv,"CSTRCPSR",1,TRUE);
+         PrintWarningID(theEnv,"CSTRCPSR",1,true);
          EnvPrintRouter(theEnv,outRouter,"Redefining ");
         }
       else EnvPrintRouter(theEnv,outRouter,"Defining ");
@@ -964,7 +948,7 @@ globle SYMBOL_HN *GetConstructNameAndComment(
 /* RemoveConstructFromModule: Removes a */
 /*   construct from its module's list   */
 /****************************************/
-globle void RemoveConstructFromModule(
+void RemoveConstructFromModule(
   void *theEnv,
   struct constructHeader *theConstruct)
   {
@@ -1016,14 +1000,14 @@ globle void RemoveConstructFromModule(
 /*   for an import/export module conflict detected    */
 /*   when a construct is being defined.               */
 /******************************************************/
-globle void ImportExportConflictMessage(
+void ImportExportConflictMessage(
   void *theEnv,
   const char *constructName,
   const char *itemName,
   const char *causedByConstruct,
   const char *causedByName)
   {
-   PrintErrorID(theEnv,"CSTRCPSR",3,TRUE);
+   PrintErrorID(theEnv,"CSTRCPSR",3,true);
    EnvPrintRouter(theEnv,WERROR,"Cannot define ");
    EnvPrintRouter(theEnv,WERROR,constructName);
    EnvPrintRouter(theEnv,WERROR," ");

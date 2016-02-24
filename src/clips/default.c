@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               DEFAULT ATTRIBUTE MODULE              */
    /*******************************************************/
@@ -27,28 +27,28 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
 /*************************************************************/
-
-#define _DEFAULT_SOURCE_
 
 #include "setup.h"
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 #include <string.h>
 
 #include "constant.h"
 #include "constrnt.h"
 #include "cstrnchk.h"
-#include "multifld.h"
-#include "inscom.h"
-#include "exprnpsr.h"
-#include "scanner.h"
-#include "router.h"
-#include "factmngr.h"
 #include "cstrnutl.h"
 #include "envrnmnt.h"
+#include "exprnpsr.h"
+#include "factmngr.h"
+#include "inscom.h"
+#include "multifld.h"
+#include "router.h"
+#include "scanner.h"
 
 #include "default.h"
 
@@ -62,12 +62,12 @@
 /* DeriveDefaultFromConstraints: Returns an appropriate */
 /*   default value for the supplied constraints.        */
 /********************************************************/
-globle void DeriveDefaultFromConstraints(
+void DeriveDefaultFromConstraints(
   void *theEnv,
   CONSTRAINT_RECORD *constraints,
   DATA_OBJECT *theDefault,
-  int multifield,
-  int garbageMultifield)
+  bool multifield,
+  bool garbageMultifield)
   {
    unsigned short theType;
    unsigned long minFields;
@@ -262,15 +262,15 @@ static void *FindDefaultValue(
 /**********************************************/
 /* ParseDefault: Parses a default value list. */
 /**********************************************/
-globle struct expr *ParseDefault(
+struct expr *ParseDefault(
   void *theEnv,
   const char *readSource,
-  int multifield,
-  int dynamic,
-  int evalStatic,
-  int *noneSpecified,
-  int *deriveSpecified,
-  int *error)
+  bool multifield,
+  bool dynamic,
+  bool evalStatic,
+  bool *noneSpecified,
+  bool *deriveSpecified,
+  bool *error)
   {
    struct expr *defaultList = NULL, *lastDefault = NULL;
    struct expr *newItem, *tmpItem;
@@ -279,8 +279,8 @@ globle struct expr *ParseDefault(
    CONSTRAINT_RECORD *rv;
    int specialVarCode;
 
-   *noneSpecified = FALSE;
-   *deriveSpecified = FALSE;
+   *noneSpecified = false;
+   *deriveSpecified = false;
 
    SavePPBuffer(theEnv," ");
    GetToken(theEnv,readSource,&theToken);
@@ -300,7 +300,7 @@ globle struct expr *ParseDefault(
       if (newItem == NULL)
         {
          ReturnExpression(theEnv,defaultList);
-         *error = TRUE;
+         *error = true;
          return(NULL);
         }
 
@@ -328,7 +328,7 @@ globle struct expr *ParseDefault(
             else SyntaxErrorMessage(theEnv,"default attribute");
             ReturnExpression(theEnv,newItem);
             ReturnExpression(theEnv,defaultList);
-            *error = TRUE;
+            *error = true;
             return(NULL);
            }
 
@@ -348,13 +348,13 @@ globle struct expr *ParseDefault(
             PPBackup(theEnv);
             SavePPBuffer(theEnv," ");
             SavePPBuffer(theEnv,theToken.printForm);
-            *error = TRUE;
+            *error = true;
            }
 
          if (specialVarCode == 0)
-           *noneSpecified = TRUE;
+           *noneSpecified = true;
          else
-           *deriveSpecified = TRUE;
+           *deriveSpecified = true;
          return(NULL);
         }
 
@@ -363,11 +363,11 @@ globle struct expr *ParseDefault(
       /* expressions contained within the default list.     */
       /*====================================================*/
 
-      if (ExpressionContainsVariables(newItem,FALSE) == TRUE)
+      if (ExpressionContainsVariables(newItem,false) == true)
         {
          ReturnExpression(theEnv,defaultList);
          ReturnExpression(theEnv,newItem);
-         *error = TRUE;
+         *error = true;
          if (dynamic) SyntaxErrorMessage(theEnv,"default-dynamic attribute");
          else SyntaxErrorMessage(theEnv,"default attribute");
          return(NULL);
@@ -404,23 +404,23 @@ globle struct expr *ParseDefault(
    /* must contain a single value.            */
    /*=========================================*/
 
-   if (multifield == FALSE)
+   if (multifield == false)
      {
       if (defaultList == NULL)
-        { *error = TRUE; }
+        { *error = true; }
       else if (defaultList->nextArg != NULL)
-        { *error = TRUE; }
+        { *error = true; }
       else
         {
          rv = ExpressionToConstraintRecord(theEnv,defaultList);
-         rv->multifieldsAllowed = FALSE;
-         if (UnmatchableConstraint(rv)) *error = TRUE;
+         rv->multifieldsAllowed = false;
+         if (UnmatchableConstraint(rv)) *error = true;
          RemoveConstraint(theEnv,rv);
         }
 
       if (*error)
         {
-         PrintErrorID(theEnv,"DEFAULT",1,TRUE);
+         PrintErrorID(theEnv,"DEFAULT",1,true);
          EnvPrintRouter(theEnv,WERROR,"The default value for a single field slot must be a single field value\n");
          ReturnExpression(theEnv,defaultList);
          return(NULL);
@@ -441,23 +441,23 @@ globle struct expr *ParseDefault(
 
    while (newItem != NULL)
      {
-      SetEvaluationError(theEnv,FALSE);
-      if (EvaluateExpression(theEnv,newItem,&theValue)) *error = TRUE;
+      EnvSetEvaluationError(theEnv,false);
+      if (EvaluateExpression(theEnv,newItem,&theValue)) *error = true;
 
       if ((theValue.type == MULTIFIELD) &&
-          (multifield == FALSE) &&
-          (*error == FALSE))
+          (multifield == false) &&
+          (*error == true))
         {
-         PrintErrorID(theEnv,"DEFAULT",1,TRUE);
+         PrintErrorID(theEnv,"DEFAULT",1,true);
          EnvPrintRouter(theEnv,WERROR,"The default value for a single field slot must be a single field value\n");
-         *error = TRUE;
+         *error = true;
         }
 
       if (*error)
         {
          ReturnExpression(theEnv,tmpItem);
          ReturnExpression(theEnv,defaultList);
-         *error = TRUE;
+         *error = true;
          return(NULL);
         }
 

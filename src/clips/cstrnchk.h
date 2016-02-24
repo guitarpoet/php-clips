@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            CONSTRAINT CHECKING HEADER FILE          */
    /*******************************************************/
@@ -37,24 +37,13 @@
 /*************************************************************/
 
 #ifndef _H_cstrnchk
+
+#pragma once
+
 #define _H_cstrnchk
 
-#ifndef _H_constrnt
 #include "constrnt.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CSTRNCHK_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 #define NO_VIOLATION                    0
 #define TYPE_VIOLATION                  1
@@ -64,23 +53,23 @@
 #define CARDINALITY_VIOLATION           5
 #define ALLOWED_CLASSES_VIOLATION       6
 
-   LOCALE intBool                        CheckCardinalityConstraint(void *,long,CONSTRAINT_RECORD *);
-   LOCALE intBool                        CheckAllowedValuesConstraint(int,void *,CONSTRAINT_RECORD *);
-   LOCALE intBool                        CheckAllowedClassesConstraint(void *,int,void *,CONSTRAINT_RECORD *);
-   LOCALE int                            ConstraintCheckExpressionChain(void *,struct expr *,
+   bool                           CheckCardinalityConstraint(void *,long,CONSTRAINT_RECORD *);
+   bool                           CheckAllowedValuesConstraint(int,void *,CONSTRAINT_RECORD *);
+   bool                           CheckAllowedClassesConstraint(void *,int,void *,CONSTRAINT_RECORD *);
+   int                            ConstraintCheckExpressionChain(void *,struct expr *,
                                                                      CONSTRAINT_RECORD *);
-   LOCALE void                           ConstraintViolationErrorMessage(void *,const char *,const char *,int,int,
+   void                           ConstraintViolationErrorMessage(void *,const char *,const char *,bool,int,
                                                                       struct symbolHashNode *,
                                                                       int,int,CONSTRAINT_RECORD *,
-                                                                      int);
-   LOCALE int                            ConstraintCheckValue(void *,int,void *,CONSTRAINT_RECORD *);
-   LOCALE int                            ConstraintCheckDataObject(void *,DATA_OBJECT *,CONSTRAINT_RECORD *);
+                                                                      bool);
+   int                            ConstraintCheckValue(void *,int,void *,CONSTRAINT_RECORD *);
+   int                            ConstraintCheckDataObject(void *,DATA_OBJECT *,CONSTRAINT_RECORD *);
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-   LOCALE int                            ConstraintCheckExpression(void *,struct expr *,
+   int                            ConstraintCheckExpression(void *,struct expr *,
                                                                 CONSTRAINT_RECORD *);
 #endif
 #if (! RUN_TIME)
-   LOCALE intBool                        UnmatchableConstraint(struct constraintRecord *);
+   bool                           UnmatchableConstraint(struct constraintRecord *);
 #endif
 
 #endif /* _H_cstrnchk */

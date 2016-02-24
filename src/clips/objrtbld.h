@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*          OBJECT PATTERN MATCHER MODULE              */
    /*******************************************************/
@@ -42,21 +42,14 @@
 /*************************************************************/
 
 #ifndef _H_objrtbld
+
+#pragma once
+
 #define _H_objrtbld
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTBLD_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    SetupObjectPatternStuff(void *);
+   void                    SetupObjectPatternStuff(void *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

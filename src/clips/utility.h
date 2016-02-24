@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*                 UTILITY HEADER FILE                 */
    /*******************************************************/
@@ -43,18 +43,23 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Added EnvAddPeriodicFunctionWithContext        */
+/*            function.                                      */
+/*                                                           */
+/*            Added CLIPSBlockStart and CLIPSBlockEnd        */
+/*            functions for garbage collection blocks.       */
+/*                                                           */
+/*            Callbacks must be environment aware.           */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_utility
+
+#pragma once
+
 #define _H_utility
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
 
 struct callFunctionItem
   {
@@ -62,7 +67,6 @@ struct callFunctionItem
    void (*func)(void *);
    int priority;
    struct callFunctionItem *next;
-   short int environmentAware;
    void *context;
   };
 
@@ -72,7 +76,6 @@ struct callFunctionItemWithArg
    void (*func)(void *,void *);
    int priority;
    struct callFunctionItemWithArg *next;
-   short int environmentAware;
    void *context;
   };
   
@@ -86,8 +89,8 @@ struct trackedMemory
 
 struct garbageFrame
   {
-   short dirty;
-   short topLevel;
+   bool dirty;
+   bool topLevel;
    struct garbageFrame *priorFrame;
    struct ephemeron *ephemeralSymbolList;
    struct ephemeron *ephemeralFloatList;
@@ -98,6 +101,13 @@ struct garbageFrame
    struct multifield *LastMultifield;
   };
 
+struct CLIPSBlock
+  {
+   struct garbageFrame newGarbageFrame;
+   struct garbageFrame *oldGarbageFrame;
+   DATA_OBJECT *result;
+  };
+
 #define UTILITY_DATA 55
 
 struct utilityData
@@ -105,8 +115,8 @@ struct utilityData
    struct callFunctionItem *ListOfCleanupFunctions;
    struct callFunctionItem *ListOfPeriodicFunctions;
    short GarbageCollectionLocks;
-   short PeriodicFunctionsEnabled;
-   short YieldFunctionEnabled;
+   bool PeriodicFunctionsEnabled;
+   bool YieldFunctionEnabled;
    void (*YieldTimeFunction)(void);
    struct trackedMemory *trackList;
    struct garbageFrame MasterGarbageFrame;
@@ -120,67 +130,59 @@ struct utilityData
 #define IsUTF8MultiByteStart(ch) ((((unsigned char) ch) >= 0xC0) && (((unsigned char) ch) <= 0xF7))
 #define IsUTF8MultiByteContinuation(ch) ((((unsigned char) ch) >= 0x80) && (((unsigned char) ch) <= 0xBF))
 
-#ifdef _UTILITY_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeUtilityData(void *);
-   LOCALE intBool                        AddCleanupFunction(void *,const char *,void (*)(void *),int);
-   LOCALE intBool                        EnvAddPeriodicFunction(void *,const char *,void (*)(void *),int);
-   LOCALE intBool                        AddPeriodicFunction(const char *,void (*)(void),int);
-   LOCALE intBool                        RemoveCleanupFunction(void *,const char *);
-   LOCALE intBool                        EnvRemovePeriodicFunction(void *,const char *);
-   LOCALE char                          *CopyString(void *,const char *);
-   LOCALE void                           DeleteString(void *,char *);
-   LOCALE const char                    *AppendStrings(void *,const char *,const char *);
-   LOCALE const char                    *StringPrintForm(void *,const char *);
-   LOCALE char                          *AppendToString(void *,const char *,char *,size_t *,size_t *);
-   LOCALE char                          *InsertInString(void *,const char *,size_t,char *,size_t *,size_t *);
-   LOCALE char                          *AppendNToString(void *,const char *,char *,size_t,size_t *,size_t *);
-   LOCALE char                          *EnlargeString(void *,size_t,char *,size_t *,size_t *);
-   LOCALE char                          *ExpandStringWithChar(void *,int,char *,size_t *,size_t *,size_t);
-   LOCALE struct callFunctionItem       *AddFunctionToCallList(void *,const char *,int,void (*)(void *),
-                                                               struct callFunctionItem *,intBool);
-   LOCALE struct callFunctionItem       *AddFunctionToCallListWithContext(void *,const char *,int,void (*)(void *),
-                                                                          struct callFunctionItem *,intBool,void *);
-   LOCALE struct callFunctionItem       *RemoveFunctionFromCallList(void *,const char *,
+   void                           InitializeUtilityData(void *);
+   bool                           AddCleanupFunction(void *,const char *,void (*)(void *),int);
+   bool                           EnvAddPeriodicFunction(void *,const char *,void (*)(void *),int);
+   bool                           EnvAddPeriodicFunctionWithContext(void *,const char *,void (*)(void *),int,void *);
+   bool                           AddPeriodicFunction(const char *,void (*)(void),int);
+   bool                           RemoveCleanupFunction(void *,const char *);
+   bool                           EnvRemovePeriodicFunction(void *,const char *);
+   char                          *CopyString(void *,const char *);
+   void                           DeleteString(void *,char *);
+   const char                    *AppendStrings(void *,const char *,const char *);
+   const char                    *StringPrintForm(void *,const char *);
+   char                          *AppendToString(void *,const char *,char *,size_t *,size_t *);
+   char                          *InsertInString(void *,const char *,size_t,char *,size_t *,size_t *);
+   char                          *AppendNToString(void *,const char *,char *,size_t,size_t *,size_t *);
+   char                          *EnlargeString(void *,size_t,char *,size_t *,size_t *);
+   char                          *ExpandStringWithChar(void *,int,char *,size_t *,size_t *,size_t);
+   struct callFunctionItem       *AddFunctionToCallList(void *,const char *,int,void (*)(void *),
+                                                               struct callFunctionItem *);
+   struct callFunctionItem       *AddFunctionToCallListWithContext(void *,const char *,int,void (*)(void *),
+                                                                          struct callFunctionItem *,void *);
+   struct callFunctionItem       *RemoveFunctionFromCallList(void *,const char *,
                                                              struct callFunctionItem *,
-                                                             int *);
-   LOCALE void                           DeallocateCallList(void *,struct callFunctionItem *);
-   LOCALE struct callFunctionItemWithArg *AddFunctionToCallListWithArg(void *,const char *,int,void (*)(void *, void *),
-                                                                       struct callFunctionItemWithArg *,intBool);
-   LOCALE struct callFunctionItemWithArg *AddFunctionToCallListWithArgWithContext(void *,const char *,int,void (*)(void *, void *),
-                                                                                  struct callFunctionItemWithArg *,intBool,void *);
-   LOCALE struct callFunctionItemWithArg *RemoveFunctionFromCallListWithArg(void *,const char *,
+                                                             bool *);
+   void                           DeallocateCallList(void *,struct callFunctionItem *);
+   struct callFunctionItemWithArg *AddFunctionToCallListWithArg(void *,const char *,int,void (*)(void *, void *),
+                                                                       struct callFunctionItemWithArg *);
+   struct callFunctionItemWithArg *AddFunctionToCallListWithArgWithContext(void *,const char *,int,void (*)(void *, void *),
+                                                                                  struct callFunctionItemWithArg *,void *);
+   struct callFunctionItemWithArg *RemoveFunctionFromCallListWithArg(void *,const char *,
                                                                             struct callFunctionItemWithArg *,
-                                                                            int *);
-   LOCALE void                           DeallocateCallListWithArg(void *,struct callFunctionItemWithArg *);
-   LOCALE unsigned long                  ItemHashValue(void *,unsigned short,void *,unsigned long);
-   LOCALE void                           YieldTime(void *);
-   LOCALE void                           EnvIncrementGCLocks(void *);
-   LOCALE void                           EnvDecrementGCLocks(void *);
-   LOCALE short                          EnablePeriodicFunctions(void *,short);
-   LOCALE short                          EnableYieldFunction(void *,short);
-   LOCALE struct trackedMemory          *AddTrackedMemory(void *,void *,size_t);
-   LOCALE void                           RemoveTrackedMemory(void *,struct trackedMemory *);
-   LOCALE void                           UTF8Increment(const char *,size_t *);
-   LOCALE size_t                         UTF8Offset(const char *,size_t);
-   LOCALE size_t                         UTF8Length(const char *);
-   LOCALE size_t                         UTF8CharNum(const char *,size_t);
-   LOCALE void                           RestorePriorGarbageFrame(void *,struct garbageFrame *,struct garbageFrame *,struct dataObject *);
-   LOCALE void                           CallCleanupFunctions(void *);
-   LOCALE void                           CallPeriodicTasks(void *);
-   LOCALE void                           CleanCurrentGarbageFrame(void *,struct dataObject *);
+                                                                            bool *);
+   void                           DeallocateCallListWithArg(void *,struct callFunctionItemWithArg *);
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           IncrementGCLocks(void);
-   LOCALE void                           DecrementGCLocks(void);
-   LOCALE intBool                        RemovePeriodicFunction(const char *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   struct callFunctionItem       *GetFunctionFromCallList(void *,const char *,struct callFunctionItem *);
+   void                          *EnvGetPeriodicFunctionContext(void *,const char *);
+   unsigned long                  ItemHashValue(void *,unsigned short,void *,unsigned long);
+   void                           YieldTime(void *);
+   void                           EnvIncrementGCLocks(void *);
+   void                           EnvDecrementGCLocks(void *);
+   bool                           EnablePeriodicFunctions(void *,bool);
+   short                          EnableYieldFunction(void *,short);
+   struct trackedMemory          *AddTrackedMemory(void *,void *,size_t);
+   void                           RemoveTrackedMemory(void *,struct trackedMemory *);
+   void                           UTF8Increment(const char *,size_t *);
+   size_t                         UTF8Offset(const char *,size_t);
+   size_t                         UTF8Length(const char *);
+   size_t                         UTF8CharNum(const char *,size_t);
+   void                           RestorePriorGarbageFrame(void *,struct garbageFrame *,struct garbageFrame *,struct dataObject *);
+   void                           CallCleanupFunctions(void *);
+   void                           CallPeriodicTasks(void *);
+   void                           CleanCurrentGarbageFrame(void *,struct dataObject *);
+   void                           CLIPSBlockStart(void *,struct CLIPSBlock *);
+   void                           CLIPSBlockEnd(void *,struct CLIPSBlock *,struct dataObject *);
 
 #endif /* _H_utility */
 

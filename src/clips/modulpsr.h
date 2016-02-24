@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*             DEFMODULE PARSER HEADER FILE            */
    /*******************************************************/
@@ -29,6 +29,9 @@
 /*************************************************************/
 
 #ifndef _H_modulpsr
+
+#pragma once
+
 #define _H_modulpsr
 
 struct portConstructItem
@@ -38,33 +41,16 @@ struct portConstructItem
    struct portConstructItem *next;
   };
 
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
+#include "symbol.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE long                           GetNumberOfDefmodules(void *);
-   LOCALE void                           SetNumberOfDefmodules(void *,long);
-   LOCALE void                           AddAfterModuleDefinedFunction(void *,const char *,void (*)(void *),int);
-   LOCALE int                            ParseDefmodule(void *,const char *);
-   LOCALE void                           AddPortConstructItem(void *,const char *,int);
-   LOCALE struct portConstructItem      *ValidPortConstructItem(void *,const char *);
-   LOCALE int                            FindImportExportConflict(void *,const char *,struct defmodule *,const char *);
+   void                           SetNumberOfDefmodules(void *,long);
+   void                           AddAfterModuleDefinedFunction(void *,const char *,void (*)(void *),int);
+   bool                           ParseDefmodule(void *,const char *);
+   void                           AddPortConstructItem(void *,const char *,int);
+   struct portConstructItem      *ValidPortConstructItem(void *,const char *);
+   bool                           FindImportExportConflict(void *,const char *,struct defmodule *,const char *);
 
 #endif /* _H_modulpsr */
 

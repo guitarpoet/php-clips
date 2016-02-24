@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -42,19 +42,16 @@
 
 #if DEFGENERIC_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME)
 
+#include "conscomp.h"
+#include "envrnmnt.h"
+#include "genrccom.h"
 #if DEFRULE_CONSTRUCT
 #include "network.h"
 #endif
-
-#include "genrccom.h"
-#include "conscomp.h"
-#include "envrnmnt.h"
-
 #if OBJECT_SYSTEM
 #include "objcmp.h"
 #endif
 
-#define _GENRCCMP_SOURCE_
 #include "genrccmp.h"
 
 /* =========================================
@@ -86,8 +83,8 @@
    ***************************************** */
 
 static void ReadyDefgenericsForCode(void *);
-static int DefgenericsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
-static void CloseDefgenericFiles(void *,FILE *[SAVE_ITEMS],int [SAVE_ITEMS],
+static bool DefgenericsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+static void CloseDefgenericFiles(void *,FILE *[SAVE_ITEMS],bool [SAVE_ITEMS],
                                  struct CodeGeneratorFile [SAVE_ITEMS],int);
 static void DefgenericModuleToCode(void *,FILE *,struct defmodule *,int,int);
 static void SingleDefgenericToCode(void *,FILE *,int,int,DEFGENERIC *,int,int,int);
@@ -110,7 +107,7 @@ static void TypeToCode(void *,FILE *,int,void *,int);
   SIDE EFFECTS : Code generator item initialized
   NOTES        : None
  ***************************************************/
-globle void SetupGenericsCompiler(
+void SetupGenericsCompiler(
   void *theEnv)
   {
    DefgenericData(theEnv)->DefgenericCodeItem = AddCodeGeneratorItem(theEnv,"generics",0,ReadyDefgenericsForCode,
@@ -131,7 +128,7 @@ globle void SetupGenericsCompiler(
   SIDE EFFECTS : Reference printed
   NOTES        : None
  ***************************************************/
-globle void PrintGenericFunctionReference(
+void PrintGenericFunctionReference(
   void *theEnv,
   FILE *fp,
   DEFGENERIC *gfunc,
@@ -159,7 +156,7 @@ globle void PrintGenericFunctionReference(
   SIDE EFFECTS : Defgeneric module reference printed
   NOTES        : None
  ****************************************************/
-globle void DefgenericCModuleReference(
+void DefgenericCModuleReference(
   void *theEnv,
   FILE *theFile,
   int count,
@@ -204,12 +201,12 @@ static void ReadyDefgenericsForCode(
                  4) The base id for the construct set
                  5) The max number of indices allowed
                     in an array
-  RETURNS      : -1 if no generic functions, 0 on errors,
+  RETURNS      : 0 on errors,
                   1 if generic functions written
   SIDE EFFECTS : Code written to files
   NOTES        : None
  *******************************************************/
-static int DefgenericsToCode(
+static bool DefgenericsToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -229,7 +226,7 @@ static int DefgenericsToCode(
    int itemArrayCounts[SAVE_ITEMS];
    int itemArrayVersions[SAVE_ITEMS];
    FILE *itemFiles[SAVE_ITEMS];
-   int itemReopenFlags[SAVE_ITEMS];
+   bool itemReopenFlags[SAVE_ITEMS];
    struct CodeGeneratorFile itemCodeFiles[SAVE_ITEMS];
 
    for (i = 0 ; i < SAVE_ITEMS ; i++)
@@ -237,7 +234,7 @@ static int DefgenericsToCode(
       itemArrayCounts[i] = 0;
       itemArrayVersions[i] = 1;
       itemFiles[i] = NULL;
-      itemReopenFlags[i] = FALSE;
+      itemReopenFlags[i] = false;
       itemCodeFiles[i].filePrefix = NULL;
       itemCodeFiles[i].pathName = pathName;
       itemCodeFiles[i].fileNameBuffer = fileNameBuffer;
@@ -385,11 +382,11 @@ static int DefgenericsToCode(
       itemArrayCounts[MODULEI]++;
      }
    CloseDefgenericFiles(theEnv,itemFiles,itemReopenFlags,itemCodeFiles,maxIndices);
-   return(1);
+   return(true);
 
 GenericCodeError:
    CloseDefgenericFiles(theEnv,itemFiles,itemReopenFlags,itemCodeFiles,maxIndices);
-   return(0);
+   return(false);
   }
 
 /******************************************************
@@ -411,7 +408,7 @@ GenericCodeError:
 static void CloseDefgenericFiles(
   void *theEnv,
   FILE *itemFiles[SAVE_ITEMS],
-  int itemReopenFlags[SAVE_ITEMS],
+  bool itemReopenFlags[SAVE_ITEMS],
   struct CodeGeneratorFile itemCodeFiles[SAVE_ITEMS],
   int maxIndices)
   {

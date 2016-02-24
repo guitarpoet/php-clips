@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                 REORDER HEADER FILE                 */
    /*******************************************************/
@@ -35,32 +35,22 @@
 /*                                                           */
 /*            Added support for hashed alpha memories.       */
 /*                                                           */
+/*      6.40: Removed the marked flag used for not/and       */
+/*            unification.                                   */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_reorder
+
+#pragma once
+
 #define _H_reorder
 
 struct lhsParseNode;
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_ruledef
-#include "ruledef.h"
-#endif
-#ifndef _H_pattern
 #include "pattern.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _REORDER_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#include "ruledef.h"
 
 /***********************************************************************/
 /* lhsParseNode structure: Stores information about the intermediate   */
@@ -79,7 +69,7 @@ struct lhsParseNode
    unsigned int derivedConstraints : 1;
    unsigned int userCE : 1;
    unsigned int whichCE : 7;
-   unsigned int marked : 1;
+   //unsigned int marked : 1;
    unsigned int withinMultifieldSlot : 1;
    unsigned short multiFieldsBefore;
    unsigned short multiFieldsAfter;
@@ -112,17 +102,17 @@ struct lhsParseNode
    struct lhsParseNode *bottom;
   };
 
-   LOCALE struct lhsParseNode           *ReorderPatterns(void *,struct lhsParseNode *,int *);
-   LOCALE struct lhsParseNode           *CopyLHSParseNodes(void *,struct lhsParseNode *);
-   LOCALE void                           CopyLHSParseNode(void *,struct lhsParseNode *,struct lhsParseNode *,int);
-   LOCALE struct lhsParseNode           *GetLHSParseNode(void *);
-   LOCALE void                           ReturnLHSParseNodes(void *,struct lhsParseNode *);
-   LOCALE struct lhsParseNode           *ExpressionToLHSParseNodes(void *,struct expr *);
-   LOCALE struct expr                   *LHSParseNodesToExpression(void *,struct lhsParseNode *);
-   LOCALE void                           AddInitialPatterns(void *,struct lhsParseNode *);
-   LOCALE int                            IsExistsSubjoin(struct lhsParseNode *,int);
-   LOCALE struct lhsParseNode           *CombineLHSParseNodes(void *,struct lhsParseNode *,struct lhsParseNode *);
-   LOCALE void                           AssignPatternMarkedFlag(struct lhsParseNode *,short);
+   struct lhsParseNode           *ReorderPatterns(void *,struct lhsParseNode *,bool *);
+   struct lhsParseNode           *CopyLHSParseNodes(void *,struct lhsParseNode *);
+   void                           CopyLHSParseNode(void *,struct lhsParseNode *,struct lhsParseNode *,bool);
+   struct lhsParseNode           *GetLHSParseNode(void *);
+   void                           ReturnLHSParseNodes(void *,struct lhsParseNode *);
+   struct lhsParseNode           *ExpressionToLHSParseNodes(void *,struct expr *);
+   struct expr                   *LHSParseNodesToExpression(void *,struct lhsParseNode *);
+   void                           AddInitialPatterns(void *,struct lhsParseNode *);
+   bool                           IsExistsSubjoin(struct lhsParseNode *,int);
+   struct lhsParseNode           *CombineLHSParseNodes(void *,struct lhsParseNode *,struct lhsParseNode *);
+   //void                           AssignPatternMarkedFlag(struct lhsParseNode *,short);
 
 #endif /* _H_reorder */
 

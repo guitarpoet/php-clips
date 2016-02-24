@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -34,26 +34,17 @@
 /*************************************************************/
 
 #ifndef _H_insqypsr
+
+#pragma once
+
 #define _H_insqypsr
 
 #if INSTANCE_SET_QUERIES && (! RUN_TIME)
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INSQYPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE EXPRESSION                    *ParseQueryNoAction(void *,EXPRESSION *,const char *);
-   LOCALE EXPRESSION                    *ParseQueryAction(void *,EXPRESSION *,const char *);
+   EXPRESSION                    *ParseQueryNoAction(void *,EXPRESSION *,const char *);
+   EXPRESSION                    *ParseQueryAction(void *,EXPRESSION *,const char *);
 
 #endif /* INSTANCE_SET_QUERIES && (! RUN_TIME) */
 

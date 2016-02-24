@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  12/04/07            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                  DRIVE HEADER FILE                  */
    /*******************************************************/
@@ -31,36 +31,22 @@
 
 #ifndef _H_drive
 
+#pragma once
+
 #define _H_drive
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DRIVE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
    void                           NetworkAssert(void *,struct partialMatch *,struct joinNode *);
-   intBool                        EvaluateJoinExpression(void *,struct expr *,struct joinNode *);
-   void                           NetworkAssertLeft(void *,struct partialMatch *,struct joinNode *);
-   void                           NetworkAssertRight(void *,struct partialMatch *,struct joinNode *);
-   void                           PPDrive(void *,struct partialMatch *,struct partialMatch *,struct joinNode *);
+   bool                           EvaluateJoinExpression(void *,struct expr *,struct joinNode *);
+   void                           NetworkAssertLeft(void *,struct partialMatch *,struct joinNode *,int);
+   void                           NetworkAssertRight(void *,struct partialMatch *,struct joinNode *,int);
+   void                           PPDrive(void *,struct partialMatch *,struct partialMatch *,struct joinNode *,int);
    unsigned long                  BetaMemoryHashValue(void *,struct expr *,struct partialMatch *,struct partialMatch *,struct joinNode *);
-   intBool                        EvaluateSecondaryNetworkTest(void *,struct partialMatch *,struct joinNode *);
-   void                           EPMDrive(void *,struct partialMatch *,struct joinNode *);
+   bool                           EvaluateSecondaryNetworkTest(void *,struct partialMatch *,struct joinNode *);
+   void                           EPMDrive(void *,struct partialMatch *,struct joinNode *,int);
    
 #endif /* _H_drive */
 

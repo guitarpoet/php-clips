@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*      DEFTEMPLATE CONSTRUCT COMPILER HEADER FILE     */
    /*******************************************************/
@@ -39,20 +39,12 @@
 
 #ifndef _H_tmpltcmp
 
+#pragma once
+
 #define _H_tmpltcmp
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeftemplateCompilerSetup(void *);
-   LOCALE void                           DeftemplateCModuleReference(void *,FILE *,int,int,int);
-   LOCALE void                           DeftemplateCConstructReference(void *,FILE *,void *,int,int);
+   void                           DeftemplateCompilerSetup(void *);
+   void                           DeftemplateCModuleReference(void *,FILE *,int,int,int);
+   void                           DeftemplateCConstructReference(void *,FILE *,void *,int,int);
 
 #endif /* _H_tmpltcmp */

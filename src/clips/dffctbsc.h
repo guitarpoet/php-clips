@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*         DEFFACTS BASIC COMMANDS HEADER FILE         */
    /*******************************************************/
@@ -36,42 +36,23 @@
 /*************************************************************/
 
 #ifndef _H_dffctbsc
+
+#pragma once
+
 #define _H_dffctbsc
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFCTBSC_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeffactsBasicCommands(void *);
-   LOCALE void                           UndeffactsCommand(void *);
-   LOCALE intBool                        EnvUndeffacts(void *,void *);
-   LOCALE void                           GetDeffactsListFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EnvGetDeffactsList(void *,DATA_OBJECT_PTR,void *);
-   LOCALE void                          *DeffactsModuleFunction(void *);
-   LOCALE void                           PPDeffactsCommand(void *);
-   LOCALE int                            PPDeffacts(void *,const char *,const char *);
-   LOCALE void                           ListDeffactsCommand(void *);
-   LOCALE void                           EnvListDeffacts(void *,const char *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           GetDeffactsList(DATA_OBJECT_PTR,void *);
-   LOCALE intBool                        Undeffacts(void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           ListDeffacts(const char *,void *);
-#endif
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           DeffactsBasicCommands(void *);
+   void                           UndeffactsCommand(UDFContext *,CLIPSValue *);
+   bool                           EnvUndeffacts(void *,void *);
+   void                           GetDeffactsListFunction(UDFContext *,CLIPSValue *);
+   void                           EnvGetDeffactsList(void *,DATA_OBJECT_PTR,void *);
+   void                           DeffactsModuleFunction(UDFContext *,CLIPSValue *);
+   void                           PPDeffactsCommand(UDFContext *,CLIPSValue *);
+   int                            PPDeffacts(void *,const char *,const char *);
+   void                           ListDeffactsCommand(UDFContext *,CLIPSValue *);
+   void                           EnvListDeffacts(void *,const char *,void *);
 
 #endif /* _H_dffctbsc */
 

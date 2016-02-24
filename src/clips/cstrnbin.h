@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*    CONSTRAINT BLOAD/BSAVE/CONSTRUCTS-TO-C HEADER    */
    /*******************************************************/
@@ -24,38 +24,24 @@
 /*************************************************************/
 
 #ifndef _H_cstrnbin
+
+#pragma once
+
 #define _H_cstrnbin
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrnt
-#include "constrnt.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CSTRNBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
+
+#include "evaluatn.h"
+#include "constrnt.h"
 
 #define ConstraintIndex(theConstraint) (((! EnvGetDynamicConstraintChecking(theEnv)) || (theConstraint == NULL)) ? -1L : ((long) theConstraint->bsaveIndex))
 #define ConstraintPointer(i) (((i) == -1L) ? NULL : (CONSTRAINT_RECORD *) &ConstraintData(theEnv)->ConstraintArray[i])
 
 #if BLOAD_AND_BSAVE
-   LOCALE void                           WriteNeededConstraints(void *,FILE *);
+   void                           WriteNeededConstraints(void *,FILE *);
 #endif
-   LOCALE void                           ReadNeededConstraints(void *);
-   LOCALE void                           ClearBloadedConstraints(void *);
+   void                           ReadNeededConstraints(void *);
+   void                           ClearBloadedConstraints(void *);
 
 #endif /* _H_cstrnbin */
 

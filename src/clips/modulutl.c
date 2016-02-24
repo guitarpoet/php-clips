@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              DEFMODULE UTILITY MODULE               */
    /*******************************************************/
@@ -24,18 +24,19 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
 /*************************************************************/
-
-#define _MODULUTL_SOURCE_
 
 #include "setup.h"
 
-#include "memalloc.h"
-#include "router.h"
 #include "envrnmnt.h"
+#include "memalloc.h"
+#include "modulpsr.h"
+#include "router.h"
 #include "sysdep.h"
 
-#include "modulpsr.h"
 #include "modulutl.h"
 
 /***************************************/
@@ -53,23 +54,24 @@
 /*   zero is returned if the separator is not found, otherwise the  */
 /*   position of the second colon within the string is returned.    */
 /********************************************************************/
-globle unsigned FindModuleSeparator(
+unsigned FindModuleSeparator(
   const char *theString)
   {
-   unsigned i, foundColon;
+   unsigned i;
+   bool foundColon;
 
-   for (i = 0, foundColon = FALSE; theString[i] != EOS; i++)
+   for (i = 0, foundColon = false; theString[i] != EOS; i++)
      {
       if (theString[i] == ':')
         {
          if (foundColon) return(i);
-         foundColon = TRUE;
+         foundColon = true;
         }
       else
-        { foundColon = FALSE; }
+        { foundColon = false; }
      }
 
-   return(FALSE);
+   return(0);
   }
 
 /*******************************************************************/
@@ -78,7 +80,7 @@ globle unsigned FindModuleSeparator(
 /*   symbol reference to the module name (or NULL if a module name */
 /*   cannot be extracted).                                         */
 /*******************************************************************/
-globle SYMBOL_HN *ExtractModuleName(
+SYMBOL_HN *ExtractModuleName(
   void *theEnv,
   unsigned thePosition,
   const char *theString)
@@ -138,7 +140,7 @@ globle SYMBOL_HN *ExtractModuleName(
 /*   symbol reference to the construct name (or NULL if a construct */
 /*   name cannot be extracted).                                     */
 /********************************************************************/
-globle SYMBOL_HN *ExtractConstructName(
+SYMBOL_HN *ExtractConstructName(
   void *theEnv,
   unsigned thePosition,
   const char *theString)
@@ -206,7 +208,7 @@ globle SYMBOL_HN *ExtractConstructName(
 /*   module and construct name from a string. Sets  */
 /*   the current module to the specified module.    */
 /****************************************************/
-globle const char *ExtractModuleAndConstructName(
+const char *ExtractModuleAndConstructName(
   void *theEnv,
   const char *theName)
   {
@@ -255,13 +257,13 @@ globle const char *ExtractModuleAndConstructName(
 /*   a module and other modules from which it imports       */
 /*   constructs for a specified construct.                  */
 /************************************************************/
-globle void *FindImportedConstruct(
+void *FindImportedConstruct(
   void *theEnv,
   const char *constructName,
   struct defmodule *matchModule,
   const char *findName,
   int *count,
-  int searchCurrent,
+  bool searchCurrent,
   struct defmodule *notYetDefinedInModule)
   {
    void *rv;
@@ -344,7 +346,7 @@ globle void *FindImportedConstruct(
 /*   when a reference to a specific construct can be     */
 /*   imported from more than one module.                 */
 /*********************************************************/
-globle void AmbiguousReferenceErrorMessage(
+void AmbiguousReferenceErrorMessage(
   void *theEnv,
   const char *constructName,
   const char *findName)
@@ -359,18 +361,18 @@ globle void AmbiguousReferenceErrorMessage(
 /****************************************************/
 /* MarkModulesAsUnvisited: Used for initializing a  */
 /*   search through the module heirarchies. Sets    */
-/*   the visited flag of each module to FALSE.      */
+/*   the visited flag of each module to false.      */
 /****************************************************/
-globle void MarkModulesAsUnvisited(
+void MarkModulesAsUnvisited(
   void *theEnv)
   {
    struct defmodule *theModule;
 
-   DefmoduleData(theEnv)->CurrentModule->visitedFlag = FALSE;
+   DefmoduleData(theEnv)->CurrentModule->visitedFlag = false;
    for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
         theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
-     { theModule->visitedFlag = FALSE; }
+     { theModule->visitedFlag = false; }
   }
 
 /***********************************************************/
@@ -391,7 +393,7 @@ static void *SearchImportedConstructModules(
    struct defmodule *theModule;
    struct portItem *theImportList, *theExportList;
    void *rv, *arv = NULL;
-   int searchModule, exported;
+   bool searchModule, exported;
    struct defmodule *currentModule;
 
    /*=========================================*/
@@ -453,7 +455,7 @@ static void *SearchImportedConstructModules(
    /* Mark the current module as visited. */
    /*=====================================*/
 
-   currentModule->visitedFlag = TRUE;
+   currentModule->visitedFlag = true;
 
    /*===================================*/
    /* Search through all of the modules */
@@ -472,13 +474,13 @@ static void *SearchImportedConstructModules(
       /* are imported).                                    */
       /*===================================================*/
 
-      searchModule = FALSE;
+      searchModule = false;
       if ((theImportList->constructType == NULL) ||
           (theImportList->constructType == constructType))
         {
          if ((theImportList->constructName == NULL) ||
              (theImportList->constructName == findName))
-           { searchModule = TRUE; }
+           { searchModule = true; }
         }
 
       /*=================================*/
@@ -489,7 +491,7 @@ static void *SearchImportedConstructModules(
         {
          theModule = (struct defmodule *)
                      EnvFindDefmodule(theEnv,ValueToString(theImportList->moduleName));
-         if (theModule == NULL) searchModule = FALSE;
+         if (theModule == NULL) searchModule = false;
         }
 
       /*=======================================================*/
@@ -498,7 +500,7 @@ static void *SearchImportedConstructModules(
 
       if (searchModule)
         {
-         exported = FALSE;
+         exported = false;
          theExportList = theModule->exportList;
          while ((theExportList != NULL) && (! exported))
            {
@@ -507,13 +509,13 @@ static void *SearchImportedConstructModules(
               {
                if ((theExportList->constructName == NULL) ||
                    (theExportList->constructName == findName))
-                 { exported = TRUE; }
+                 { exported = true; }
                }
 
             theExportList = theExportList->next;
            }
 
-         if (! exported) searchModule = FALSE;
+         if (! exported) searchModule = false;
         }
 
       /*=================================*/
@@ -525,7 +527,7 @@ static void *SearchImportedConstructModules(
          EnvSetCurrentModule(theEnv,(void *) theModule);
          if ((rv = SearchImportedConstructModules(theEnv,constructType,matchModule,
                                                   theModuleItem,findName,
-                                                  count,TRUE,
+                                                  count,true,
                                                   notYetDefinedInModule)) != NULL)
            { arv = rv; }
         }
@@ -546,10 +548,10 @@ static void *SearchImportedConstructModules(
   }
 
 /**************************************************************/
-/* ConstructExported: Returns TRUE if the specified construct */
+/* ConstructExported: Returns true if the specified construct */
 /*   is exported from the specified module.                   */
 /**************************************************************/
-globle intBool ConstructExported(
+bool ConstructExported(
   void *theEnv,
   const char *constructTypeStr,
   struct symbolHashNode *moduleName,
@@ -563,7 +565,7 @@ globle intBool ConstructExported(
    theModule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(moduleName));
    
    if ((constructType == NULL) || (theModule == NULL) || (findName == NULL))
-     { return(FALSE); }
+     { return(false); }
    
    theExportList = theModule->exportList;
    while (theExportList != NULL)
@@ -573,20 +575,20 @@ globle intBool ConstructExported(
        {
         if ((theExportList->constructName == NULL) ||
             (theExportList->constructName == findName))
-          { return TRUE; }
+          { return true; }
        }
 
       theExportList = theExportList->next;
      }
 
-   return FALSE;
+   return false;
   }
          
 /*********************************************************/
-/* AllImportedModulesVisited: Returns TRUE if all of the */
+/* AllImportedModulesVisited: Returns true if all of the */
 /*   imported modules for a module have been visited.    */
 /*********************************************************/
-globle intBool AllImportedModulesVisited(
+bool AllImportedModulesVisited(
   void *theEnv,
   struct defmodule *theModule)
   {
@@ -598,19 +600,19 @@ globle intBool AllImportedModulesVisited(
      {
       theImportModule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(theImportList->moduleName));
 
-      if (! theImportModule->visitedFlag) return FALSE;
+      if (! theImportModule->visitedFlag) return false;
       
       theImportList = theImportList->next;
      }
 
-   return TRUE;
+   return true;
   }
 
 /***************************************/
 /* ListItemsDriver: Driver routine for */
 /*   listing items in a module.        */
 /***************************************/
-globle void ListItemsDriver(
+void ListItemsDriver(
   void *theEnv,
   const char *logicalName,
   struct defmodule *theModule,
@@ -619,13 +621,13 @@ globle void ListItemsDriver(
   void *(*nextFunction)(void *,void *),
   const char *(*nameFunction)(void *),
   void (*printFunction)(void *,const char *,void *),
-  int (*doItFunction)(void *,void *))
+  bool (*doItFunction)(void *,void *))
   {
    void *constructPtr;
    const char *constructName;
    long count = 0;
-   int allModules = FALSE;
-   int doIt;
+   bool allModules = false;
+   bool doIt;
 
    /*==========================*/
    /* Save the current module. */
@@ -640,7 +642,7 @@ globle void ListItemsDriver(
    if (theModule == NULL)
      {
       theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
-      allModules = TRUE;
+      allModules = true;
      }
 
    while (theModule != NULL)
@@ -655,9 +657,9 @@ globle void ListItemsDriver(
       constructPtr = (*nextFunction)(theEnv,NULL);
       while (constructPtr != NULL)
         {
-         if (EvaluationData(theEnv)->HaltExecution == TRUE) return;
+         if (EvaluationData(theEnv)->HaltExecution == true) return;
 
-         if (doItFunction == NULL) doIt = TRUE;
+         if (doItFunction == NULL) doIt = true;
          else doIt = (*doItFunction)(theEnv,constructPtr);
 
          if (! doIt) {}
@@ -698,7 +700,7 @@ globle void ListItemsDriver(
 /********************************************************/
 /* DoForAllModules: Executes an action for all modules. */
 /********************************************************/
-globle long DoForAllModules(
+long DoForAllModules(
   void *theEnv,
   void (*actionFunction)(struct defmodule *,void *),
   int interruptable,
@@ -723,7 +725,7 @@ globle long DoForAllModules(
      {
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      if ((interruptable) && GetHaltExecution(theEnv))
+      if ((interruptable) && EnvGetHaltExecution(theEnv))
         {
          RestoreCurrentModule(theEnv);
          return(-1L);

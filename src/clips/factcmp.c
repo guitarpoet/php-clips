@@ -2,7 +2,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*     FACT PATTERN NETWORK CONSTRUCTS-TO-C MODULE     */
    /*******************************************************/
@@ -26,8 +26,6 @@
 /*                                                           */
 /*************************************************************/
 
-#define _FACTCMP_SOURCE_
-
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT && (! RUN_TIME) && DEFTEMPLATE_CONSTRUCT && CONSTRUCT_COMPILER
@@ -35,7 +33,6 @@
 #define FactPrefix() ArbitraryPrefix(FactData(theEnv)->FactCodeItem,0)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "factbld.h"
 #include "conscomp.h"
@@ -47,7 +44,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     PatternNetworkToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   static bool                    PatternNetworkToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
    static void                    BeforePatternNetworkToCode(void *);
    static struct factPatternNode *GetNextPatternNode(struct factPatternNode *);
    static void                    CloseNetworkFiles(void *,FILE *,int);
@@ -57,7 +54,7 @@
 /* FactPatternsCompilerSetup: Initializes the constructs-to-c */
 /*   command for use with the fact pattern network.           */
 /**************************************************************/
-globle void FactPatternsCompilerSetup(  
+void FactPatternsCompilerSetup(  
   void *theEnv)
   {
    FactData(theEnv)->FactCodeItem = AddCodeGeneratorItem(theEnv,"facts",0,BeforePatternNetworkToCode,
@@ -160,7 +157,7 @@ static struct factPatternNode *GetNextPatternNode(
 /* PatternNetworkToCode: Produces the fact pattern network code for */
 /*   a run-time module created using the constructs-to-c function.  */
 /********************************************************************/
-static int PatternNetworkToCode(
+static bool PatternNetworkToCode(
   void *theEnv,
   const char *fileName,
   const char *pathName,
@@ -218,11 +215,11 @@ static int PatternNetworkToCode(
            {
             networkFile = OpenFileIfNeeded(theEnv,networkFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                          networkArrayVersion,headerFP,
-                                         "struct factPatternNode",FactPrefix(),FALSE,NULL);
+                                         "struct factPatternNode",FactPrefix(),false,NULL);
             if (networkFile == NULL)
               {
                CloseNetworkFiles(theEnv,networkFile,maxIndices);
-               return(0);
+               return(false);
               }
 
             PatternNodeToCode(theEnv,networkFile,thePatternNode,imageID,maxIndices);
@@ -240,11 +237,11 @@ static int PatternNetworkToCode(
    CloseNetworkFiles(theEnv,networkFile,maxIndices);
 
    /*===============================*/
-   /* Return TRUE to indicate the C */
+   /* Return true to indicate the C */
    /* code was successfully saved.  */
    /*===============================*/
 
-   return(TRUE);
+   return(true);
   }
 
 /****************************************************************/
@@ -357,7 +354,7 @@ static void PatternNodeToCode(
 /* FactPatternNodeReference: Prints C code representation */
 /*   of a fact pattern node data structure reference.     */
 /**********************************************************/
-globle void FactPatternNodeReference(
+void FactPatternNodeReference(
   void *theEnv,
   void *theVPattern,
   FILE *theFile,

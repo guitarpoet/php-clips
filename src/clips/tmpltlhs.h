@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              DEFTEMPLATE LHS HEADER FILE            */
    /*******************************************************/
@@ -27,26 +27,14 @@
 
 #ifndef _H_tmpltlhs
 
+#pragma once
+
 #define _H_tmpltlhs
 
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
-#ifndef _H_tmpltdef
 #include "tmpltdef.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTLHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct lhsParseNode           *DeftemplateLHSParse(void *,const char *,struct deftemplate *);
+   struct lhsParseNode           *DeftemplateLHSParse(void *,const char *,struct deftemplate *);
 
 #endif /* _H_tmpltlhs */
 

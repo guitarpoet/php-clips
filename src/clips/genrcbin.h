@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -25,6 +25,9 @@
 /*************************************************************/
 
 #ifndef _H_genrcbin
+
+#pragma once
+
 #define _H_genrcbin
 
 #include "genrcfun.h"
@@ -49,18 +52,8 @@ struct defgenericBinaryData
 
 #define GenericPointer(i) (((i) == -1L) ? NULL : (DEFGENERIC *) &DefgenericBinaryData(theEnv)->DefgenericArray[i])
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GENRCBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupGenericsBload(void *);
-   LOCALE void                          *BloadDefgenericModuleReference(void *,int);
+   void                           SetupGenericsBload(void *);
+   void                          *BloadDefgenericModuleReference(void *,int);
 
 #endif /* _H_genrcbin */
 

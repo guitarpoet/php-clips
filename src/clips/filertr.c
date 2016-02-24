@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               FILE I/O ROUTER MODULE                */
    /*******************************************************/
@@ -37,12 +37,12 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*            Added STDOUT and STDIN logical name            */
+/*            definitions.                                   */
+/*                                                           */
 /*************************************************************/
 
-#define _FILERTR_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "setup.h"
@@ -54,7 +54,6 @@
 #include "sysdep.h"
 
 #include "filertr.h"
-#include <php.h>
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
@@ -69,11 +68,7 @@
 /***************************************************************/
 /* InitializeFileRouter: Initializes file input/output router. */
 /***************************************************************/
-
-
-FILE * fp = NULL; // The file pointer to php out
-
-globle void InitializeFileRouter(
+void InitializeFileRouter(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,FILE_ROUTER_DATA,sizeof(struct fileRouterData),DeallocateFileRouterData);
@@ -81,14 +76,6 @@ globle void InitializeFileRouter(
    EnvAddRouter(theEnv,"fileio",0,FindFile,
              PrintFile,GetcFile,
              UngetcFile,ExitFile);
-
-	php_stream *ps_out = NULL;
-	php_stream_context *psc_out=NULL;
-	ps_out = php_stream_open_wrapper_ex("php://output", "wb", 0, NULL, psc_out); // Open the stdout
-
-   if (php_stream_cast(ps_out, PHP_STREAM_AS_STDIO, (void*)&fp, REPORT_ERRORS) != SUCCESS) { 
-	   fp = NULL;
-   }
   }
 
 /*****************************************/
@@ -115,8 +102,7 @@ static void DeallocateFileRouterData(
 /* FindFptr: Returns a pointer to a file */
 /*   stream for a given logical name.    */
 /*****************************************/
-
-globle FILE *FindFptr(
+FILE *FindFptr(
   void *theEnv,
   const char *logicalName)
   {
@@ -126,28 +112,9 @@ globle FILE *FindFptr(
    /* Check to see if standard input or output is requested. */
    /*========================================================*/
 
-	if(fp) {
-	   if (strcmp(logicalName,"stdout") == 0)
-		 { return(fp); }
-	   else if (strcmp(logicalName,"stdin") == 0)
-		 { return(stdin);  }
-	   else if (strcmp(logicalName,WTRACE) == 0)
-		 { return(fp); }
-	   else if (strcmp(logicalName,WDIALOG) == 0)
-		 { return(fp); }
-	   else if (strcmp(logicalName,WPROMPT) == 0)
-		 { return(fp); }
-	   else if (strcmp(logicalName,WDISPLAY) == 0)
-		 { return(fp); }
-	   else if (strcmp(logicalName,WERROR) == 0)
-		 { return(fp); }
-	   else if (strcmp(logicalName,WWARNING) == 0)
-		 { return(fp); }
-   } 
-
-   if (strcmp(logicalName,"stdout") == 0)
+   if (strcmp(logicalName,STDOUT) == 0)
      { return(stdout); }
-   else if (strcmp(logicalName,"stdin") == 0)
+   else if (strcmp(logicalName,STDIN) == 0)
      { return(stdin);  }
    else if (strcmp(logicalName,WTRACE) == 0)
      { return(stdout); }
@@ -158,7 +125,7 @@ globle FILE *FindFptr(
    else if (strcmp(logicalName,WDISPLAY) == 0)
      { return(stdout); }
    else if (strcmp(logicalName,WERROR) == 0)
-     { return(stderr); }
+     { return(stdout); }
    else if (strcmp(logicalName,WWARNING) == 0)
      { return(stdout); }
 
@@ -167,7 +134,7 @@ globle FILE *FindFptr(
    /*==============================================================*/
 
    fptr = FileRouterData(theEnv)->ListOfFileRouters;
-   while ((fptr != NULL) ? (strcmp(logicalName,fptr->logicalName) != 0) : FALSE)
+   while ((fptr != NULL) ? (strcmp(logicalName,fptr->logicalName) != 0) : false)
      { fptr = fptr->next; }
 
    if (fptr != NULL) return(fptr->stream);
@@ -177,18 +144,18 @@ globle FILE *FindFptr(
 
 /*****************************************************/
 /* FindFile: Find routine for file router logical    */
-/*   names. Returns TRUE if the specified logical    */
+/*   names. Returns true if the specified logical    */
 /*   name has an associated file stream (which means */
 /*   that the logical name can be handled by the     */
-/*   file router). Otherwise, FALSE is returned.     */
+/*   file router). Otherwise, false is returned.     */
 /*****************************************************/
-globle int FindFile(
+bool FindFile(
   void *theEnv,
   const char *logicalName)
   {
-   if (FindFptr(theEnv,logicalName) != NULL) return(TRUE);
+   if (FindFptr(theEnv,logicalName) != NULL) return(true);
 
-   return(FALSE);
+   return(false);
   }
 
 /********************************************/
@@ -276,10 +243,10 @@ static int UngetcFile(
 /*********************************************************/
 /* OpenFile: Opens a file with the specified access mode */
 /*   and stores the opened stream on the list of files   */
-/*   associated with logical names Returns TRUE if the   */
-/*   file was succesfully opened, otherwise FALSE.       */
+/*   associated with logical names Returns true if the   */
+/*   file was succesfully opened, otherwise false.       */
 /*********************************************************/
-globle int OpenAFile(
+bool OpenAFile(
   void *theEnv,
   const char *fileName,
   const char *accessMode,
@@ -295,7 +262,7 @@ globle int OpenAFile(
    /*==================================*/
 
    if ((newstream = GenOpen(theEnv,fileName,accessMode)) == NULL)
-     { return(FALSE); }
+     { return(false); }
 
    /*===========================*/
    /* Create a new file router. */
@@ -316,19 +283,19 @@ globle int OpenAFile(
    FileRouterData(theEnv)->ListOfFileRouters = newRouter;
 
    /*==================================*/
-   /* Return TRUE to indicate the file */
+   /* Return true to indicate the file */
    /* was opened successfully.         */
    /*==================================*/
 
-   return(TRUE);
+   return(true);
   }
 
 /*************************************************************/
 /* CloseFile: Closes the file associated with the specified  */
-/*   logical name. Returns TRUE if the file was successfully */
-/*   closed, otherwise FALSE.                                */
+/*   logical name. Returns true if the file was successfully */
+/*   closed, otherwise false.                                */
 /*************************************************************/
-globle int CloseFile(
+bool CloseFile(
   void *theEnv,
   const char *fid)
   {
@@ -348,26 +315,26 @@ globle int CloseFile(
            { prev->next = fptr->next; }
          rm(theEnv,fptr,(int) sizeof(struct fileRouter));
 
-         return(TRUE);
+         return(true);
         }
 
       prev = fptr;
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /**********************************************/
 /* CloseAllFiles: Closes all files associated */
-/*   with a file I/O router. Returns TRUE if  */
-/*   any file was closed, otherwise FALSE.    */
+/*   with a file I/O router. Returns true if  */
+/*   any file was closed, otherwise false.    */
 /**********************************************/
-globle int CloseAllFiles(
+bool CloseAllFiles(
   void *theEnv)
   {
    struct fileRouter *fptr, *prev;
 
-   if (FileRouterData(theEnv)->ListOfFileRouters == NULL) return(FALSE);
+   if (FileRouterData(theEnv)->ListOfFileRouters == NULL) return(false);
 
    fptr = FileRouterData(theEnv)->ListOfFileRouters;
 
@@ -382,7 +349,7 @@ globle int CloseAllFiles(
 
    FileRouterData(theEnv)->ListOfFileRouters = NULL;
 
-   return(TRUE);
+   return(true);
   }
 
 

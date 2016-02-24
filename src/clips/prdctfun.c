@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*              PREDICATE FUNCTIONS MODULE             */
    /*******************************************************/
@@ -32,16 +32,13 @@
 /*                                                           */
 /*************************************************************/
 
-#define _PRDCTFUN_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
+#include "argacces.h"
 #include "envrnmnt.h"
 #include "exprnpsr.h"
-#include "argacces.h"
 #include "multifld.h"
 #include "router.h"
 
@@ -51,37 +48,37 @@
 /* PredicateFunctionDefinitions: Defines standard */
 /*   math and predicate functions.                */
 /**************************************************/
-globle void PredicateFunctionDefinitions(
+void PredicateFunctionDefinitions(
   void *theEnv)
   {
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"not", 'b', NotFunction, "NotFunction", "11");
-   EnvDefineFunction2(theEnv,"and", 'b', AndFunction, "AndFunction", "2*");
-   EnvDefineFunction2(theEnv,"or", 'b', OrFunction, "OrFunction", "2*");
+   EnvAddUDF(theEnv,"not", "b", NotFunction, "NotFunction",   1,1,          NULL,NULL);
+   EnvAddUDF(theEnv,"and", "b", AndFunction, "AndFunction",   2,UNBOUNDED , NULL,NULL);
+   EnvAddUDF(theEnv,"or",  "b", OrFunction,  "OrFunction",    2,UNBOUNDED , NULL,NULL);
 
-   EnvDefineFunction2(theEnv,"eq", 'b', EqFunction, "EqFunction", "2*");
-   EnvDefineFunction2(theEnv,"neq", 'b', NeqFunction, "NeqFunction", "2*");
+   EnvAddUDF(theEnv,"eq",  "b", EqFunction,  "EqFunction",  2, UNBOUNDED, NULL, NULL);
+   EnvAddUDF(theEnv,"neq", "b", NeqFunction, "NeqFunction", 2, UNBOUNDED, NULL, NULL);
 
-   EnvDefineFunction2(theEnv,"<=", 'b', LessThanOrEqualFunction, "LessThanOrEqualFunction", "2*n");
-   EnvDefineFunction2(theEnv,">=", 'b', GreaterThanOrEqualFunction, "GreaterThanOrEqualFunction", "2*n");
-   EnvDefineFunction2(theEnv,"<", 'b', LessThanFunction, "LessThanFunction", "2*n");
-   EnvDefineFunction2(theEnv,">", 'b', GreaterThanFunction, "GreaterThanFunction", "2*n");
-   EnvDefineFunction2(theEnv,"=", 'b', NumericEqualFunction, "NumericEqualFunction", "2*n");
-   EnvDefineFunction2(theEnv,"<>", 'b', NumericNotEqualFunction, "NumericNotEqualFunction", "2*n");
-   EnvDefineFunction2(theEnv,"!=", 'b', NumericNotEqualFunction, "NumericNotEqualFunction", "2*n");
+   EnvAddUDF(theEnv,"<=", "b", LessThanOrEqualFunction,    "LessThanOrEqualFunction",    2,UNBOUNDED , "ld",NULL);
+   EnvAddUDF(theEnv,">=", "b", GreaterThanOrEqualFunction, "GreaterThanOrEqualFunction", 2,UNBOUNDED , "ld",NULL);
+   EnvAddUDF(theEnv,"<",  "b", LessThanFunction,           "LessThanFunction",           2,UNBOUNDED , "ld",NULL);
+   EnvAddUDF(theEnv,">",  "b", GreaterThanFunction,        "GreaterThanFunction",        2,UNBOUNDED , "ld",NULL);
+   EnvAddUDF(theEnv,"=",  "b", NumericEqualFunction,       "NumericEqualFunction",       2,UNBOUNDED , "ld",NULL);
+   EnvAddUDF(theEnv,"<>", "b", NumericNotEqualFunction,    "NumericNotEqualFunction",    2,UNBOUNDED , "ld",NULL);
+   EnvAddUDF(theEnv,"!=", "b", NumericNotEqualFunction,    "NumericNotEqualFunction",    2,UNBOUNDED , "ld",NULL);
 
-   EnvDefineFunction2(theEnv,"symbolp", 'b', SymbolpFunction, "SymbolpFunction", "11");
-   EnvDefineFunction2(theEnv,"wordp", 'b', SymbolpFunction, "SymbolpFunction", "11");
-   EnvDefineFunction2(theEnv,"stringp", 'b', StringpFunction, "StringpFunction", "11");
-   EnvDefineFunction2(theEnv,"lexemep", 'b', LexemepFunction, "LexemepFunction", "11");
-   EnvDefineFunction2(theEnv,"numberp", 'b', NumberpFunction, "NumberpFunction", "11");
-   EnvDefineFunction2(theEnv,"integerp", 'b', IntegerpFunction, "IntegerpFunction", "11");
-   EnvDefineFunction2(theEnv,"floatp", 'b', FloatpFunction, "FloatpFunction", "11");
-   EnvDefineFunction2(theEnv,"oddp", 'b', OddpFunction, "OddpFunction", "11i");
-   EnvDefineFunction2(theEnv,"evenp", 'b', EvenpFunction, "EvenpFunction", "11i");
-   EnvDefineFunction2(theEnv,"multifieldp",'b', MultifieldpFunction, "MultifieldpFunction", "11");
-   EnvDefineFunction2(theEnv,"sequencep",'b', MultifieldpFunction, "MultifieldpFunction", "11");
-   EnvDefineFunction2(theEnv,"pointerp", 'b', PointerpFunction, "PointerpFunction", "11");
+   EnvAddUDF(theEnv,"symbolp",     "b",  SymbolpFunction,     "SymbolpFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"wordp",       "b",  SymbolpFunction,     "SymbolpFunction", 1,1,NULL,NULL);  // TBD Remove?
+   EnvAddUDF(theEnv,"stringp",     "b",  StringpFunction,     "StringpFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"lexemep",     "b",  LexemepFunction,     "LexemepFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"numberp",     "b",  NumberpFunction,     "NumberpFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"integerp",    "b",  IntegerpFunction,    "IntegerpFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"floatp",      "b",  FloatpFunction,      "FloatpFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"oddp",        "b",  OddpFunction,        "OddpFunction", 1,1,"l", NULL);
+   EnvAddUDF(theEnv,"evenp",       "b",  EvenpFunction,       "EvenpFunction",  1,1,"l", NULL);
+   EnvAddUDF(theEnv,"multifieldp", "b",  MultifieldpFunction, "MultifieldpFunction", 1,1,NULL,NULL);
+   EnvAddUDF(theEnv,"sequencep",   "b",  MultifieldpFunction, "MultifieldpFunction", 1,1,NULL,NULL); // TBD Remove?
+   EnvAddUDF(theEnv,"pointerp",    "b",  PointerpFunction,    "PointerpFunction", 1,1,NULL,NULL);
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -93,19 +90,25 @@ globle void PredicateFunctionDefinitions(
 /* EqFunction: H/L access routine   */
 /*   for the eq function.           */
 /************************************/
-globle intBool EqFunction(
-  void *theEnv)
+void EqFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT item, nextItem;
    int numArgs, i;
    struct expr *theExpression;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*====================================*/
    /* Determine the number of arguments. */
    /*====================================*/
 
    numArgs = EnvRtnArgCount(theEnv);
-   if (numArgs == 0) return(FALSE);
+   if (numArgs == 0)
+     {
+      mCVSetBoolean(returnValue,false);
+      return;
+     }
 
    /*==============================================*/
    /* Get the value of the first argument against  */
@@ -117,7 +120,7 @@ globle intBool EqFunction(
 
    /*=====================================*/
    /* Compare all arguments to the first. */
-   /* If any are the same, return FALSE.  */
+   /* If any are the same, return false.  */
    /*=====================================*/
 
    theExpression = GetNextArgument(theExpression);
@@ -126,44 +129,59 @@ globle intBool EqFunction(
       EvaluateExpression(theEnv,theExpression,&nextItem);
 
       if (GetType(nextItem) != GetType(item))
-        { return(FALSE); }
+        {
+         mCVSetBoolean(returnValue,false);
+         return;
+        }
 
       if (GetType(nextItem) == MULTIFIELD)
         {
-         if (MultifieldDOsEqual(&nextItem,&item) == FALSE)
-           { return(FALSE); }
+         if (MultifieldDOsEqual(&nextItem,&item) == false)
+           {
+            mCVSetBoolean(returnValue,false);
+            return;
+           }
         }
       else if (nextItem.value != item.value)
-        { return(FALSE); }
+        {
+         mCVSetBoolean(returnValue,false);
+         return;
+        }
 
       theExpression = GetNextArgument(theExpression);
      }
 
    /*=====================================*/
    /* All of the arguments were different */
-   /* from the first. Return TRUE.        */
+   /* from the first. Return true.        */
    /*=====================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /*************************************/
 /* NeqFunction: H/L access routine   */
 /*   for the neq function.           */
 /*************************************/
-globle intBool NeqFunction(
-  void *theEnv)
+void NeqFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
    DATA_OBJECT item, nextItem;
    int numArgs, i;
    struct expr *theExpression;
+   Environment *theEnv = UDFContextEnvironment(context);
 
    /*====================================*/
    /* Determine the number of arguments. */
    /*====================================*/
 
    numArgs = EnvRtnArgCount(theEnv);
-   if (numArgs == 0) return(FALSE);
+   if (numArgs == 0)
+     {
+      mCVSetBoolean(returnValue,false);
+      return;
+     }
 
    /*==============================================*/
    /* Get the value of the first argument against  */
@@ -175,7 +193,7 @@ globle intBool NeqFunction(
 
    /*=====================================*/
    /* Compare all arguments to the first. */
-   /* If any are different, return FALSE. */
+   /* If any are different, return false. */
    /*=====================================*/
 
    for (i = 2, theExpression = GetNextArgument(theExpression);
@@ -187,687 +205,635 @@ globle intBool NeqFunction(
         { continue; }
       else if (nextItem.type == MULTIFIELD)
         {
-         if (MultifieldDOsEqual(&nextItem,&item) == TRUE)
-           { return(FALSE); }
+         if (MultifieldDOsEqual(&nextItem,&item) == true)
+           {
+            mCVSetBoolean(returnValue,false);
+            return;
+           }
         }
       else if (nextItem.value == item.value)
-        { return(FALSE); }
+        {
+         mCVSetBoolean(returnValue,false);
+         return;
+        }
      }
 
    /*=====================================*/
    /* All of the arguments were identical */
-   /* to the first. Return TRUE.          */
+   /* to the first. Return true.          */
    /*=====================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /*****************************************/
 /* StringpFunction: H/L access routine   */
 /*   for the stringp function.           */
 /*****************************************/
-globle intBool StringpFunction(
-  void *theEnv)
+void StringpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"stringp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if (GetType(item) == STRING)
-     { return(TRUE); }
+   if (mCVIsType(&item,STRING_TYPE))
+     { mCVSetBoolean(returnValue,true); }
    else
-     { return(FALSE); }
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /*****************************************/
 /* SymbolpFunction: H/L access routine   */
 /*   for the symbolp function.           */
 /*****************************************/
-globle intBool SymbolpFunction(
-  void *theEnv)
+void SymbolpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"symbolp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if (GetType(item) == SYMBOL)
-     { return(TRUE); }
+   if (mCVIsType(&item,SYMBOL_TYPE))
+     { mCVSetBoolean(returnValue,true); }
    else
-     { return(FALSE); }
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /*****************************************/
 /* LexemepFunction: H/L access routine   */
 /*   for the lexemep function.           */
 /*****************************************/
-globle intBool LexemepFunction(
-  void *theEnv)
+void LexemepFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"lexemep",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if ((GetType(item) == SYMBOL) || (GetType(item) == STRING))
-     { return(TRUE); }
+   if (mCVIsType(&item,LEXEME_TYPES))
+     { mCVSetBoolean(returnValue,true); }
    else
-     { return(FALSE); }
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /*****************************************/
 /* NumberpFunction: H/L access routine   */
 /*   for the numberp function.           */
 /*****************************************/
-globle intBool NumberpFunction(
-  void *theEnv)
+void NumberpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"numberp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if ((GetType(item) == FLOAT) || (GetType(item) == INTEGER))
-     { return(TRUE); }
+   if (mCVIsType(&item,NUMBER_TYPES))
+     { mCVSetBoolean(returnValue,true); }
    else
-     { return(FALSE); }
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /****************************************/
 /* FloatpFunction: H/L access routine   */
 /*   for the floatp function.           */
 /****************************************/
-globle intBool FloatpFunction(
-  void *theEnv)
+void FloatpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"floatp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if (GetType(item) == FLOAT)
-     { return(TRUE); }
+   if (mCVIsType(&item,FLOAT_TYPE))
+     { mCVSetBoolean(returnValue,true); }
    else
-     { return(FALSE); }
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /******************************************/
 /* IntegerpFunction: H/L access routine   */
 /*   for the integerp function.           */
 /******************************************/
-globle intBool IntegerpFunction(
-  void *theEnv)
+void IntegerpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"integerp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if (GetType(item) != INTEGER) return(FALSE);
-
-   return(TRUE);
+   if (mCVIsType(&item,INTEGER_TYPE))
+     { mCVSetBoolean(returnValue,true); }
+   else
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /*********************************************/
 /* MultifieldpFunction: H/L access routine   */
 /*   for the multifieldp function.           */
 /*********************************************/
-globle intBool MultifieldpFunction(
-  void *theEnv)
+void MultifieldpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"multifieldp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if (GetType(item) != MULTIFIELD) return(FALSE);
-
-   return(TRUE);
+   if (mCVIsType(&item,MULTIFIELD_TYPE))
+     { mCVSetBoolean(returnValue,true); }
+   else
+     { mCVSetBoolean(returnValue,false); }
   }
 
 /******************************************/
 /* PointerpFunction: H/L access routine   */
 /*   for the pointerp function.           */
 /******************************************/
-globle intBool PointerpFunction(
-  void *theEnv)
+void PointerpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
+   CLIPSValue item;
 
-   if (EnvArgCountCheck(theEnv,"pointerp",EXACTLY,1) == -1) return(FALSE);
+   if (! UDFFirstArgument(context,ANY_TYPE,&item))
+     { return; }
 
-   EnvRtnUnknown(theEnv,1,&item);
-
-   if (GetType(item) != EXTERNAL_ADDRESS) return(FALSE);
-
-   return(TRUE);
+   if (mCVIsType(&item,EXTERNAL_ADDRESS_TYPE))
+     { mCVSetBoolean(returnValue,true); }
+   else
+     { mCVSetBoolean(returnValue,false); }
   }
 
-/*************************************/
-/* NotFunction: H/L access routine   */
-/*   for the not function.           */
-/*************************************/
-globle intBool NotFunction(
-  void *theEnv)
+/***********************************/
+/* NotFunction: H/L access routine */
+/*   for the not function.         */
+/***********************************/
+void NotFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
    DATA_OBJECT result;
 
-   theArgument = GetFirstArgument();
-   if (theArgument == NULL) { return(FALSE); }
+   if (! UDFFirstArgument(context,ANY_TYPE,&result))
+     { return; }
 
-   if (EvaluateExpression(theEnv,theArgument,&result)) return(FALSE);
+   if (CVIsFalseSymbol(&result))
+     {
+      mCVSetBoolean(returnValue,true);
+      return;
+     }
 
-   if ((result.value == EnvFalseSymbol(theEnv)) && (result.type == SYMBOL))
-     { return(TRUE); }
-   
-   return(FALSE);
+   mCVSetBoolean(returnValue,false);
   }
 
 /*************************************/
 /* AndFunction: H/L access routine   */
 /*   for the and function.           */
 /*************************************/
-globle intBool AndFunction(
-  void *theEnv)
+void AndFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
    DATA_OBJECT result;
 
-   for (theArgument = GetFirstArgument();
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument))
+   while (UDFHasNextArgument(context))
      {
-      if (EvaluateExpression(theEnv,theArgument,&result)) return(FALSE);
-      if ((result.value == EnvFalseSymbol(theEnv)) && (result.type == SYMBOL))
-        { return(FALSE); }
+      if (! UDFNextArgument(context,ANY_TYPE,&result))
+        { return; }
+        
+      if (CVIsFalseSymbol(&result))
+        {
+         mCVSetBoolean(returnValue,false);
+         return;
+        }
      }
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /************************************/
 /* OrFunction: H/L access routine   */
 /*   for the or function.           */
 /************************************/
-globle intBool OrFunction(
-  void *theEnv)
+void OrFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
    DATA_OBJECT result;
 
-   for (theArgument = GetFirstArgument();
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument))
+   while (UDFHasNextArgument(context))
      {
-      if (EvaluateExpression(theEnv,theArgument,&result)) return(FALSE);
-
-      if ((result.value != EnvFalseSymbol(theEnv)) || (result.type != SYMBOL))
-        { return(TRUE); }
+      if (! UDFNextArgument(context,ANY_TYPE,&result))
+        { return; }
+        
+      if (! CVIsFalseSymbol(&result))
+        {
+         mCVSetBoolean(returnValue,true);
+         return;
+        }
      }
 
-   return(FALSE);
+   mCVSetBoolean(returnValue,false);
   }
 
 /*****************************************/
 /* LessThanOrEqualFunction: H/L access   */
 /*   routine for the <= function.        */
 /*****************************************/
-globle intBool LessThanOrEqualFunction(
-  void *theEnv)
+void LessThanOrEqualFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
    DATA_OBJECT rv1, rv2;
-   int pos = 1;
 
    /*=========================*/
    /* Get the first argument. */
    /*=========================*/
 
-   theArgument = GetFirstArgument();
-   if (theArgument == NULL) { return(TRUE); }
-   if (! GetNumericArgument(theEnv,theArgument,"<=",&rv1,FALSE,pos)) return(FALSE);
-   pos++;
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&rv1))
+     { return; }
 
    /*====================================================*/
    /* Compare each of the subsequent arguments to its    */
-   /* predecessor. If any is greater, then return FALSE. */
+   /* predecessor. If any is greater, then return false. */
    /*====================================================*/
 
-   for (theArgument = GetNextArgument(theArgument);
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument), pos++)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theArgument,"<=",&rv2,FALSE,pos)) return(FALSE);
-      if (rv1.type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&rv2))
+        { return; }
+
+      if (mCVIsType(&rv1,INTEGER_TYPE) && mCVIsType(&rv2,INTEGER_TYPE))
         {
-         if (rv2.type == INTEGER)
+         if (mCVToInteger(&rv1) > mCVToInteger(&rv2))
            {
-            if (ValueToLong(rv1.value) > ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if ((double) ValueToLong(rv1.value) > ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
       else
         {
-         if (rv2.type == INTEGER)
+         if (mCVToFloat(&rv1) > mCVToFloat(&rv2))
            {
-            if (ValueToDouble(rv1.value) > (double) ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if (ValueToDouble(rv1.value) > ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
 
-      rv1.type = rv2.type;
-      rv1.value = rv2.value;
+      CVSetCLIPSValue(&rv1,&rv2);
      }
 
    /*======================================*/
    /* Each argument was less than or equal */
-   /* to it predecessor. Return TRUE.      */
+   /* to its predecessor. Return true.     */
    /*======================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /********************************************/
 /* GreaterThanOrEqualFunction: H/L access   */
 /*   routine for the >= function.           */
 /********************************************/
-globle intBool GreaterThanOrEqualFunction(
-  void *theEnv)
+void GreaterThanOrEqualFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
    DATA_OBJECT rv1, rv2;
-   int pos = 1;
 
    /*=========================*/
    /* Get the first argument. */
    /*=========================*/
 
-   theArgument = GetFirstArgument();
-   if (theArgument == NULL) { return(TRUE); }
-   if (! GetNumericArgument(theEnv,theArgument,">=",&rv1,FALSE,pos)) return(FALSE);
-   pos++;
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&rv1))
+     { return; }
 
    /*===================================================*/
    /* Compare each of the subsequent arguments to its   */
-   /* predecessor. If any is lesser, then return FALSE. */
+   /* predecessor. If any is lesser, then return false. */
    /*===================================================*/
 
-   for (theArgument = GetNextArgument(theArgument);
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument), pos++)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theArgument,">=",&rv2,FALSE,pos)) return(FALSE);
-      if (rv1.type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&rv2))
+        { return; }
+
+      if (mCVIsType(&rv1,INTEGER_TYPE) && mCVIsType(&rv2,INTEGER_TYPE))
         {
-         if (rv2.type == INTEGER)
+         if (mCVToInteger(&rv1) < mCVToInteger(&rv2))
            {
-            if (ValueToLong(rv1.value) < ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if ((double) ValueToLong(rv1.value) < ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
       else
         {
-         if (rv2.type == INTEGER)
+         if (mCVToFloat(&rv1) < mCVToFloat(&rv2))
            {
-            if (ValueToDouble(rv1.value) < (double) ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if (ValueToDouble(rv1.value) < ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
 
-      rv1.type = rv2.type;
-      rv1.value = rv2.value;
+      CVSetCLIPSValue(&rv1,&rv2);
      }
 
    /*=========================================*/
    /* Each argument was greater than or equal */
-   /* to its predecessor. Return TRUE.        */
+   /* to its predecessor. Return true.        */
    /*=========================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /**********************************/
 /* LessThanFunction: H/L access   */
 /*   routine for the < function.  */
 /**********************************/
-globle intBool LessThanFunction(
-  void *theEnv)
+void LessThanFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
-   DATA_OBJECT rv1, rv2;
-   int pos = 1;
+   CLIPSValue rv1, rv2;
 
    /*=========================*/
    /* Get the first argument. */
    /*=========================*/
 
-   theArgument = GetFirstArgument();
-   if (theArgument == NULL) { return(TRUE); }
-   if (! GetNumericArgument(theEnv,theArgument,"<",&rv1,FALSE,pos)) return(FALSE);
-   pos++;
-
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&rv1))
+     { return; }
+   
    /*==========================================*/
    /* Compare each of the subsequent arguments */
    /* to its predecessor. If any is greater or */
-   /* equal, then return FALSE.                */
+   /* equal, then return false.                */
    /*==========================================*/
-
-   for (theArgument = GetNextArgument(theArgument);
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument), pos++)
+   
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theArgument,"<",&rv2,FALSE,pos)) return(FALSE);
-      if (rv1.type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&rv2))
+        { return; }
+        
+      if (mCVIsType(&rv1,INTEGER_TYPE) && mCVIsType(&rv2,INTEGER_TYPE))
         {
-         if (rv2.type == INTEGER)
+         if (mCVToInteger(&rv1) >= mCVToInteger(&rv2))
            {
-            if (ValueToLong(rv1.value) >= ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if ((double) ValueToLong(rv1.value) >= ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
       else
         {
-         if (rv2.type == INTEGER)
+         if (mCVToFloat(&rv1) >= mCVToFloat(&rv2))
            {
-            if (ValueToDouble(rv1.value) >= (double) ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if (ValueToDouble(rv1.value) >= ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
-
-      rv1.type = rv2.type;
-      rv1.value = rv2.value;
+        
+      CVSetCLIPSValue(&rv1,&rv2);
      }
 
    /*=================================*/
    /* Each argument was less than its */
-   /* predecessor. Return TRUE.       */
+   /* predecessor. Return true.       */
    /*=================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /*************************************/
 /* GreaterThanFunction: H/L access   */
 /*   routine for the > function.     */
 /*************************************/
-globle intBool GreaterThanFunction(
-  void *theEnv)
+void GreaterThanFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
-   DATA_OBJECT rv1, rv2;
-   int pos = 1;
+   CLIPSValue rv1, rv2;
 
    /*=========================*/
    /* Get the first argument. */
    /*=========================*/
 
-   theArgument = GetFirstArgument();
-   if (theArgument == NULL) { return(TRUE); }
-   if (! GetNumericArgument(theEnv,theArgument,">",&rv1,FALSE,pos)) return(FALSE);
-   pos++;
-
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&rv1))
+     { return; }
+   
    /*==========================================*/
    /* Compare each of the subsequent arguments */
    /* to its predecessor. If any is lesser or  */
-   /* equal, then return FALSE.                */
+   /* equal, then return false.                */
    /*==========================================*/
-
-   for (theArgument = GetNextArgument(theArgument);
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument), pos++)
+   
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theArgument,">",&rv2,FALSE,pos)) return(FALSE);
-      if (rv1.type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&rv2))
+        { return; }
+        
+      if (mCVIsType(&rv1,INTEGER_TYPE) && mCVIsType(&rv2,INTEGER_TYPE))
         {
-         if (rv2.type == INTEGER)
+         if (mCVToInteger(&rv1) <= mCVToInteger(&rv2))
            {
-            if (ValueToLong(rv1.value) <= ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if ((double) ValueToLong(rv1.value) <= ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
       else
         {
-         if (rv2.type == INTEGER)
+         if (mCVToFloat(&rv1) <= mCVToFloat(&rv2))
            {
-            if (ValueToDouble(rv1.value) <= (double) ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if (ValueToDouble(rv1.value) <= ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
-
-      rv1.type = rv2.type;
-      rv1.value = rv2.value;
+        
+      CVSetCLIPSValue(&rv1,&rv2);
      }
 
-   /*================================*/
-   /* Each argument was greater than */
-   /* its predecessor. Return TRUE.  */
-   /*================================*/
+   /*=================================*/
+   /* Each argument was less than its */
+   /* predecessor. Return true.       */
+   /*=================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /**************************************/
 /* NumericEqualFunction: H/L access   */
 /*   routine for the = function.      */
 /**************************************/
-globle intBool NumericEqualFunction(
-  void *theEnv)
+void NumericEqualFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
-   DATA_OBJECT rv1, rv2;
-   int pos = 1;
+   CLIPSValue rv1, rv2;
 
    /*=========================*/
    /* Get the first argument. */
    /*=========================*/
 
-   theArgument = GetFirstArgument();
-
-   if (theArgument == NULL) { return(TRUE); }
-   if (! GetNumericArgument(theEnv,theArgument,"=",&rv1,FALSE,pos)) return(FALSE);
-   pos++;
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&rv1))
+     { return; }
 
    /*=================================================*/
    /* Compare each of the subsequent arguments to the */
-   /* first. If any is unequal, then return FALSE.    */
+   /* first. If any is unequal, then return false.    */
    /*=================================================*/
 
-   for (theArgument = GetNextArgument(theArgument);
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument), pos++)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theArgument,"=",&rv2,FALSE,pos)) return(FALSE);
-      if (rv1.type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&rv2))
+        { return; }
+        
+      if (mCVIsType(&rv1,INTEGER_TYPE) && mCVIsType(&rv2,INTEGER_TYPE))
         {
-         if (rv2.type == INTEGER)
+         if (mCVToInteger(&rv1) != mCVToInteger(&rv2))
            {
-            if (ValueToLong(rv1.value) != ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if ((double) ValueToLong(rv1.value) != ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
       else
         {
-         if (rv2.type == INTEGER)
+         if (mCVToFloat(&rv1) != mCVToFloat(&rv2))
            {
-            if (ValueToDouble(rv1.value) != (double) ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if (ValueToDouble(rv1.value) != ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
      }
-
+     
    /*=================================*/
    /* All arguments were equal to the */
-   /* first argument. Return TRUE.    */
+   /* first argument. Return true.    */
    /*=================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /*****************************************/
 /* NumericNotEqualFunction: H/L access   */
 /*   routine for the <> function.        */
 /*****************************************/
-globle intBool NumericNotEqualFunction(
-  void *theEnv)
+void NumericNotEqualFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   EXPRESSION *theArgument;
-   DATA_OBJECT rv1, rv2;
-   int pos = 1;
+   CLIPSValue rv1, rv2;
 
    /*=========================*/
    /* Get the first argument. */
    /*=========================*/
 
-   theArgument = GetFirstArgument();
-   if (theArgument == NULL) { return(TRUE); }
-   if (! GetNumericArgument(theEnv,theArgument,"<>",&rv1,FALSE,pos)) return(FALSE);
-   pos++;
+   if (! UDFFirstArgument(context,NUMBER_TYPES,&rv1))
+     { return; }
 
    /*=================================================*/
    /* Compare each of the subsequent arguments to the */
-   /* first. If any is equal, then return FALSE.      */
+   /* first. If any is equal, then return false.      */
    /*=================================================*/
 
-   for (theArgument = GetNextArgument(theArgument);
-        theArgument != NULL;
-        theArgument = GetNextArgument(theArgument), pos++)
+   while (UDFHasNextArgument(context))
      {
-      if (! GetNumericArgument(theEnv,theArgument,"<>",&rv2,FALSE,pos)) return(FALSE);
-      if (rv1.type == INTEGER)
+      if (! UDFNextArgument(context,NUMBER_TYPES,&rv2))
+        { return; }
+        
+      if (mCVIsType(&rv1,INTEGER_TYPE) && mCVIsType(&rv2,INTEGER_TYPE))
         {
-         if (rv2.type == INTEGER)
+         if (mCVToInteger(&rv1) == mCVToInteger(&rv2))
            {
-            if (ValueToLong(rv1.value) == ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if ((double) ValueToLong(rv1.value) == ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
       else
         {
-         if (rv2.type == INTEGER)
+         if (mCVToFloat(&rv1) == mCVToFloat(&rv2))
            {
-            if (ValueToDouble(rv1.value) == (double) ValueToLong(rv2.value))
-              { return(FALSE); }
-           }
-         else
-           {
-            if (ValueToDouble(rv1.value) == ValueToDouble(rv2.value))
-              { return(FALSE); }
+            mCVSetBoolean(returnValue,false);
+            return;
            }
         }
      }
-
+     
    /*===================================*/
    /* All arguments were unequal to the */
-   /* first argument. Return TRUE.      */
+   /* first argument. Return true.      */
    /*===================================*/
 
-   return(TRUE);
+   mCVSetBoolean(returnValue,true);
   }
 
 /**************************************/
 /* OddpFunction: H/L access routine   */
 /*   for the oddp function.           */
 /**************************************/
-globle intBool OddpFunction(
-  void *theEnv)
+void OddpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
-   long long num, halfnum;
-
-   if (EnvArgCountCheck(theEnv,"oddp",EXACTLY,1) == -1) return(FALSE);
-   if (EnvArgTypeCheck(theEnv,"oddp",1,INTEGER,&item) == FALSE) return(FALSE);
-
-   num = DOToLong(item);
-
+   CLIPSValue item;
+   CLIPSInteger num, halfnum;
+      
+   /*===========================================*/
+   /* Check for the correct types of arguments. */
+   /*===========================================*/
+ 
+   if (! UDFFirstArgument(context,INTEGER_TYPE,&item))
+     { return; }
+    
+   /*===========================*/
+   /* Compute the return value. */
+   /*===========================*/
+   
+   num = mCVToInteger(&item);
    halfnum = (num / 2) * 2;
-   if (num == halfnum) return(FALSE);
 
-   return(TRUE);
+   if (num == halfnum) mCVSetBoolean(returnValue,false);
+   else mCVSetBoolean(returnValue,true);
   }
 
 /***************************************/
 /* EvenpFunction: H/L access routine   */
 /*   for the evenp function.           */
 /***************************************/
-globle intBool EvenpFunction(
-  void *theEnv)
+void EvenpFunction(
+  UDFContext *context,
+  CLIPSValue *returnValue)
   {
-   DATA_OBJECT item;
-   long long num, halfnum;
+   CLIPSValue item;
+   CLIPSInteger num, halfnum;
+   
+   /*===========================================*/
+   /* Check for the correct types of arguments. */
+   /*===========================================*/
+     
+   if (! UDFFirstArgument(context,INTEGER_TYPE,&item))
+     { return; }
 
-   if (EnvArgCountCheck(theEnv,"evenp",EXACTLY,1) == -1) return(FALSE);
-   if (EnvArgTypeCheck(theEnv,"evenp",1,INTEGER,&item) == FALSE) return(FALSE);
-
-   num = DOToLong(item);
-
+   /*===========================*/
+   /* Compute the return value. */
+   /*===========================*/
+   
+   num = mCVToInteger(&item);
    halfnum = (num / 2) * 2;
-   if (num != halfnum) return(FALSE);
-
-   return(TRUE);
+   
+   if (num != halfnum) mCVSetBoolean(returnValue,false);
+   else mCVSetBoolean(returnValue,true);
   }
 
 

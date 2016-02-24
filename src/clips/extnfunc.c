@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/13/16             */
    /*                                                     */
    /*               EXTERNAL FUNCTION MODULE              */
    /*******************************************************/
@@ -31,20 +31,33 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Changed restrictions from char * to            */
+/*            symbolHashNode * to support strings            */
+/*            originating from sources that are not          */
+/*            statically allocated.                          */
+/*                                                           */
+/*            Callbacks must be environment aware.           */
+/*                                                           */
 /*************************************************************/
-
-#define _EXTNFUNC_SOURCE_
 
 #include "setup.h"
 
 #include <ctype.h>
 #include <stdlib.h>
 
+#include "argacces.h"
 #include "constant.h"
 #include "envrnmnt.h"
-#include "router.h"
 #include "memalloc.h"
-#include "evaluatn.h"
+#include "router.h"
+
+#if DEFTEMPLATE_CONSTRUCT
+#include "factmngr.h"
+#endif
+
+#if OBJECT_SYSTEM
+#include "inscom.h"
+#endif
 
 #include "extnfunc.h"
 
@@ -56,14 +69,16 @@
    static void                    InitializeFunctionHashTable(void *);
    static void                    DeallocateExternalFunctionData(void *);
 #if (! RUN_TIME)
-   static int                     RemoveHashFunction(void *,struct FunctionDefinition *);
+   static bool                    RemoveHashFunction(void *,struct FunctionDefinition *);
 #endif
+   static void                    PrintType(void *,const char *,int,int *,const char *);
+   static void                    AssignErrorValue(UDFContext *);
 
 /*********************************************************/
 /* InitializeExternalFunctionData: Allocates environment */
 /*    data for external functions.                       */
 /*********************************************************/
-globle void InitializeExternalFunctionData(
+void InitializeExternalFunctionData(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,EXTERNAL_FUNCTION_DATA,sizeof(struct externalFunctionData),DeallocateExternalFunctionData);
@@ -115,21 +130,23 @@ static void DeallocateExternalFunctionData(
 /* EnvDefineFunction: Used to define a system or user */
 /*   external function so that the KB can access it.  */
 /******************************************************/
-globle int EnvDefineFunction(
+bool EnvDefineFunction(
   void *theEnv,
   const char *name,
   int returnType,
   int (*pointer)(void *),
   const char *actualName)
   {
-   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,NULL,TRUE,NULL));
+   return(DefineFunction3(theEnv,name,returnType,0,
+                          (void (*)(UDFContext *,CLIPSValue *)) pointer,
+                          actualName,UNBOUNDED,UNBOUNDED,NULL,NULL));
   }
   
 /************************************************************/
 /* EnvDefineFunctionWithContext: Used to define a system or */
 /*   user external function so that the KB can access it.   */
 /************************************************************/
-globle int EnvDefineFunctionWithContext(
+bool EnvDefineFunctionWithContext(
   void *theEnv,
   const char *name,
   int returnType,
@@ -137,14 +154,16 @@ globle int EnvDefineFunctionWithContext(
   const char *actualName,
   void *context)
   {
-   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,NULL,TRUE,context));
+   return(DefineFunction3(theEnv,name,returnType,0,
+                          (void (*)(UDFContext *,CLIPSValue *))pointer,
+                          actualName,UNBOUNDED,UNBOUNDED,NULL,context));
   }
   
 /*******************************************************/
 /* EnvDefineFunction2: Used to define a system or user */
 /*   external function so that the KB can access it.   */
 /*******************************************************/
-globle int EnvDefineFunction2(
+bool EnvDefineFunction2(
   void *theEnv,
   const char *name,
   int returnType,
@@ -152,14 +171,16 @@ globle int EnvDefineFunction2(
   const char *actualName,
   const char *restrictions)
   {
-   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,restrictions,TRUE,NULL));
+   return(DefineFunction3(theEnv,name,returnType,0,
+                          (void (*)(UDFContext *,CLIPSValue *)) pointer,
+                          actualName,UNBOUNDED,UNBOUNDED,restrictions,NULL));
   }
 
 /*************************************************************/
 /* EnvDefineFunction2WithContext: Used to define a system or */
 /*   user external function so that the KB can access it.    */
 /*************************************************************/
-globle int EnvDefineFunction2WithContext(
+bool EnvDefineFunction2WithContext(
   void *theEnv,
   const char *name,
   int returnType,
@@ -168,7 +189,32 @@ globle int EnvDefineFunction2WithContext(
   const char *restrictions,
   void *context)
   {
-   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,restrictions,TRUE,context));
+   return(DefineFunction3(theEnv,name,returnType,0,
+                          (void (*)(UDFContext *,CLIPSValue *)) pointer,
+                          actualName,UNBOUNDED,UNBOUNDED,restrictions,context));
+  }
+
+/*******************************************************/
+/* EnvAddUDF: Used to define a system or user external */
+/*   function so that the KB can access it.            */
+/*******************************************************/
+bool EnvAddUDF(
+  Environment *theEnv,
+  const char *clipsFunctionName,
+  const char *returnTypes,
+  void (*cFunctionPointer)(UDFContext *,CLIPSValue *),
+  const char *cFunctionName,
+  int minArgs,
+  int maxArgs,
+  const char *argumentTypes,
+  void *context)
+  {
+   unsigned returnTypeBits;
+   
+   PopulateRestriction(theEnv,&returnTypeBits,ANY_TYPE,returnTypes,0);
+   
+   return(DefineFunction3(theEnv,clipsFunctionName,'z',returnTypeBits,cFunctionPointer,
+                          cFunctionName,minArgs,maxArgs,argumentTypes,context));
   }
 
 /*************************************************************/
@@ -195,15 +241,18 @@ globle int EnvDefineFunction2WithContext(
 /*     v - void                                              */
 /*     w - symbol                                            */
 /*     x - instance address                                  */
+/*     z - unknown (with return type bits)                   */
 /*************************************************************/
-globle int DefineFunction3(
+bool DefineFunction3(
   void *theEnv,
   const char *name,
   int returnType,
-  int (*pointer)(void *),
+  unsigned returnTypeBits,
+  void (*pointer)(UDFContext *,CLIPSValue *),
   const char *actualName,
+  int minArgs,
+  int maxArgs,
   const char *restrictions,
-  intBool environmentAware,
   void *context)
   {
    struct FunctionDefinition *newFunction;
@@ -229,46 +278,62 @@ globle int DefineFunction3(
 #if OBJECT_SYSTEM
         (returnType != 'x') &&
 #endif
-        (returnType != 'w') )
-     { return(0); }
+#if DEFTEMPLATE_CONSTRUCT
+        (returnType != 'y') &&
+#endif
+        (returnType != 'w') &&
+       
+        (returnType != 'z'))
+     { return(false); }
 
    newFunction = FindFunction(theEnv,name);
-   if (newFunction == NULL)
-     {
-      newFunction = get_struct(theEnv,FunctionDefinition);
-      newFunction->callFunctionName = (SYMBOL_HN *) EnvAddSymbol(theEnv,name);
-      IncrementSymbolCount(newFunction->callFunctionName);
-      newFunction->next = GetFunctionList(theEnv);
-      ExternalFunctionData(theEnv)->ListOfFunctions = newFunction;
-      AddHashFunction(theEnv,newFunction);
-     }
+   if (newFunction != NULL) return(0);
+   
+   newFunction = get_struct(theEnv,FunctionDefinition);
+   newFunction->callFunctionName = (SYMBOL_HN *) EnvAddSymbol(theEnv,name);
+   IncrementSymbolCount(newFunction->callFunctionName);
+   newFunction->next = GetFunctionList(theEnv);
+   ExternalFunctionData(theEnv)->ListOfFunctions = newFunction;
+   AddHashFunction(theEnv,newFunction);
      
    newFunction->returnValueType = (char) returnType;
-   newFunction->functionPointer = (int (*)(void)) pointer;
+   newFunction->unknownReturnValueType = returnTypeBits;
+   newFunction->functionPointer = pointer;
    newFunction->actualFunctionName = actualName;
-   if (restrictions != NULL)
+   
+   newFunction->minArgs = minArgs;
+   newFunction->maxArgs = maxArgs;
+   
+   if ((restrictions != NULL) && (returnType != 'z'))
      {
-      if (((int) (strlen(restrictions)) < 2) ? TRUE :
+      if (((int) (strlen(restrictions)) < 2) ? true :
           ((! isdigit(restrictions[0]) && (restrictions[0] != '*')) ||
            (! isdigit(restrictions[1]) && (restrictions[1] != '*'))))
         restrictions = NULL;
      }
-   newFunction->restrictions = restrictions;
+     
+   if (restrictions == NULL)
+     { newFunction->restrictions = NULL; }
+   else
+     {
+      newFunction->restrictions = EnvAddSymbol(theEnv,restrictions);
+      IncrementSymbolCount(newFunction->restrictions);
+     }
+     
    newFunction->parser = NULL;
-   newFunction->overloadable = TRUE;
-   newFunction->sequenceuseok = TRUE;
-   newFunction->environmentAware = (short) environmentAware;
+   newFunction->overloadable = true;
+   newFunction->sequenceuseok = true;
    newFunction->usrData = NULL;
    newFunction->context = context;
 
-   return(1);
+   return(true);
   }
   
 /***********************************************/
 /* UndefineFunction: Used to remove a function */
 /*   definition from the list of functions.    */
 /***********************************************/
-globle int UndefineFunction(
+bool UndefineFunction(
   void *theEnv,
   const char *functionName)
   {
@@ -291,22 +356,24 @@ globle int UndefineFunction(
          else
            { lastPtr->next = fPtr->next; }
            
+         if (fPtr->restrictions != NULL)
+           { DecrementSymbolCount(theEnv,fPtr->restrictions); }
          ClearUserDataList(theEnv,fPtr->usrData);
          rtn_struct(theEnv,FunctionDefinition,fPtr);
-         return(TRUE);
+         return(true);
         }
 
       lastPtr = fPtr;
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /******************************************/
 /* RemoveHashFunction: Removes a function */
 /*   from the function hash table.        */
 /******************************************/
-static int RemoveHashFunction(
+static bool RemoveHashFunction(
   void *theEnv,
   struct FunctionDefinition *fdPtr)
   {
@@ -327,13 +394,13 @@ static int RemoveHashFunction(
            { lastPtr->next = fhPtr->next; }
 
          rtn_struct(theEnv,FunctionHash,fhPtr);
-         return(TRUE);
+         return(true);
         }
 
       lastPtr = fhPtr;
      }
 
-   return(FALSE);
+   return(false);
   }
 
 /***************************************************************************/
@@ -345,7 +412,7 @@ static int RemoveHashFunction(
 /*   routines. Generic functions and deffunctions can not have specialized */
 /*   parsing routines.                                                     */
 /***************************************************************************/
-globle int AddFunctionParser(
+int AddFunctionParser(
   void *theEnv,
   const char *functionName,
   struct expr *(*fpPtr)(void *,struct expr *,const char *))
@@ -360,7 +427,7 @@ globle int AddFunctionParser(
      }
    fdPtr->restrictions = NULL;
    fdPtr->parser = fpPtr;
-   fdPtr->overloadable = FALSE;
+   fdPtr->overloadable = false;
 
    return(1);
   }
@@ -369,7 +436,7 @@ globle int AddFunctionParser(
 /* RemoveFunctionParser: Removes a specialized expression parsing    */
 /*   function (if it exists) from the function entry for a function. */
 /*********************************************************************/
-globle int RemoveFunctionParser(
+int RemoveFunctionParser(
   void *theEnv,
   const char *functionName)
   {
@@ -391,11 +458,11 @@ globle int RemoveFunctionParser(
 /* FuncSeqOvlFlags: Makes a system function overloadable or not, */
 /* i.e. can the function be a method for a generic function.     */
 /*****************************************************************/
-globle int FuncSeqOvlFlags(
+bool FuncSeqOvlFlags(
   void *theEnv,
   const char *functionName,
-  int seqp,
-  int ovlp)
+  bool seqp,
+  bool ovlp)
   {
    struct FunctionDefinition *fdPtr;
 
@@ -403,11 +470,11 @@ globle int FuncSeqOvlFlags(
    if (fdPtr == NULL)
      {
       EnvPrintRouter(theEnv,WERROR,"Only existing functions can be marked as using sequence expansion arguments/overloadable or not.\n");
-      return(FALSE);
+      return(false);
      }
-   fdPtr->sequenceuseok = (short) (seqp ? TRUE : FALSE);
-   fdPtr->overloadable = (short) (ovlp ? TRUE : FALSE);
-   return(TRUE);
+   fdPtr->sequenceuseok = (short) (seqp ? true : false);
+   fdPtr->overloadable = (short) (ovlp ? true : false);
+   return(true);
   }
 
 #endif
@@ -416,7 +483,7 @@ globle int FuncSeqOvlFlags(
 /* GetArgumentTypeName: Returns a descriptive string for */
 /*   a function argument type (used by DefineFunction2). */
 /*********************************************************/
-globle const char *GetArgumentTypeName(
+const char *GetArgumentTypeName(
   int theRestriction)
   {
    switch ((char) theRestriction)
@@ -488,7 +555,7 @@ globle const char *GetArgumentTypeName(
 /* GetNthRestriction: Returns the restriction type */
 /*   for the nth parameter of a function.          */
 /***************************************************/
-globle int GetNthRestriction(
+int GetNthRestriction(
   struct FunctionDefinition *theFunction,
   int position)
   {
@@ -512,7 +579,7 @@ globle int GetNthRestriction(
    /* an argument to the function.                              */
    /*===========================================================*/
 
-   theLength = strlen(theFunction->restrictions);
+   theLength = strlen(theFunction->restrictions->contents);
 
    if (theLength < 3) return(defaultRestriction);
 
@@ -520,7 +587,7 @@ globle int GetNthRestriction(
    /* Determine the functions default restriction. */
    /*==============================================*/
 
-   defaultRestriction = (int) theFunction->restrictions[i];
+   defaultRestriction = (int) theFunction->restrictions->contents[i];
 
    if (defaultRestriction == '*') defaultRestriction = (int) 'u';
 
@@ -535,13 +602,36 @@ globle int GetNthRestriction(
    /* Return the restriction specified for the nth parameter. */
    /*=========================================================*/
 
-   return((int) theFunction->restrictions[position + 2]);
+   return((int) theFunction->restrictions->contents[position + 2]);
+  }
+
+/***************************************************/
+/* GetNthRestriction2: Returns the restriction type */
+/*   for the nth parameter of a function.          */
+/***************************************************/
+unsigned GetNthRestriction2(
+  Environment *theEnv,
+  struct FunctionDefinition *theFunction,
+  int position)
+  {
+   unsigned rv, df;
+   const char *restrictions;
+   
+   if (theFunction == NULL) return(ANY_TYPE);
+
+   if (theFunction->restrictions == NULL) return(ANY_TYPE);
+   restrictions = theFunction->restrictions->contents;
+   
+   PopulateRestriction(theEnv,&df,ANY_TYPE,restrictions,0);
+   PopulateRestriction(theEnv,&rv,df,restrictions,position);
+
+   return rv;
   }
 
 /*************************************************/
 /* GetFunctionList: Returns the ListOfFunctions. */
 /*************************************************/
-globle struct FunctionDefinition *GetFunctionList(
+struct FunctionDefinition *GetFunctionList(
   void *theEnv)
   {
    return(ExternalFunctionData(theEnv)->ListOfFunctions);
@@ -551,7 +641,7 @@ globle struct FunctionDefinition *GetFunctionList(
 /* InstallFunctionList: Sets the ListOfFunctions and adds all */
 /*   the function entries to the FunctionHashTable.           */
 /**************************************************************/
-globle void InstallFunctionList(
+void InstallFunctionList(
   void *theEnv,
   struct FunctionDefinition *value)
   {
@@ -587,7 +677,7 @@ globle void InstallFunctionList(
 /*   FunctionDefinition structure if a function name is */
 /*   in the function list, otherwise returns NULL.      */
 /********************************************************/
-globle struct FunctionDefinition *FindFunction(
+struct FunctionDefinition *FindFunction(
   void *theEnv,
   const char *functionName)
   {
@@ -654,14 +744,17 @@ static void AddHashFunction(
 /* GetMinimumArgs: Returns the minimum number of */
 /*   arguments expected by an external function. */
 /*************************************************/
-globle int GetMinimumArgs(
+int GetMinimumArgs(
   struct FunctionDefinition *theFunction)
   {
    char theChar[2];
    const char *restrictions;
 
-   restrictions = theFunction->restrictions;
-   if (restrictions == NULL) return(-1);
+   if (theFunction->returnValueType == 'z')
+     { return theFunction->minArgs; }
+     
+   if (theFunction->restrictions == NULL) return(-1);
+   restrictions = theFunction->restrictions->contents;
 
    theChar[0] = restrictions[0];
    theChar[1] = '\0';
@@ -678,14 +771,17 @@ globle int GetMinimumArgs(
 /* GetMaximumArgs: Returns the maximum number of */
 /*   arguments expected by an external function. */
 /*************************************************/
-globle int GetMaximumArgs(
+int GetMaximumArgs(
   struct FunctionDefinition *theFunction)
   {
    char theChar[2];
    const char *restrictions;
 
-   restrictions = theFunction->restrictions;
-   if (restrictions == NULL) return(-1);
+   if (theFunction->returnValueType == 'z')
+     { return theFunction->maxArgs; }
+
+   if (theFunction->restrictions == NULL) return(-1);
+   restrictions = theFunction->restrictions->contents;
    if (restrictions[0] == '\0') return(-1);
 
    theChar[0] = restrictions[1];
@@ -699,44 +795,466 @@ globle int GetMaximumArgs(
    return(-1); 
   }
 
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if (! RUN_TIME)
-globle int DefineFunction(
-  const char *name,
-  int returnType,
-  int (*pointer)(void),
-  const char *actualName)
+/********************/
+/* AssignErrorValue */
+/********************/
+void AssignErrorValue(
+  UDFContext *context)
   {
-   void *theEnv;
-   
-   theEnv = GetCurrentEnvironment();
-
-   return(DefineFunction3(theEnv,name,returnType,
-                          (int (*)(void *)) pointer,
-                          actualName,NULL,FALSE,NULL));
+   if (context->theFunction->unknownReturnValueType & BOOLEAN_TYPE)
+     { mCVSetBoolean(context->returnValue,false); }
+   else if (context->theFunction->unknownReturnValueType & STRING_TYPE)
+     { mCVSetString(context->returnValue,""); }
+   else if (context->theFunction->unknownReturnValueType & SYMBOL_TYPE)
+     { mCVSetSymbol(context->returnValue,"nil"); }
+   else if (context->theFunction->unknownReturnValueType & INTEGER_TYPE)
+     { mCVSetInteger(context->returnValue,0); }
+   else if (context->theFunction->unknownReturnValueType & FLOAT_TYPE)
+     { mCVSetFloat(context->returnValue,0.0); }
+   else if (context->theFunction->unknownReturnValueType & MULTIFIELD_TYPE)
+     { EnvSetMultifieldErrorValue(context->environment,context->returnValue); }
+   else if (context->theFunction->unknownReturnValueType & INSTANCE_NAME_TYPE)
+     { mCVSetInstanceName(context->returnValue,"nil"); }
+   else if (context->theFunction->unknownReturnValueType & FACT_ADDRESS_TYPE)
+     { mCVSetFactAddress(context->returnValue,&FactData(context->environment)->DummyFact); }
+   else if (context->theFunction->unknownReturnValueType & INSTANCE_ADDRESS_TYPE)
+     { mCVSetInstanceAddress(context->returnValue,&InstanceData(context->environment)->DummyInstance); }
+   else if (context->theFunction->unknownReturnValueType & EXTERNAL_ADDRESS_TYPE)
+     { CVSetExternalAddress(context->returnValue,NULL,0); }
+   else
+     { mCVSetVoid(context->returnValue); }
   }
 
-globle int DefineFunction2(
-  const char *name,
-  int returnType,
-  int (*pointer)(void),
-  const char *actualName,
-  const char *restrictions)
+/*********************/
+/* UDFArgumentCount: */
+/*********************/
+int UDFArgumentCount(
+  UDFContext *context)
   {
-   void *theEnv;
-   
-   theEnv = GetCurrentEnvironment();
+   int count = 0;
+   struct expr *argPtr;
 
-   return(DefineFunction3(theEnv,name,returnType,
-                          (int (*)(void *)) pointer,
-                          actualName,restrictions,FALSE,NULL));
+   for (argPtr = EvaluationData(context->environment)->CurrentExpression->argList;
+        argPtr != NULL;
+        argPtr = argPtr->nextArg)
+     { count++; }
+
+   return(count);
   }
 
-#endif /* (! RUN_TIME) */
+/*********************/
+/* UDFFirstArgument: */
+/*********************/
+bool UDFFirstArgument(
+  UDFContext *context,
+  unsigned expectedType,
+  CLIPSValue *returnValue)
+  {
+   context->lastArg = EvaluationData(context->environment)->CurrentExpression->argList;
+   context->lastPosition = 1;
+   return UDFNextArgument(context,expectedType,returnValue);
+  }
 
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+/********************/
+/* UDFNextArgument: */
+/********************/
+bool UDFNextArgument(
+  UDFContext *context,
+  unsigned expectedType,
+  CLIPSValue *returnValue)
+  {
+   struct expr *argPtr = context->lastArg;
+   int argumentPosition = context->lastPosition;
+   void *theEnv = context->environment;
+   returnValue->environment = theEnv;
+   
+   if (argPtr == NULL)
+     {
+      EnvSetHaltExecution(theEnv,true);
+      EnvSetEvaluationError(theEnv,true);
+      return false;
+     }
+     
+   context->lastPosition++;
+   context->lastArg = context->lastArg->nextArg;
+   
+   switch (argPtr->type)
+     {
+      case INTEGER:
+        returnValue->type = argPtr->type;
+        returnValue->bitType = INTEGER_TYPE;
+        returnValue->value = argPtr->value;
+        if (expectedType & INTEGER_TYPE) return(true);
+        ExpectedTypeError0(theEnv,UDFContextFunctionName(context),argumentPosition);
+        PrintTypesString(theEnv,WERROR,expectedType,true);
+        EnvSetHaltExecution(theEnv,true);
+        EnvSetEvaluationError(theEnv,true);
+        AssignErrorValue(context);
+        return false;
+        break;
+
+      case FLOAT:
+        returnValue->type = argPtr->type;
+        returnValue->bitType = FLOAT_TYPE;
+        returnValue->value = argPtr->value;
+        if (expectedType & FLOAT_TYPE) return(true);
+        ExpectedTypeError0(theEnv,UDFContextFunctionName(context),argumentPosition);
+        PrintTypesString(theEnv,WERROR,expectedType,true);
+        EnvSetHaltExecution(theEnv,true);
+        EnvSetEvaluationError(theEnv,true);
+        AssignErrorValue(context);
+        return false;
+        break;
+
+      case SYMBOL:
+        returnValue->type = argPtr->type;
+        returnValue->value = argPtr->value;
+        returnValue->bitType = SYMBOL_TYPE;
+        if (expectedType & SYMBOL_TYPE) return(true);
+        ExpectedTypeError0(theEnv,UDFContextFunctionName(context),argumentPosition);
+        PrintTypesString(theEnv,WERROR,expectedType,true);
+        EnvSetHaltExecution(theEnv,true);
+        EnvSetEvaluationError(theEnv,true);
+        AssignErrorValue(context);
+        return false;
+        break;
+
+      case STRING:
+        returnValue->type = argPtr->type;
+        returnValue->value = argPtr->value;
+        returnValue->bitType = STRING_TYPE;
+        if (expectedType & STRING_TYPE) return(true);
+        ExpectedTypeError0(theEnv,UDFContextFunctionName(context),argumentPosition);
+        PrintTypesString(theEnv,WERROR,expectedType,true);
+        EnvSetHaltExecution(theEnv,true);
+        EnvSetEvaluationError(theEnv,true);
+        AssignErrorValue(context);
+        return false;
+        break;
+
+      case INSTANCE_NAME:
+        returnValue->type = argPtr->type;
+        returnValue->value = argPtr->value;
+        returnValue->bitType = INSTANCE_NAME_TYPE;
+        if (expectedType & INSTANCE_NAME_TYPE) return(true);
+        ExpectedTypeError0(theEnv,UDFContextFunctionName(context),argumentPosition);
+        PrintTypesString(theEnv,WERROR,expectedType,true);
+        EnvSetHaltExecution(theEnv,true);
+        EnvSetEvaluationError(theEnv,true);
+        AssignErrorValue(context);
+        return false;
+        break;
+     }
+
+   EvaluateExpression(theEnv,argPtr,returnValue);
+
+   switch (returnValue->type)
+     {
+      case RVOID:
+        returnValue->bitType = VOID_TYPE;
+        if (expectedType & VOID_TYPE)
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case INTEGER:
+        returnValue->bitType = INTEGER_TYPE;
+        if (expectedType & INTEGER_TYPE)
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case FLOAT:
+        returnValue->bitType = FLOAT_TYPE;
+        if (expectedType & FLOAT_TYPE)
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case SYMBOL:
+        returnValue->bitType = SYMBOL_TYPE;
+        if (expectedType & SYMBOL_TYPE) 
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case STRING:
+        returnValue->bitType = STRING_TYPE;
+        if (expectedType & STRING_TYPE) 
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case INSTANCE_NAME:
+        returnValue->bitType = INSTANCE_NAME_TYPE;
+        if (expectedType & INSTANCE_NAME_TYPE) 
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case EXTERNAL_ADDRESS:
+        returnValue->bitType = EXTERNAL_ADDRESS_TYPE;
+        if (expectedType & EXTERNAL_ADDRESS_TYPE)
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case FACT_ADDRESS:
+        returnValue->bitType = FACT_ADDRESS_TYPE;
+        if (expectedType & FACT_ADDRESS_TYPE) 
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+
+      case INSTANCE_ADDRESS:
+        returnValue->bitType = INSTANCE_ADDRESS_TYPE;
+        if (expectedType & INSTANCE_ADDRESS_TYPE) 
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+        
+      case MULTIFIELD:
+        returnValue->bitType = MULTIFIELD_TYPE;
+        if (expectedType & MULTIFIELD_TYPE) 
+          {
+           if (EvaluationData(theEnv)->EvaluationError)
+             {
+              AssignErrorValue(context);
+              return false;
+             }
+           else return true;
+          }
+        break;
+     }
+
+   ExpectedTypeError0(theEnv,UDFContextFunctionName(context),argumentPosition);
+   PrintTypesString(theEnv,WERROR,expectedType,true);
+
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
+   AssignErrorValue(context);
+
+   return false;
+  }
+
+/*******************/
+/* UDFNthArgument: */
+/*******************/
+bool UDFNthArgument(
+  UDFContext *context,
+  int argumentPosition,
+  unsigned expectedType,
+  DATA_OBJECT_PTR returnValue)
+  {
+   void *theEnv = UDFContextEnvironment(context);
+   
+   if (argumentPosition < context->lastPosition)
+     {
+      context->lastArg = EvaluationData(theEnv)->CurrentExpression->argList;
+      context->lastPosition = 1;
+     }
+
+   for ( ; (context->lastArg != NULL) && (context->lastPosition < argumentPosition) ;
+           context->lastArg = context->lastArg->nextArg)
+     { context->lastPosition++; }
+      
+   return UDFNextArgument(context,expectedType,returnValue);
+  }
+
+/******************************/
+/* UDFInvalidArgumentMessage: */
+/******************************/
+void UDFInvalidArgumentMessage(
+  UDFContext *context,
+  const char *typeString)
+  {
+   ExpectedTypeError1(UDFContextEnvironment(context),
+                      UDFContextFunctionName(context),
+                      context->lastPosition-1,typeString);
+  }
+
+/******************/
+/* UDFThrowError: */
+/******************/
+void UDFThrowError(
+  UDFContext *context)
+  {
+   Environment *theEnv = UDFContextEnvironment(context);
+   
+   EnvSetHaltExecution(theEnv,true);
+   EnvSetEvaluationError(theEnv,true);
+  }
+
+/**************************/
+/* UDFContextEnvironment: */
+/**************************/
+Environment *UDFContextEnvironment(
+  UDFContext *context)
+  {
+   return context->environment;
+  }
+
+/***************************/
+/* UDFContextFunctionName: */
+/***************************/
+const char *UDFContextFunctionName(
+  UDFContext *context)
+  {
+   return context->theFunction->callFunctionName->contents;
+  }
+
+/**************************/
+/* UDFContextUserContext: */
+/**************************/
+void *UDFContextUserContext(
+  UDFContext *context)
+  {
+   return context->theFunction->context;
+  }
+
+/*************/
+/* UDFCVInit */
+/*************/
+void UDFCVInit(
+  UDFContext *context,
+  CLIPSValue *theValue)
+  {
+   theValue->environment = context->environment;
+  }
+
+/**************/
+/* PrintType: */
+/**************/
+static void PrintType(
+  void *theEnv,
+  const char *logicalName,
+  int typeCount,
+  int *typesPrinted,
+  const char *typeName)
+  {
+   if (*typesPrinted == 0)
+     {
+      EnvPrintRouter(theEnv,logicalName,typeName);
+      (*typesPrinted)++;
+      return;
+     }
+
+   if (typeCount == 2)
+     { EnvPrintRouter(theEnv,logicalName," or "); }
+   else if (((*typesPrinted) + 1) == typeCount)
+     { EnvPrintRouter(theEnv,logicalName,", or "); }
+   else
+     { EnvPrintRouter(theEnv,logicalName,", "); }
+     
+   EnvPrintRouter(theEnv,logicalName,typeName);
+   (*typesPrinted)++;
+  }
+
+/********************/
+/* PrintTypesString */
+/********************/
+void PrintTypesString(
+  void *theEnv,
+  const char *logicalName,
+  unsigned expectedType,
+  bool printCRLF)
+  {
+   int typeCount, typesPrinted;
+
+   typeCount = 0;
+   if (expectedType & INTEGER_TYPE) typeCount++;
+   if (expectedType & FLOAT_TYPE) typeCount++;
+   if (expectedType & SYMBOL_TYPE) typeCount++;
+   if (expectedType & STRING_TYPE) typeCount++;
+   if (expectedType & INSTANCE_NAME_TYPE) typeCount++;
+   if (expectedType & INSTANCE_ADDRESS_TYPE) typeCount++;
+   if (expectedType & FACT_ADDRESS_TYPE) typeCount++;
+   if (expectedType & EXTERNAL_ADDRESS_TYPE) typeCount++;
+   if (expectedType & MULTIFIELD_TYPE) typeCount++;
+   
+   typesPrinted = 0;
+   if (expectedType & INTEGER_TYPE)
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"integer"); }
+  
+    if (expectedType & FLOAT_TYPE)
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"float"); }
+
+   if (expectedType & SYMBOL_TYPE)
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"symbol"); }
+
+   if (expectedType & STRING_TYPE)
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"string"); }
+
+   if (expectedType & INSTANCE_NAME_TYPE) 
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"instance name"); }
+
+   if (expectedType & INSTANCE_ADDRESS_TYPE) 
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"instance address"); }
+
+   if (expectedType & FACT_ADDRESS_TYPE) 
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"fact address"); }
+
+   if (expectedType & EXTERNAL_ADDRESS_TYPE) 
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"external address"); }
+
+   if (expectedType & MULTIFIELD_TYPE) 
+     { PrintType(theEnv,logicalName,typeCount,&typesPrinted,"multifield"); }
+   
+   if (printCRLF)
+     { EnvPrintRouter(theEnv,logicalName,"\n"); }
+  }
+

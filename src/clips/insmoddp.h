@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*           INSTANCE MODIFY AND DUPLICATE MODULE      */
    /*******************************************************/
@@ -35,6 +35,9 @@
 /*************************************************************/
 
 #ifndef _H_insmoddp
+
+#pragma once
+
 #define _H_insmoddp
 
 #define DIRECT_MODIFY_STRING    "direct-modify"
@@ -46,36 +49,26 @@
 #include "evaluatn.h"
 #endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INSMODDP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
 #if (! RUN_TIME)
-   LOCALE void                           SetupInstanceModDupCommands(void *);
+   void                           SetupInstanceModDupCommands(void *);
 #endif
 
-   LOCALE void                           ModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           MsgModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           DuplicateInstance(void *,DATA_OBJECT *);
-   LOCALE void                           MsgDuplicateInstance(void *,DATA_OBJECT *);
+   void                           ModifyInstance(UDFContext *,CLIPSValue *);
+   void                           MsgModifyInstance(UDFContext *,CLIPSValue *);
+   void                           DuplicateInstance(UDFContext *,CLIPSValue *);
+   void                           MsgDuplicateInstance(UDFContext *,CLIPSValue *);
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
-   LOCALE void                           InactiveModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           InactiveMsgModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           InactiveDuplicateInstance(void *,DATA_OBJECT *);
-   LOCALE void                           InactiveMsgDuplicateInstance(void *,DATA_OBJECT *);
+   void                           InactiveModifyInstance(UDFContext *,CLIPSValue *);
+   void                           InactiveMsgModifyInstance(UDFContext *,CLIPSValue *);
+   void                           InactiveDuplicateInstance(UDFContext *,CLIPSValue *);
+   void                           InactiveMsgDuplicateInstance(UDFContext *,CLIPSValue *);
 #endif
 
-   LOCALE void                           DirectModifyMsgHandler(void *,DATA_OBJECT *);
-   LOCALE void                           MsgModifyMsgHandler(void *,DATA_OBJECT *);
-   LOCALE void                           DirectDuplicateMsgHandler(void *,DATA_OBJECT *);
-   LOCALE void                           MsgDuplicateMsgHandler(void *,DATA_OBJECT *);
+   void                           DirectModifyMsgHandler(UDFContext *,CLIPSValue *);
+   void                           MsgModifyMsgHandler(UDFContext *,CLIPSValue *);
+   void                           DirectDuplicateMsgHandler(UDFContext *,CLIPSValue *);
+   void                           MsgDuplicateMsgHandler(UDFContext *,CLIPSValue *);
 
 #endif /* _H_insmoddp */
 

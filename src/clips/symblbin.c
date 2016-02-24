@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                 SYMBOL BSAVE MODULE                 */
    /*******************************************************/
@@ -23,8 +23,6 @@
 /*            Support for long long integers.                */
 /*                                                           */
 /*************************************************************/
-
-#define _BSAVE_SOURCE_
 
 #include "setup.h"
 
@@ -58,7 +56,7 @@
 /*   floats, integers, and bitmaps needed by  */
 /*   this binary image to the binary file.    */
 /**********************************************/
-globle void WriteNeededAtomicValues(
+void WriteNeededAtomicValues(
   void *theEnv,
   FILE *fp)
   {
@@ -73,7 +71,7 @@ globle void WriteNeededAtomicValues(
 /*   floats, integers, and bitmaps as being unneeded by */
 /*   the binary image being saved.                      */
 /********************************************************/
-globle void InitAtomicValueNeededFlags(
+void InitAtomicValueNeededFlags(
   void *theEnv)
   {
    unsigned long i;
@@ -93,7 +91,7 @@ globle void InitAtomicValueNeededFlags(
       symbolPtr = symbolArray[i];
       while (symbolPtr != NULL)
         {
-         symbolPtr->neededSymbol = FALSE;
+         symbolPtr->neededSymbol = false;
          symbolPtr = symbolPtr->next;
         }
      }
@@ -109,7 +107,7 @@ globle void InitAtomicValueNeededFlags(
       floatPtr = floatArray[i];
       while (floatPtr != NULL)
         {
-         floatPtr->neededFloat = FALSE;
+         floatPtr->neededFloat = false;
          floatPtr = floatPtr->next;
         }
      }
@@ -125,7 +123,7 @@ globle void InitAtomicValueNeededFlags(
       integerPtr = integerArray[i];
       while (integerPtr != NULL)
         {
-         integerPtr->neededInteger = FALSE;
+         integerPtr->neededInteger = false;
          integerPtr = integerPtr->next;
         }
      }
@@ -141,7 +139,7 @@ globle void InitAtomicValueNeededFlags(
       bitMapPtr = bitMapArray[i];
       while (bitMapPtr != NULL)
         {
-         bitMapPtr->neededBitMap = FALSE;
+         bitMapPtr->neededBitMap = false;
          bitMapPtr = bitMapPtr->next;
         }
      }
@@ -151,7 +149,7 @@ globle void InitAtomicValueNeededFlags(
 /* WriteNeededSymbols: Stores all of the symbols in the symbol   */
 /*   table needed for this binary image in the binary save file. */
 /*****************************************************************/
-globle void WriteNeededSymbols(
+void WriteNeededSymbols(
   void *theEnv,
   FILE *fp)
   {
@@ -212,7 +210,7 @@ globle void WriteNeededSymbols(
 /* WriteNeededFloats: Stores all of the floats in the float      */
 /*   table needed for this binary image in the binary save file. */
 /*****************************************************************/
-globle void WriteNeededFloats(
+void WriteNeededFloats(
   void *theEnv,
   FILE *fp)
   {
@@ -262,7 +260,7 @@ globle void WriteNeededFloats(
 /* WriteNeededIntegers: Stores all of the integers in the integer */
 /*   table needed for this binary image in the binary save file.  */
 /******************************************************************/
-globle void WriteNeededIntegers(
+void WriteNeededIntegers(
   void *theEnv,
   FILE *fp)
   {
@@ -380,7 +378,7 @@ static void WriteNeededBitMaps(
 /*   floats, integers, and bitmaps needed by */
 /*   this binary image from the binary file. */
 /*********************************************/
-globle void ReadNeededAtomicValues(
+void ReadNeededAtomicValues(
   void *theEnv)
   {
    ReadNeededSymbols(theEnv);
@@ -393,7 +391,7 @@ globle void ReadNeededAtomicValues(
 /* ReadNeededSymbols: Reads in the symbols */
 /*   used by the binary image.             */
 /*******************************************/
-globle void ReadNeededSymbols(
+void ReadNeededSymbols(
   void *theEnv)
   {
    char *symbolNames, *namePtr;
@@ -444,7 +442,7 @@ globle void ReadNeededSymbols(
 /* ReadNeededFloats: Reads in the floats */
 /*   used by the binary image.           */
 /*****************************************/
-globle void ReadNeededFloats(
+void ReadNeededFloats(
   void *theEnv)
   {
    double *floatValues;
@@ -488,7 +486,7 @@ globle void ReadNeededFloats(
 /* ReadNeededIntegers: Reads in the integers */
 /*   used by the binary image.               */
 /*********************************************/
-globle void ReadNeededIntegers(
+void ReadNeededIntegers(
   void *theEnv)
   {
    long long *integerValues;
@@ -586,7 +584,7 @@ static void ReadNeededBitMaps(
 /*   for storing the pointers to atomic data values used  */
 /*   in refreshing expressions and other data structures. */
 /**********************************************************/
-globle void FreeAtomicValueStorage(
+void FreeAtomicValueStorage(
   void *theEnv)
   {
    if (SymbolData(theEnv)->SymbolArray != NULL)

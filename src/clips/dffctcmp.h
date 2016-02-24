@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*        DEFFACTS CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -27,19 +27,11 @@
 
 #ifndef _H_dffctcmp
 
+#pragma once
+
 #define _H_dffctcmp
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFCTCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeffactsCompilerSetup(void *);
-   LOCALE void                           DeffactsCModuleReference(void *,FILE *,int,int,int);
+   void                           DeffactsCompilerSetup(void *);
+   void                           DeffactsCModuleReference(void *,FILE *,int,int,int);
 
 #endif /* _H_dffctcmp */

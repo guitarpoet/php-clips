@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -22,27 +22,17 @@
 /*************************************************************/
 
 #ifndef _H_dfinscmp
+
+#pragma once
+
 #define _H_dfinscmp
 
 #if DEFINSTANCES_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME)
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFINSCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupDefinstancesCompiler(void *);
-   LOCALE void                           DefinstancesCModuleReference(void *,FILE *,int,int,int);
+   void                           SetupDefinstancesCompiler(void *);
+   void                           DefinstancesCModuleReference(void *,FILE *,int,int,int);
 
 #endif /* DEFINSTANCES_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME) */
 

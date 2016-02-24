@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                ANALYSIS HEADER FILE                 */
    /*******************************************************/
@@ -27,23 +27,12 @@
 
 #ifndef _H_analysis
 
+#pragma once
+
 #define _H_analysis
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_reorder
 #include "reorder.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _ANALYSIS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 /*****************************************************/
 /* nandFrame structure: Stores information about the */
@@ -57,7 +46,7 @@ struct nandFrame
    struct nandFrame *next;
   };
 
-   LOCALE intBool                        VariableAnalysis(void *,struct lhsParseNode *);
+   bool                           VariableAnalysis(void *,struct lhsParseNode *);
 
 #endif
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -24,23 +24,28 @@
 /*                                                           */
 /*            Added NESTED_RHS constant.                     */
 /*                                                           */
+/*      6.40: Added support for booleans with <stdbool.h>.   */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_constant
 
+#pragma once
+
 #define _H_constant
+
+#include <stdbool.h>
 
 #ifndef FALSE
 #define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE 1
 #endif
 
 #define EXACTLY       0
 #define AT_LEAST      1
 #define NO_MORE_THAN  2
 #define RANGE         3
+
+#define UNBOUNDED    -1
 
 #define OFF           0
 #define ON            1
@@ -79,15 +84,15 @@
 #endif
 
 #ifndef VERSION_STRING
-#define VERSION_STRING "6.30"
+#define VERSION_STRING "6.40"
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "8/22/14"
+#define CREATION_DATE_STRING "2/17/16"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "         CLIPS (6.30 8/22/14)\n"
+#define BANNER_STRING "         CLIPS (Cypher Alpha 2/17/16)\n"
 #endif
 
 /*************************/
@@ -125,6 +130,31 @@
 #define ADDRESS_TYPE_CODE              13
 #define INSTANCE_TYPE_CODE             14
 
+typedef enum
+  {
+   FLOAT_TYPE = (1 << 0),
+   INTEGER_TYPE = (1 << 1),
+   SYMBOL_TYPE = (1 << 2),
+   STRING_TYPE = (1 << 3),
+   MULTIFIELD_TYPE = (1 << 4),
+   EXTERNAL_ADDRESS_TYPE = (1 << 5),
+   FACT_ADDRESS_TYPE = (1 << 6),
+   INSTANCE_ADDRESS_TYPE = (1 << 7),
+   INSTANCE_NAME_TYPE = (1 << 8),
+   VOID_TYPE = (1 << 9),
+   BOOLEAN_TYPE = (1 << 10),
+   NUMBER_TYPES = INTEGER_TYPE | FLOAT_TYPE,
+   LEXEME_TYPES = SYMBOL_TYPE | STRING_TYPE,
+   ADDRESS_TYPES = EXTERNAL_ADDRESS_TYPE | FACT_ADDRESS_TYPE | INSTANCE_ADDRESS_TYPE,
+   INSTANCE_TYPES = INSTANCE_ADDRESS_TYPE | INSTANCE_NAME_TYPE,
+   SINGLEFIELD_TYPES = NUMBER_TYPES | LEXEME_TYPES | ADDRESS_TYPES | INSTANCE_NAME_TYPE,
+   ANY_TYPE = VOID_TYPE | SINGLEFIELD_TYPES | MULTIFIELD_TYPE
+  } CLIPSType;
+
+typedef long long CLIPSInteger;
+typedef double CLIPSFloat;
+typedef const char * CLIPSString;
+
 /****************************************************/
 /* The first 9 primitive types need to retain their */
 /* values!! Sorted arrays depend on their values!!  */
@@ -139,6 +169,8 @@
 #define FACT_ADDRESS                    6
 #define INSTANCE_ADDRESS                7
 #define INSTANCE_NAME                   8
+
+#define RVOID                           9
 
 #define FCALL                          30
 #define GCALL                          31
@@ -210,8 +242,6 @@
 #define RPAREN                        171
 #define STOP                          172
 #define UNKNOWN_VALUE                 173
-
-#define RVOID                         175
 
 #define INTEGER_OR_FLOAT              180
 #define SYMBOL_OR_STRING              181

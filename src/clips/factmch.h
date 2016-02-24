@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*               FACT MATCH HEADER FILE                */
    /*******************************************************/
@@ -37,34 +37,20 @@
 
 #ifndef _H_factmch
 
+#pragma once
+
 #define _H_factmch
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_factmngr
-#include "factmngr.h"
-#endif
-#ifndef _H_factbld
 #include "factbld.h"
-#endif
+#include "factmngr.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTMCH_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FactPatternMatch(void *,struct fact *,
+   void                           FactPatternMatch(void *,struct fact *,
                                                struct factPatternNode *,int,
                                                struct multifieldMarker *,
                                                struct multifieldMarker *);
-   LOCALE void                           MarkFactPatternForIncrementalReset(void *,struct patternNodeHeader *,int);
-   LOCALE void                           FactsIncrementalReset(void *);
+   void                           MarkFactPatternForIncrementalReset(void *,struct patternNodeHeader *,int);
+   void                           FactsIncrementalReset(void *);
 
 #endif /* _H_factmch */
 

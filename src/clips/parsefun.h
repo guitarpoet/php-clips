@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*            PARSING FUNCTIONS HEADER FILE            */
    /*******************************************************/
@@ -38,25 +38,15 @@
 
 #ifndef _H_parsefun
 
+#pragma once
+
 #define _H_parsefun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PARSEFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           ParseFunctionDefinitions(void *);
-   LOCALE void                           CheckSyntaxFunction(void *,DATA_OBJECT *);
-   LOCALE int                            CheckSyntax(void *,const char *,DATA_OBJECT_PTR);
+   void                           ParseFunctionDefinitions(void *);
+   void                           CheckSyntaxFunction(UDFContext *,CLIPSValue *);
+   bool                           CheckSyntax(void *,const char *,CLIPSValue *);
 
 #endif /* _H_parsefun */
 

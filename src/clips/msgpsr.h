@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  01/06/16             */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -40,28 +40,19 @@
 /*************************************************************/
 
 #ifndef _H_msgpsr
+
+#pragma once
+
 #define _H_msgpsr
 
 #if OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME)
 
 #define SELF_STRING     "self"
 
-#ifndef _H_object
 #include "object.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MSGCOM_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int              ParseDefmessageHandler(void *,const char *);
-   LOCALE void             CreateGetAndPutHandlers(void *,SLOT_DESC *);
+   bool             ParseDefmessageHandler(void *,const char *);
+   void             CreateGetAndPutHandlers(void *,SLOT_DESC *);
 
 #endif /* OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME) */
 
