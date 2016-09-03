@@ -86,7 +86,7 @@ PHP_FUNCTION(clips_init) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_version) {
-	RETURN_STRING(PHP_CLIPS_ENGINE_VERSION, true);
+	RETURN_STRING(PHP_CLIPS_ENGINE_VERSION);
 }
 
 /*******************************************************************************
@@ -103,12 +103,11 @@ PHP_FUNCTION(clips_version) {
 
 PHP_FUNCTION(clips_create_env) {
 	if(p_clips_env) { // Only create the env when inited
-		char* s_env_name;
-		int i_str_len;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_env_name, &i_str_len) == FAILURE) {
+		zend_string* s_env_name;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_env_name) == FAILURE) {
 			RETURN_FALSE;
 		}
-		create_env(s_env_name);
+		create_env(s_env_name->val);
 		RETURN_TRUE;
 	}
 	RETURN_FALSE;
@@ -128,12 +127,11 @@ PHP_FUNCTION(clips_create_env) {
 
 PHP_FUNCTION(clips_switch_env) {
 	if(p_clips_env) { // Only create the env when inited
-		char* s_env_name;
-		int i_str_len;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_env_name, &i_str_len) == FAILURE) {
+		zend_string* s_env_name;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_env_name) == FAILURE) {
 			RETURN_FALSE;
 		}
-		if(switch_env(s_env_name)) {
+		if(switch_env(s_env_name->val)) {
 			RETURN_TRUE;
 		}
 	}
@@ -159,17 +157,16 @@ PHP_FUNCTION(clips_meta) {
 		// For the current context
 		EnvironmentListNode node = current_env_list_node();
 		if(node) {
-			add_assoc_string(pzv_meta, "current", node->s_name, TRUE);
+			add_assoc_string(pzv_meta, "current", node->s_name);
 
-			zval* pzv_arr = NULL;
-			MAKE_STD_ZVAL(pzv_arr);
-			array_init(pzv_arr);
+			zval zv_arr;
+			array_init(&zv_arr);
 			EnvironmentListNode node = env_list;
 			while(node) {
-				add_next_index_string(pzv_arr, node->s_name, TRUE);
+				add_next_index_string(&zv_arr, node->s_name);
 				node = node->next;
 			}
-			add_assoc_zval(pzv_meta, "envs", pzv_arr);
+			add_assoc_zval(pzv_meta, "envs", &zv_arr);
 		}
 		RETURN_TRUE;
 	}
@@ -247,12 +244,15 @@ PHP_FUNCTION(clips_console) {
 
 PHP_FUNCTION(clips_exec) {
 	if(p_clips_env) {
-		char* s_str;
+		zend_string* pzs_str;
 		int i_str_len;
 		zend_bool zb_debug = FALSE;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sb", &s_str, &i_str_len, &zb_debug) == FAILURE) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Sb", &pzs_str, &zb_debug) == FAILURE) {
 			RETURN_FALSE;
 		}
+        
+        const char* s_str = pzs_str->val;
+
 		if (CommandLineData(p_clips_env)->BeforeCommandExecutionFunction != NULL) { 
 			if (! (*CommandLineData(p_clips_env)->BeforeCommandExecutionFunction)(p_clips_env))
 			{ RETURN_FALSE; }
@@ -292,12 +292,11 @@ PHP_FUNCTION(clips_exec) {
 
 PHP_FUNCTION(clips_load) {
 	if(p_clips_env) {
-		char* s_filename;
-		int i_filename_len;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_filename, &i_filename_len) == FAILURE) {
+		zend_string* s_filename;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_filename) == FAILURE) {
 			RETURN_FALSE;
 		}
-		EnvBatchStar(p_clips_env, s_filename);
+		EnvBatchStar(p_clips_env, s_filename->val);
 		RETURN_TRUE;
 	}
 	RETURN_FALSE;
@@ -316,12 +315,12 @@ PHP_FUNCTION(clips_load) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_is_command_complete) {
-	char* s_str;
+	zend_string* s_str;
 	int i_str_len;
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_str, &i_str_len) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_str) == FAILURE) {
 		RETURN_FALSE;
 	}
-	if(CompleteCommand(s_str) == 0) {
+	if(CompleteCommand(s_str->val) == 0) {
 		RETURN_FALSE;
 	}
 	else {
@@ -343,8 +342,7 @@ PHP_FUNCTION(clips_is_command_complete) {
  *******************************************************************************/
 
 PHP_FUNCTION(clips_query_facts) {
-	char* s_template_name = NULL;
-	int i_template_name_len = 0;
+	zend_string* s_template_name = NULL;
 	zval* pzv_facts;
 
 	if(ZEND_NUM_ARGS() == 0) // If didn't get the args, just return false;
@@ -357,7 +355,7 @@ PHP_FUNCTION(clips_query_facts) {
 	}
 
 	if(ZEND_NUM_ARGS() == 2) {
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "as", &pzv_facts, &s_template_name, &i_template_name_len) != SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "aS", &pzv_facts, &s_template_name) != SUCCESS) {
 			RETURN_FALSE;
 		}
 	}
@@ -370,19 +368,18 @@ PHP_FUNCTION(clips_query_facts) {
 		if(pf_fact) {
 			struct deftemplate* pt_template = (struct deftemplate *) EnvFactDeftemplate(p_clips_env, pf_fact);
 			if(strcmp("initial-fact", ValueToString(pt_template->header.name)) == 0 || // Skipping the initial-fact
-				(s_template_name && strcmp(s_template_name, ValueToString(pt_template->header.name)) != 0)) {
+				(s_template_name && strcmp(s_template_name->val, ValueToString(pt_template->header.name)) != 0)) {
 				// We don't need to get this fact
 				continue;
 			}
 
-			zval* pzv_array_item;
-			MAKE_STD_ZVAL(pzv_array_item);
+			zval zv_array_item;
 			DATA_OBJECT do_tmp;
 			do_tmp.type = FACT_ADDRESS;
 			do_tmp.value = pf_fact;
-			process_fact(p_clips_env, do_tmp, pzv_array_item);
+			process_fact(p_clips_env, do_tmp, &zv_array_item);
 
-			add_next_index_zval(pzv_facts, pzv_array_item);
+			add_next_index_zval(pzv_facts, &zv_array_item);
 		}
 	}
 	RETURN_ZVAL(pzv_facts, TRUE, NULL);
@@ -402,15 +399,14 @@ PHP_FUNCTION(clips_query_facts) {
 
 PHP_FUNCTION(clips_template_exists) {
 	if(p_clips_env) {
-		char* s_template_name = NULL;
-		int i_template_name_len = 0;
+		zend_string* s_template_name = NULL;
 		// Let's get the template name
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_template_name, &i_template_name_len) == SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_template_name) == SUCCESS) {
 			struct deftemplate * pt_template;
 			for (pt_template = (struct deftemplate *) EnvGetNextDeftemplate(p_clips_env, NULL);
 					pt_template != NULL;
 					pt_template = EnvGetNextDeftemplate(p_clips_env, pt_template)) {
-				if(strcmp(s_template_name, ValueToString(pt_template->header.name)) == 0) {
+				if(strcmp(s_template_name->val, ValueToString(pt_template->header.name)) == 0) {
 					RETURN_TRUE;
 				}
 			}
@@ -433,11 +429,10 @@ PHP_FUNCTION(clips_template_exists) {
 
 PHP_FUNCTION(clips_instance_exists) {
 	if(p_clips_env) {
-		char* s_instance_name = NULL;
-		int i_instance_name_len = 0;
+		zend_string* s_instance_name = NULL;
 		// Let's get the instance name
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_instance_name, &i_instance_name_len) == SUCCESS) {
-			if(EnvFindInstance(p_clips_env, NULL, s_instance_name, TRUE)) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_instance_name) == SUCCESS) {
+			if(EnvFindInstance(p_clips_env, NULL, s_instance_name->val, TRUE)) {
 				RETURN_TRUE;
 			}
 		}
@@ -460,10 +455,9 @@ PHP_FUNCTION(clips_instance_exists) {
 
 PHP_FUNCTION(clips_class_exists) {
 	if(p_clips_env) {
-		char* s_class_name = NULL;
-		int i_class_name_len = 0;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &s_class_name, &i_class_name_len) == SUCCESS) {
-			if(EnvFindDefclass(p_clips_env, s_class_name)) {
+		zend_string* s_class_name = NULL;
+		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_class_name) == SUCCESS) {
+			if(EnvFindDefclass(p_clips_env, s_class_name->val)) {
 				RETURN_TRUE;
 			}
 		}
@@ -488,7 +482,7 @@ void clips_count_all_rules(void* env, struct constructHeader* header,void * pv_z
 	if(header->name) {
 		const char* s_name = header->name->contents;
 		if(s_name)
-			add_next_index_string(pzv_arr, s_name, TRUE);
+			add_next_index_string(pzv_arr, s_name);
 	}
 }
 
