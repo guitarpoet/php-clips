@@ -369,12 +369,12 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 
 	int* i_types = (int*) emalloc(i_argc * sizeof(int));
 
+    zval vs[i_argc];
 	// Setup the input parameters
 	int i = 0;
 	for(i = 0; i < i_argc; i++) {
 		// Initialize the php value
-        zval v;
-		zval* val = &v;
+		zval* val = &vs[i];
 
 		// Getting the Data Object
 		DATA_OBJECT o;
