@@ -196,7 +196,9 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 		FactSlotValue(p_clips_env, data.value, strdup(ValueToString(pts_slots->slotName)), &do_slot_val);
 
 		const char* s_property_name = strdup(ValueToString(pts_slots->slotName));
-		zval* zv_property = NULL;
+
+        zval z;
+		zval* zv_property = &z;
 
 		// Convert the data object to php variable
 		convert_do2php(p_clips_env, do_slot_val, zv_property);
