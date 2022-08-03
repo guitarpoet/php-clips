@@ -65,7 +65,7 @@ void* p_clips_env = NULL; // The global clips environment
 zval* pzv_context = NULL; // The global php clips context
 
 PHP_FUNCTION(clips_init) {
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_context) == SUCCESS) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS(), "a", &pzv_context) == SUCCESS) {
 		create_env("MAIN"); // Create the MAIN environment
 		if(switch_env("MAIN")) {
 			RETURN_TRUE;
@@ -104,7 +104,7 @@ PHP_FUNCTION(clips_version) {
 PHP_FUNCTION(clips_create_env) {
 	if(p_clips_env) { // Only create the env when inited
 		zend_string* s_env_name;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_env_name) == FAILURE) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_env_name) == FAILURE) {
 			RETURN_FALSE;
 		}
 		create_env(s_env_name->val);
@@ -128,7 +128,7 @@ PHP_FUNCTION(clips_create_env) {
 PHP_FUNCTION(clips_switch_env) {
 	if(p_clips_env) { // Only create the env when inited
 		zend_string* s_env_name;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_env_name) == FAILURE) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_env_name) == FAILURE) {
 			RETURN_FALSE;
 		}
 		if(switch_env(s_env_name->val)) {
@@ -153,7 +153,7 @@ PHP_FUNCTION(clips_switch_env) {
 PHP_FUNCTION(clips_meta) {
 	zval* pzv_meta = NULL;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_meta) == SUCCESS) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS(), "a", &pzv_meta) == SUCCESS) {
 		// For the current context
 		EnvironmentListNode node = current_env_list_node();
 		if(node) {
@@ -247,7 +247,7 @@ PHP_FUNCTION(clips_exec) {
 		zend_string* pzs_str;
 		int i_str_len;
 		zend_bool zb_debug = FALSE;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Sb", &pzs_str, &zb_debug) == FAILURE) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "Sb", &pzs_str, &zb_debug) == FAILURE) {
 			RETURN_FALSE;
 		}
         
@@ -293,7 +293,7 @@ PHP_FUNCTION(clips_exec) {
 PHP_FUNCTION(clips_load) {
 	if(p_clips_env) {
 		zend_string* s_filename;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_filename) == FAILURE) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_filename) == FAILURE) {
 			RETURN_FALSE;
 		}
 		EnvBatchStar(p_clips_env, s_filename->val);
@@ -317,7 +317,7 @@ PHP_FUNCTION(clips_load) {
 PHP_FUNCTION(clips_is_command_complete) {
 	zend_string* s_str;
 	int i_str_len;
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_str) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_str) == FAILURE) {
 		RETURN_FALSE;
 	}
 	if(CompleteCommand(s_str->val) == 0) {
@@ -349,13 +349,13 @@ PHP_FUNCTION(clips_query_facts) {
 		RETURN_FALSE;
 
 	if(ZEND_NUM_ARGS() == 1) { // If only one argument is there, it must be the array
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_facts) != SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "a", &pzv_facts) != SUCCESS) {
 			RETURN_FALSE;
 		}
 	}
 
 	if(ZEND_NUM_ARGS() == 2) {
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "aS", &pzv_facts, &s_template_name) != SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "aS", &pzv_facts, &s_template_name) != SUCCESS) {
 			RETURN_FALSE;
 		}
 	}
@@ -401,7 +401,7 @@ PHP_FUNCTION(clips_template_exists) {
 	if(p_clips_env) {
 		zend_string* s_template_name = NULL;
 		// Let's get the template name
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_template_name) == SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_template_name) == SUCCESS) {
 			struct deftemplate * pt_template;
 			for (pt_template = (struct deftemplate *) EnvGetNextDeftemplate(p_clips_env, NULL);
 					pt_template != NULL;
@@ -431,7 +431,7 @@ PHP_FUNCTION(clips_instance_exists) {
 	if(p_clips_env) {
 		zend_string* s_instance_name = NULL;
 		// Let's get the instance name
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_instance_name) == SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_instance_name) == SUCCESS) {
 			if(EnvFindInstance(p_clips_env, NULL, s_instance_name->val, TRUE)) {
 				RETURN_TRUE;
 			}
@@ -456,7 +456,7 @@ PHP_FUNCTION(clips_instance_exists) {
 PHP_FUNCTION(clips_class_exists) {
 	if(p_clips_env) {
 		zend_string* s_class_name = NULL;
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &s_class_name) == SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "S", &s_class_name) == SUCCESS) {
 			if(EnvFindDefclass(p_clips_env, s_class_name->val)) {
 				RETURN_TRUE;
 			}
@@ -490,7 +490,7 @@ PHP_FUNCTION(clips_rules) {
 	if(p_clips_env) { // Only create the env when inited
 		zval* pzv_arr = NULL;
 
-		if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &pzv_arr) == SUCCESS) {
+		if(zend_parse_parameters(ZEND_NUM_ARGS(), "a", &pzv_arr) == SUCCESS) {
 			DoForAllConstructs(p_clips_env, clips_count_all_rules, DefruleData(p_clips_env)->DefruleModuleIndex, FALSE, pzv_arr);
 			RETURN_TRUE;
 		}

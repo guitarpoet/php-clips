@@ -132,7 +132,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 
     zend_string* pzs_template_name = zend_string_init(s_template_name, strlen(s_template_name), 0);
 
-	zend_class_entry* pzce_class = zend_fetch_class(pzs_template_name, ZEND_FETCH_CLASS_NO_AUTOLOAD TSRMLS_CC);
+	zend_class_entry* pzce_class = zend_fetch_class(pzs_template_name, ZEND_FETCH_CLASS_NO_AUTOLOAD);
     zend_string_release(pzs_template_name);
 	if(pzce_class) {
 		// We do have the class, let's create a php instance of it
@@ -145,7 +145,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 			zval zv_ret_val;
 
 			// Let's call the construct method first
-			if(call_user_function(EG(function_table), pzv_val, &zv_constructor, &zv_ret_val, 0, NULL TSRMLS_CC) == SUCCESS) {
+			if(call_user_function(EG(function_table), pzv_val, &zv_constructor, &zv_ret_val, 0, NULL) == SUCCESS) {
 				// TODO: What to do if the object didn't have the constructor?
 			}
 			// The constructor is done, let's setting the properties
@@ -160,7 +160,7 @@ void process_fact(void* p_clips_env, DATA_OBJECT data, zval* pzv_val) {
 				convert_do2php(p_clips_env, do_slot_val, &zv_property);
 
 				// Put the property to the object
-				zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), &zv_property TSRMLS_CC);
+				zend_update_property(pzce_class, pzv_val, s_property_name, strlen(s_property_name), &zv_property);
 
 				// Move to next
 				pts_slots = pts_slots->next;
@@ -387,7 +387,7 @@ void call_php_function(zval** ppzv_obj, const char* s_php_method, DATA_OBJECT_PT
 
     zval* pzv_obj = ppzv_obj? *ppzv_obj : NULL;
 	// Call the functions
-	if (call_user_function(EG(function_table), pzv_obj, &zv_function_name, &zv_php_ret_val, i_param_count, *ppzv_params TSRMLS_CC) == SUCCESS) {
+	if (call_user_function(EG(function_table), pzv_obj, &zv_function_name, &zv_php_ret_val, i_param_count, *ppzv_params) == SUCCESS) {
 		switch(Z_TYPE_P(&zv_php_ret_val)) {
 			case IS_LONG:
 				EnvSetpType(pv_env, pdo_return_val, INTEGER);
